@@ -97,7 +97,7 @@
                           downgrade             :: {NewController::pid(), From::gen_statem:from()} | 'undefined',
                           socket_terminated = false                          ::boolean(),
                           socket_tls_closed = false                          ::boolean(),
-                          negotiated_version    :: ssl_record:ssl_version() | 'undefined',
+                          negotiated_version    :: ssl_record:ssl_internal_version() | 'undefined',
                           erl_dist_handle = undefined :: erlang:dist_handle() | 'undefined',
                           cert_key_alts  = undefined ::  #{eddsa => list(),
                                                            ecdsa => list(),

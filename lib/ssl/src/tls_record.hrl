@@ -32,7 +32,7 @@
 %% Used to handle tls_plain_text, tls_compressed and tls_cipher_text
 -record(ssl_tls, {
                   type,
-                  version :: tls_record:tls_version() | undefined,
+                  version :: tls_record:tls_new_version() | undefined,
                   fragment,
                   early_data = false % TLS-1.3
                  }).

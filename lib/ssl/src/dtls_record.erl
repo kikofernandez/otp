@@ -358,7 +358,7 @@ dtls_env_protocol_version_name({ok, Vsns}) when is_list(Vsns) -> supported_proto
 dtls_env_protocol_version_name({ok, Vsn}) -> [Vsn].
 
 
--spec supported_protocol_versions_name() -> dtls_record:dtls_atom_version().
+-spec supported_protocol_versions_name() -> [dtls_record:dtls_atom_version()].
 supported_protocol_versions_name() ->
     Vsns = case sufficient_dtlsv1_2_crypto_support() of
 	       true ->
@@ -384,7 +384,7 @@ supported_protocol_versions(Vsns) when is_list(Vsns) ->
     end.
 
 %%--------------------------------------------------------------------
--spec is_acceptable_version(ssl_record:ssl_version(), Supported :: [ssl_record:ssl_version()]) -> boolean().
+-spec is_acceptable_version(ssl_record:ssl_internal_version(), Supported :: [ssl_record:ssl_internal_version()]) -> boolean().
 %%
 %% Description: ssl version 2 is not acceptable security risks are too big.
 %%
@@ -392,7 +392,7 @@ supported_protocol_versions(Vsns) when is_list(Vsns) ->
 is_acceptable_version(Version, Versions) ->
     lists:member(Version, Versions).
 
--spec hello_version(ssl_record:ssl_version(), [ssl_record:ssl_version()]) -> ssl_record:ssl_version().
+-spec hello_version(ssl_record:ssl_internal_version(), [ssl_record:ssl_internal_version()]) -> ssl_record:ssl_internal_version().
 hello_version(Version, Versions) ->
     case dtls_v1:corresponding_tls_version(Version) of
         TLSVersion when ?TLS_GTE(TLSVersion, ?TLS_1_2) ->

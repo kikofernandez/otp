@@ -54,9 +54,10 @@
 	 is_higher/2, supported_protocol_versions/0, sufficient_crypto_support/1,
 	 is_acceptable_version/1, is_acceptable_version/2, hello_version/1]).
 
--export_type([tls_version/0, tls_atom_version/0]).
+-export_type([tls_version/0, tls_atom_version/0, tls_new_version/0]).
 
 -type tls_version()       :: ssl_record:ssl_internal_version().
+-type tls_new_version()   :: ssl_record:ssl_internal_version().
 -type tls_atom_version()  :: sslv3 | tlsv1 | 'tlsv1.1' | 'tlsv1.2' | 'tlsv1.3'.
 -type tls_max_frag_len()  :: undefined | 512 | 1024 | 2048 | 4096.
 
@@ -103,7 +104,7 @@ init_connection_states(Role, Version, BeastMitigation, MaxEarlyDataSize) ->
 %%--------------------------------------------------------------------
 -spec get_tls_records(
         binary(),
-        [tls_version()] | tls_version(),
+        [tls_new_version()] | tls_version(),
         Buffer0 :: binary() | {'undefined' | #ssl_tls{}, {[binary()],non_neg_integer(),[binary()]}},
         tls_max_frag_len(),
         ssl_options()) ->
@@ -515,7 +516,6 @@ decode_tls_records(Versions, {_,Size,_} = Q0, MaxFragLen, SslOpts, Acc, undefine
     if
         5 =< Size ->
             {<<?BYTE(Type),?BYTE(MajVer),?BYTE(MinVer), ?UINT16(Length)>>, Q} = binary_from_front(5, Q0),
-            %% TODO: convert the MajVer and MinVer to corresponding macro
             Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
             validate_tls_records_type(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, Length);
         3 =< Size ->
