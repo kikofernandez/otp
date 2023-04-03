@@ -886,12 +886,12 @@ decode_handshake(?TLS_1_2 = Version, ?CERTIFICATE_REQUEST,
     HashSignAlgos = decode_sign_alg(Version, HashSigns),
     #certificate_request{certificate_types = CertTypes,
                          hashsign_algorithms = #hash_sign_algos{hash_sign_algos = HashSignAlgos},
-			 certificate_authorities = decode_cert_auths(EncCertAuths, [])};
+			 certificate_authorities = decode_cert_auths(EncCertAuths)};
 decode_handshake(_Version, ?CERTIFICATE_REQUEST,
        <<?BYTE(CertTypesLen), CertTypes:CertTypesLen/binary,
          ?UINT16(CertAuthsLen), EncCertAuths:CertAuthsLen/binary>>) ->
     #certificate_request{certificate_types = CertTypes,
-			 certificate_authorities = decode_cert_auths(EncCertAuths, [])};
+			 certificate_authorities = decode_cert_auths(EncCertAuths)};
 decode_handshake(_Version, ?SERVER_HELLO_DONE, <<>>) ->
     #server_hello_done{};
 decode_handshake(?TLS_1_2, ?CERTIFICATE_VERIFY,<<HashSign:2/binary, ?UINT16(SignLen),
@@ -3059,7 +3059,7 @@ decode_extensions(<<?UINT16(?CERTIFICATE_AUTHORITIES_EXT), ?UINT16(Len),
     <<?UINT16(CertAutsLen), EncCertAuts/binary>> = CertAutsExt,
     decode_extensions(Rest, Version, MessageType,
                       Acc#{certificate_authorities =>
-                               #certificate_authorities{authorities = decode_cert_auths(EncCertAuts, [])}});
+                               #certificate_authorities{authorities = decode_cert_auths(EncCertAuts)}});
 %% Ignore data following the ClientHello (i.e.,
 %% extensions) if not understood.
 decode_extensions(<<?UINT16(_), ?UINT16(Len), _Unknown:Len/binary, Rest/binary>>, Version, MessageType, Acc) ->
@@ -3123,15 +3123,15 @@ decode_alpn(undefined) ->
 decode_alpn(#alpn{extension_data=Data}) ->
     decode_protocols(Data, []).
 
+%% TODO: return the internal representation
 decode_versions(Versions) ->
     [?RAW_TO_INTERNAL_VERSION({M,N}) || <<?BYTE(M),?BYTE(N)>> <= Versions].
-
 
 decode_client_shares(ClientShares) ->
     [#key_share_entry{ group = Group, key_exchange= KeyExchange}
      || <<?UINT16(Group0),?UINT16(Len),KeyExchange:Len/binary>> <= ClientShares,
         Group <- [tls_v1:enum_to_group(Group0)],
-        Group =/= undefined].
+        Group =/= undefined]. %% Ignore key_share with unknown group
 
 decode_next_protocols({next_protocol_negotiation, Protocols}) ->
     decode_protocols(Protocols, []).
@@ -3150,72 +3150,40 @@ decode_protocols(_Bytes, _Acc) ->
 
 
 decode_psk_key_exchange_modes(KEModes) ->
-    decode_psk_key_exchange_modes(KEModes, []).
+    [ PskKey || <<?BYTE(Psk)>> <= KEModes,
+                PskKey <- [decode_psk_key_exchange_mapping(Psk)],
+                PskKey =/= unknown]. %% Ignore unknown PskKeyExchangeModes
 %%
-decode_psk_key_exchange_modes(<<>>, Acc) ->
-    lists:reverse(Acc);
-decode_psk_key_exchange_modes(<<?BYTE(?PSK_KE), Rest/binary>>, Acc) ->
-    decode_psk_key_exchange_modes(Rest, [psk_ke|Acc]);
-decode_psk_key_exchange_modes(<<?BYTE(?PSK_DHE_KE), Rest/binary>>, Acc) ->
-    decode_psk_key_exchange_modes(Rest, [psk_dhe_ke|Acc]);
-%% Ignore unknown PskKeyExchangeModes
-decode_psk_key_exchange_modes(<<?BYTE(_), Rest/binary>>, Acc) ->
-    decode_psk_key_exchange_modes(Rest, Acc).
+decode_psk_key_exchange_mapping(?PSK_KE) -> psk_ke;
+decode_psk_key_exchange_mapping(?PSK_DHE_KE) -> psk_dhe_ke;
+decode_psk_key_exchange_mapping(_) -> unknown.
 
 
 decode_psk_identities(Identities) ->
-    decode_psk_identities(Identities, []).
-%%
-decode_psk_identities(<<>>, Acc) ->
-    lists:reverse(Acc);
-decode_psk_identities(<<?UINT16(Len), Identity:Len/binary, ?UINT32(Age), Rest/binary>>, Acc) ->
-    decode_psk_identities(Rest, [#psk_identity{
-                                    identity = Identity,
-                                    obfuscated_ticket_age = Age}|Acc]).
+    [#psk_identity{ identity = Identity, obfuscated_ticket_age = Age}
+     || <<?UINT16(Len), Identity:Len/binary, ?UINT32(Age)>> <= Identities].
 
 decode_psk_binders(Binders) ->
-    decode_psk_binders(Binders, []).
-%%
-decode_psk_binders(<<>>, Acc) ->
-    lists:reverse(Acc);
-decode_psk_binders(<<?BYTE(Len), Binder:Len/binary, Rest/binary>>, Acc) ->
-    decode_psk_binders(Rest, [Binder|Acc]).
+    [Binder || <<?BYTE(Len), Binder:Len/binary>> <= Binders].
 
-decode_cert_auths(<<>>, Acc) ->
-    lists:reverse(Acc);
-decode_cert_auths(<<?UINT16(Len), Auth:Len/binary, Rest/binary>>, Acc) ->
-    decode_cert_auths(Rest, [public_key:pkix_normalize_name(Auth) | Acc]).
+decode_cert_auths(Auths) ->
+    [public_key:pkix_normalize_name(Auth) || <<?UINT16(Len), Auth:Len/binary>> <= Auths].
 
 %% encode/decode stream of certificate data to/from list of certificate data
 certs_to_list(ASN1Certs) ->
-    certs_to_list(ASN1Certs, []).
-
-certs_to_list(<<?UINT24(CertLen), Cert:CertLen/binary, Rest/binary>>, Acc) ->
-    certs_to_list(Rest, [Cert | Acc]);
-certs_to_list(<<>>, Acc) ->
-    lists:reverse(Acc, []).
+    [Cert || <<?UINT24(CertLen), Cert:CertLen/binary>> <= ASN1Certs].
 
 certs_from_list(ACList) ->
     list_to_binary([begin
-			CertLen = byte_size(Cert),
+                        CertLen = byte_size(Cert),
                         <<?UINT24(CertLen), Cert/binary>>
-		    end || Cert <- ACList]).
+                    end || Cert <- ACList]).
 
 from_3bytes(Bin3) ->
-    from_3bytes(Bin3, []).
-
-from_3bytes(<<>>, Acc) ->
-    lists:reverse(Acc);
-from_3bytes(<<?UINT24(N), Rest/binary>>, Acc) ->
-    from_3bytes(Rest, [?uint16(N) | Acc]).
+    [?uint16(N) || <<?UINT24(N)>> <= Bin3].
 
 from_2bytes(Bin2) ->
-    from_2bytes(Bin2, []).
-
-from_2bytes(<<>>, Acc) ->
-    lists:reverse(Acc);
-from_2bytes(<<?UINT16(N), Rest/binary>>, Acc) ->
-    from_2bytes(Rest, [?uint16(N) | Acc]).
+    [?uint16(N) || <<?UINT16(N)>> <= Bin2].
 
 key_exchange_alg(rsa) ->
     ?KEY_EXCHANGE_RSA;

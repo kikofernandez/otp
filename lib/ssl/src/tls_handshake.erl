@@ -130,6 +130,7 @@ hello(#server_hello{server_version = ServerVersion,
        (?DTLS_1_X(Version) orelse ?TLS_GTE(Version, ?TLS_1_3)) andalso  %% TLS 1.3 client
        (?TLS_LT(ServerVersion, ?TLS_1_2) andalso                        %% Negotiating TLS 1.1 or prior
         Down =:= ?RANDOM_OVERRIDE_TLS11) ->
+
     throw(?ALERT_REC(?FATAL, ?ILLEGAL_PARAMETER));
 
 %% TLS 1.2 clients SHOULD also check that the last eight bytes are not
