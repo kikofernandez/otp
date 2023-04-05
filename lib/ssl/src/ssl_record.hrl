@@ -177,8 +177,8 @@
           next_iv  % opaque IV[SecurityParameters.record_iv_length];
          }). 
 
--define(PROTOCOL_TO_BINARY_VERSION(Version), (Version)).
--define(BINARY_PROTOCOL_TO_INTERNAL_REPRESENTATION(Version), (Version)).
+-define(INTERNAL_VERSION_TO_RAW(Version), (Version)).
+-define(RAW_TO_INTERNAL_VERSION(Version), (Version)).
 
 -define(TLS_1_X(Version), (element(1,Version) == 3)).
 -define(DTLS_1_X(Version), (element(1,Version) == 254)).

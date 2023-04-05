@@ -38,34 +38,22 @@
 
 -spec suites(ssl_record:ssl_version()) -> [ssl_cipher_format:cipher_suite()].
 
-suites(Version) ->
-    lists:filter(fun(Cipher) -> 
-                         is_acceptable_cipher(ssl_cipher_format:suite_bin_to_map(Cipher)) 
-                 end,
-                 tls_v1:suites(corresponding_tls_version(Version))).
-all_suites(Version) ->
-    lists:filter(fun(Cipher) -> 
-                         is_acceptable_cipher(ssl_cipher_format:suite_bin_to_map(Cipher)) 
-                 end,
-                 ssl_cipher:all_suites(corresponding_tls_version(Version))).
+suites(Version) -> suites_generic(?FUNCTION_NAME, Version).
+all_suites(Version) -> suites_generic(?FUNCTION_NAME, Version).
+anonymous_suites(Version) -> suites_generic(?FUNCTION_NAME, Version).
+exclusive_suites(Version) -> suites_generic(?FUNCTION_NAME, Version).
+exclusive_anonymous_suites(Version) -> suites_generic(?FUNCTION_NAME, Version).
 
-anonymous_suites(Version) ->
-    lists:filter(fun(Cipher) -> 
-                         is_acceptable_cipher(ssl_cipher_format:suite_bin_to_map(Cipher)) 
-                 end, 
-                 ssl_cipher:anonymous_suites(corresponding_tls_version(Version))).
+suites_generic(FnName, Version) ->
+    SelectedSuite = selection_suite_fn(FnName),
+    lists:filter(fun (Cipher) -> is_acceptable_cipher(ssl_cipher_format:suite_bin_to_map(Cipher)) end,
+                SelectedSuite(corresponding_tls_version(Version))).
 
-exclusive_suites(Version) ->
-    lists:filter(fun(Cipher) ->
-                         is_acceptable_cipher(ssl_cipher_format:suite_bin_to_map(Cipher))
-                 end,
-                 tls_v1:exclusive_suites(corresponding_tls_version(Version))).
-
-exclusive_anonymous_suites(Version) ->
-    lists:filter(fun(Cipher) ->
-                         is_acceptable_cipher(ssl_cipher_format:suite_bin_to_map(Cipher))
-                 end,
-                 tls_v1:exclusive_anonymous_suites(corresponding_tls_version(Version))).
+selection_suite_fn(suites) -> fun tls_v1:suites/1;
+selection_suite_fn(all_suites) -> fun ssl_cipher:all_suites/1;
+selection_suite_fn(anonymous_suites) -> fun ssl_cipher:anonymous_suites/1;
+selection_suite_fn(exclusive_suites) -> fun tls_v1:exclusive_suites/1;
+selection_suite_fn(exclusive_anonymous_suites) -> fun tls_v1:exclusive_anonymous_suites/1.
 
 
 hmac_hash(MacAlg, MacSecret, Value) ->
