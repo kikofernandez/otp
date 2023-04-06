@@ -2771,40 +2771,26 @@ dec_server_key_signature(_, _, _) ->
 %%   RETURN the lowest of (LocalVersion and LegacyVersion)
 %% - IF supported_versions estension is present:
 %%   RETURN the lowest of (LocalVersion and first element of supported versions)
-process_supported_versions_extension(<<>>, LocalVersion, LegacyVersion)
-  when LegacyVersion =< LocalVersion ->
-    LegacyVersion;
-process_supported_versions_extension(<<>>, LocalVersion, _LegacyVersion) ->
-    LocalVersion;
+process_supported_versions_extension(<<>>, LocalVersion, LegacyVersion) ->
+    tls_record:lowest_protocol_version(LocalVersion, LegacyVersion);
 process_supported_versions_extension(<<?UINT16(?SUPPORTED_VERSIONS_EXT), ?UINT16(Len),
                                        ExtData:Len/binary, _Rest/binary>>,
                                      LocalVersion, _LegacyVersion) when Len > 2 ->
     <<?BYTE(_),Versions0/binary>> = ExtData,
     [Highest|_] = decode_versions(Versions0),
-    if Highest =< LocalVersion ->
-            Highest;
-       true ->
-            LocalVersion
-    end;
+    tls_record:lowest_protocol_version(Highest, LocalVersion);
 process_supported_versions_extension(<<?UINT16(?SUPPORTED_VERSIONS_EXT), ?UINT16(Len),
                                        ?BYTE(Major),?BYTE(Minor), _Rest/binary>>,
                                      LocalVersion, _LegacyVersion) when Len =:= 2 ->
-    SelectedVersion = {Major, Minor},
-    if SelectedVersion =< LocalVersion ->
-            SelectedVersion;
-       true ->
-            LocalVersion
-    end;
+    SelectedVersion = ?RAW_TO_INTERNAL_VERSION({Major, Minor}),
+    tls_record:lowest_protocol_version(SelectedVersion, LocalVersion);
 process_supported_versions_extension(<<?UINT16(_), ?UINT16(Len),
                                        _ExtData:Len/binary, Rest/binary>>,
                                      LocalVersion, LegacyVersion) ->
     process_supported_versions_extension(Rest, LocalVersion, LegacyVersion);
 %% Tolerate protocol encoding errors and skip parsing the rest of the extension.
-process_supported_versions_extension(_, LocalVersion, LegacyVersion)
-  when LegacyVersion =< LocalVersion ->
-    LegacyVersion;
-process_supported_versions_extension(_, LocalVersion, _) ->
-    LocalVersion.
+process_supported_versions_extension(_, LocalVersion, LegacyVersion) ->
+    tls_record:lowest_protocol_version(LegacyVersion, LocalVersion).
 
 decode_extensions(<<>>, _Version, _MessageType, Acc) ->
     Acc;
