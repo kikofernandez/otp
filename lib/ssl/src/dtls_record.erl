@@ -341,26 +341,23 @@ is_higher(_, _) ->
 
 
 %%--------------------------------------------------------------------
--spec supported_protocol_versions() -> [ssl_record:ssl_version()].
+-spec supported_protocol_versions() -> [ssl_record:ssl_internal_version()].
 %%
 %% Description: Protocol versions supported
 %%--------------------------------------------------------------------
 supported_protocol_versions() ->
-    Fun = fun(Version) ->
-		  protocol_version_name(Version)
-	  end,
-    case application:get_env(ssl, dtls_protocol_version) of
-	undefined ->
-	    lists:map(Fun, supported_protocol_versions([]));
-	{ok, []} ->
-	    lists:map(Fun, supported_protocol_versions([]));
-	{ok, Vsns} when is_list(Vsns) ->
-	    supported_protocol_versions(lists:map(Fun, Vsns));
-	{ok, Vsn} ->
-	    supported_protocol_versions([Fun(Vsn)])
-     end.
+    EnvDTLS =  application:get_env(ssl, dtls_protocol_version),
+    ProtocolName = dtls_env_protocol_version_name(EnvDTLS),
+    lists:map(fun protocol_version_name/1, ProtocolName).
 
-supported_protocol_versions([]) ->
+dtls_env_protocol_version_name(undefined) -> supported_protocol_versions_name();
+dtls_env_protocol_version_name({ok, []}) -> supported_protocol_versions_name();
+dtls_env_protocol_version_name({ok, Vsns}) when is_list(Vsns) -> supported_protocol_versions(Vsns);
+dtls_env_protocol_version_name({ok, Vsn}) -> [Vsn].
+
+
+-spec supported_protocol_versions_name() -> dtls_record:dtls_atom_version().
+supported_protocol_versions_name() ->
     Vsns = case sufficient_dtlsv1_2_crypto_support() of
 	       true ->
 		   ?ALL_DATAGRAM_SUPPORTED_VERSIONS;
@@ -368,9 +365,10 @@ supported_protocol_versions([]) ->
 		   ?MIN_DATAGRAM_SUPPORTED_VERSIONS
 	   end,
     application:set_env(ssl, dtls_protocol_version, Vsns),
-    Vsns;
+    Vsns.
 
-supported_protocol_versions([_|_] = Vsns) ->
+-spec supported_protocol_versions([dtls_record:dtls_atom_version()]) -> [dtls_record:dtls_atom_version()].
+supported_protocol_versions(Vsns) when is_list(Vsns) ->
     case sufficient_dtlsv1_2_crypto_support() of
 	true ->
 	    Vsns;
