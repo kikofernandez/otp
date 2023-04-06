@@ -67,7 +67,7 @@ client_hello(_Host, _Port, ConnectionStates,
                fallback := Fallback
               } = SslOpts,
 	     Id, Renegotiation, KeyShare, TicketData, OcspNonce, CertDbHandle, CertDbRef) ->
-    Version = tls_record:highest_protocol_version(Versions),
+    Version = tls_record:highest_protocol_version_with_default(Versions),
 
     %% In TLS 1.3, the client indicates its version preferences in the
     %% "supported_versions" extension (Section 4.2.1) and the
@@ -397,7 +397,7 @@ do_hello(undefined, _Versions, _CipherSuites, _Hello, _SslOpts, _Info, _Renegoti
 do_hello(Version, Versions, CipherSuites, Hello, SslOpts, Info, Renegotiation) ->
     case ssl_cipher:is_fallback(CipherSuites) of
         true ->
-            Highest = tls_record:highest_protocol_version(Versions),
+            Highest = tls_record:highest_protocol_version_with_default(Versions),
             case tls_record:is_higher(Highest, Version) of
                 true ->
                     throw(?ALERT_REC(?FATAL, ?INAPPROPRIATE_FALLBACK));

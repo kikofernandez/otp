@@ -70,7 +70,7 @@ client_hello(_Host, _Port, Cookie, ConnectionStates,
                ciphers := UserSuites,
                fallback := Fallback} = SslOpts,
 	     Id, Renegotiation, OcspNonce) ->
-    Version =  dtls_record:highest_protocol_version(Versions),
+    Version =  dtls_record:highest_protocol_version_with_default(Versions),
     Pending = ssl_record:pending_connection_state(ConnectionStates, read),
     SecParams = maps:get(security_parameters, Pending),
     TLSVersion = dtls_v1:corresponding_tls_version(Version),

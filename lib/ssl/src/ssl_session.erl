@@ -87,7 +87,7 @@ client_select_session({_, _, #{versions := Versions,
 
     RecordCb = record_cb(Protocol),
     LVersion = RecordCb:lowest_protocol_version(Versions),
-    HVersion = RecordCb:highest_protocol_version(Versions),
+    HVersion = RecordCb:highest_protocol_version_with_default(Versions),
 
     case LVersion of
         ?TLS_1_3 ->

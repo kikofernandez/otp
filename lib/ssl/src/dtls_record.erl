@@ -44,7 +44,7 @@
 
 %% Protocol version handling
 -export([protocol_version/1, protocol_version_name/1, lowest_protocol_version/1, lowest_protocol_version/2,
-	 highest_protocol_version/1, highest_protocol_version/2,
+	 highest_protocol_version_with_default/1, highest_protocol_version/1,
 	 is_higher/2, supported_protocol_versions/0,
 	 is_acceptable_version/2, hello_version/2]).
 
@@ -307,38 +307,39 @@ lowest_protocol_version(Versions) ->
     check_protocol_version(Versions, fun lowest_protocol_version/2).
 
 %%--------------------------------------------------------------------
--spec highest_protocol_version([ssl_record:ssl_version()]) -> ssl_record:ssl_version().
+-spec highest_protocol_version_with_default([ssl_record:ssl_version()]) -> ssl_record:ssl_version().
 %%
 %% Description: Highest protocol version present in a list
 %%--------------------------------------------------------------------
-highest_protocol_version(Versions) ->
-    check_protocol_version(Versions, fun highest_protocol_version/2).
+highest_protocol_version_with_default([]) ->
+    highest_protocol_version(supported_protocol_versions());
+highest_protocol_version_with_default(Versions) ->
+    highest_protocol_version(Versions).
 
 
-check_protocol_version([], Fun) -> check_protocol_version(supported_protocol_versions(), Fun);
+check_protocol_version([], _Fun) -> [];
 check_protocol_version([Ver | Versions], Fun) -> lists:foldl(Fun, Ver, Versions).
 
 %%--------------------------------------------------------------------
--spec highest_protocol_version(ssl_record:ssl_version(), ssl_record:ssl_version()) -> ssl_record:ssl_version().
+-spec highest_protocol_version([ssl_record:ssl_version()]) -> ssl_record:ssl_version().
 %%
 %% Description: Highest protocol version of two given versions
 %%--------------------------------------------------------------------
 
-highest_protocol_version(Version1, Version2) when ?DTLS_GT(Version1, Version2) ->
-    Version1;
-highest_protocol_version(_, Version2) ->
-    Version2.
+highest_protocol_version(Versions)  ->
+    Higher = fun (X, Y) -> case is_higher(X, Y) of
+                               true -> X;
+                               false -> Y
+                           end
+             end,
+    check_protocol_version(Versions, Higher).
 
 %%--------------------------------------------------------------------
 -spec is_higher(V1 :: ssl_record:ssl_version(), V2::ssl_record:ssl_version()) -> boolean().
 %%
 %% Description: Is V1 > V2
 %%--------------------------------------------------------------------
-is_higher(V1, V2) when ?DTLS_GT(V1, V2) ->
-    true;
-is_higher(_, _) ->
-    false.
-
+is_higher(V1, V2) -> ?DTLS_GT(V1, V2).
 
 %%--------------------------------------------------------------------
 -spec supported_protocol_versions() -> [ssl_record:ssl_internal_version()].

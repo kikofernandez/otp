@@ -3670,9 +3670,9 @@ protocol_version(Config) ->
 protocol_version(Config, tuple) ->
     case proplists:get_value(protocol, Config) of
 	dtls ->
-	    dtls_record:highest_protocol_version(dtls_record:supported_protocol_versions());
+	    dtls_record:highest_protocol_version_with_default(dtls_record:supported_protocol_versions());
 	_ ->
-	    tls_record:highest_protocol_version(tls_record:supported_protocol_versions())
+	    tls_record:highest_protocol_version_with_default(tls_record:supported_protocol_versions())
    end;
 
 protocol_version(Config, atom) ->

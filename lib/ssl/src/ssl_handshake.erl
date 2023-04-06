@@ -521,7 +521,6 @@ verify_server_key(#server_key_params{params_bin = EncParams,
 select_version(RecordCB, ClientVersion, Versions) ->
     do_select_version(RecordCB, ClientVersion, Versions).
 
-
 %% Called by TLS 1.2/1.3 Server when "supported_versions" is present
 %% in ClientHello.
 %% Input lists are ordered (highest first)
@@ -2414,38 +2413,16 @@ hello_security_parameters(server, Version, #{security_parameters := SecParams}, 
 select_compression(_CompressionMetodes) ->
     ?NULL.
 
-do_select_version(_, ClientVersion, []) ->
-    ClientVersion;
-do_select_version(RecordCB, ClientVersion, [Version | Versions]) ->
-    case RecordCB:is_higher(Version, ClientVersion) of
-	true ->
-	    %% Version too high for client - keep looking
-	    do_select_version(RecordCB, ClientVersion, Versions);
-	false ->
-	    %% Version ok for client - look for a higher
-	    do_select_version(RecordCB, ClientVersion, Versions, Version)
+%% Find Version from Versions compatible (less or equal than ClientVersion).
+%% From the available filtered Versions, pick the highest compatible with ClientVersion.
+do_select_version(RecordCB, ClientVersion, Versions) ->
+    %% Version too high for client - keep looking
+    CompatibleVersions =
+        lists:filter(fun (Version) -> not RecordCB:is_higher(Version, ClientVersion) end, Versions),
+    case RecordCB:highest_protocol_version(CompatibleVersions) of
+        [] -> ClientVersion;
+        Result -> Result
     end.
-%%
-do_select_version(_, _, [], GoodVersion) ->
-    GoodVersion;
-do_select_version(
-  RecordCB, ClientVersion, [Version | Versions], GoodVersion) ->
-    BetterVersion =
-	case RecordCB:is_higher(Version, ClientVersion) of
-	    true ->
-		%% Version too high for client
-		GoodVersion;
-	    false ->
-		%% Version ok for client
-		case RecordCB:is_higher(Version, GoodVersion) of
-		    true ->
-			%% Use higher version
-			Version;
-		    false ->
-			GoodVersion
-		end
-	end,
-    do_select_version(RecordCB, ClientVersion, Versions, BetterVersion).
 
 %%-------------Encode handshakes --------------------------------
 
