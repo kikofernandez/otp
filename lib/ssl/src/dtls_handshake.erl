@@ -123,7 +123,7 @@ cookie(Key, Address, Port, #client_hello{client_version = Version,
 					 session_id = SessionId,
 					 cipher_suites = CipherSuites,
 					 compression_methods = CompressionMethods}) ->
-    {Major, Minor} = Version,
+    {Major, Minor} = ?INTERNAL_VERSION_TO_RAW(Version),
     CookieData = [address_to_bin(Address, Port),
 		  <<?BYTE(Major), ?BYTE(Minor)>>,
 		  Random, SessionId, CipherSuites, CompressionMethods],
@@ -242,7 +242,7 @@ handle_server_hello_extensions(Version, SessionId, Random, CipherSuite,
 enc_handshake(#hello_verify_request{protocol_version = Version,
  				       cookie = Cookie}, _Version) ->
     CookieLength = byte_size(Cookie),
-    {Major,Minor} = Version,
+    {Major,Minor} = ?INTERNAL_VERSION_TO_RAW(Version),
     {?HELLO_VERIFY_REQUEST, <<?BYTE(Major), ?BYTE(Minor),
  			      ?BYTE(CookieLength),
  			      Cookie:CookieLength/binary>>};
@@ -262,7 +262,7 @@ enc_handshake(#client_hello{client_version = ClientVersion,
     BinCipherSuites = list_to_binary(CipherSuites),
     CsLength = byte_size(BinCipherSuites),
     ExtensionsBin = ssl_handshake:encode_hello_extensions(HelloExtensions),
-    {Major,Minor} = ClientVersion,
+    {Major,Minor} = ?INTERNAL_VERSION_TO_RAW(ClientVersion),
 
     {?CLIENT_HELLO, <<?BYTE(Major), ?BYTE(Minor), Random:32/binary,
  		      ?BYTE(SIDLength), SessionID/binary,
@@ -272,7 +272,8 @@ enc_handshake(#client_hello{client_version = ClientVersion,
 enc_handshake(#server_hello{} = HandshakeMsg, Version) ->
     {Type, <<?BYTE(Major), ?BYTE(Minor), Rest/binary>>} = 
 	ssl_handshake:encode_handshake(HandshakeMsg, Version),
-    {DTLSMajor, DTLSMinor} = dtls_v1:corresponding_dtls_version({Major, Minor}),
+    Version0 = ?RAW_TO_INTERNAL_VERSION({Major, Minor}),
+    {DTLSMajor, DTLSMinor} = dtls_v1:corresponding_dtls_version(Version0),
     {Type,  <<?BYTE(DTLSMajor), ?BYTE(DTLSMinor), Rest/binary>>};
 enc_handshake(HandshakeMsg, Version) ->
     ssl_handshake:encode_handshake(HandshakeMsg, dtls_v1:corresponding_tls_version(Version)).
@@ -348,12 +349,12 @@ decode_handshake(Version, ?CLIENT_HELLO, <<?UINT24(_), ?UINT16(_),
 					    ?BYTE(Cm_length), Comp_methods:Cm_length/binary,
 					    Extensions/binary>>) ->
     TLSVersion = dtls_v1:corresponding_tls_version(Version),
-    LegacyVersion = dtls_v1:corresponding_tls_version({Major, Minor}),
+    ClientVersion = ?RAW_TO_INTERNAL_VERSION({Major, Minor}),
+    LegacyVersion = dtls_v1:corresponding_tls_version(ClientVersion),
     Exts = ssl_handshake:decode_vector(Extensions),
     DecodedExtensions = ssl_handshake:decode_hello_extensions(Exts, TLSVersion, LegacyVersion, client),
-
     #client_hello{
-       client_version = {Major,Minor},
+       client_version = ClientVersion,
        random = Random,
        cookie = Cookie,
        session_id = Session_ID,
@@ -366,7 +367,8 @@ decode_handshake(_Version, ?HELLO_VERIFY_REQUEST, <<?UINT24(_), ?UINT16(_),
 						    ?BYTE(Major), ?BYTE(Minor),
 						    ?BYTE(CookieLength),
 						    Cookie:CookieLength/binary>>) ->
-    #hello_verify_request{protocol_version = {Major,Minor},
+    ProtocolVersion = ?RAW_TO_INTERNAL_VERSION({Major,Minor}),
+    #hello_verify_request{protocol_version = ProtocolVersion,
                           cookie = Cookie};
 decode_handshake(Version, Tag,  <<?UINT24(_), ?UINT16(_),
 				  ?UINT24(_),  ?UINT24(_), Msg/binary>>) -> 

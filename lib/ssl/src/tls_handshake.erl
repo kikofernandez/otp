@@ -119,25 +119,26 @@ client_hello(_Host, _Port, ConnectionStates,
 %% TLS 1.3 clients receiving a ServerHello indicating TLS 1.2 or below
 %% MUST check that the last eight bytes are not equal to either of these
 %% values.
-hello(#server_hello{server_version = {Major, Minor},
+hello(#server_hello{server_version = ServerVersion,
                     random = <<_:24/binary,Down:8/binary>>},
-      #{versions := [{M,N}|_]}, _, _, _)
-  when (M > 3 orelse M =:= 3 andalso N >= 4) andalso  %% TLS 1.3 client
-       (Major =:= 3 andalso Minor =:= 3 andalso       %% Negotiating TLS 1.2
+      #{versions := [Version|_]}, _, _, _)
+  when
+      (?DTLS_1_X(Version) orelse ?TLS_GTE(Version, ?TLS_1_3)) andalso %% TLS 1.3 client
+       (?TLS_1_2 == ServerVersion andalso                             %% Negotiating TLS 1.2
         Down =:= ?RANDOM_OVERRIDE_TLS12) orelse
 
-       (M > 3 orelse M =:= 3 andalso N >= 4) andalso  %% TLS 1.3 client
-       (Major =:= 3 andalso Minor < 3 andalso         %% Negotiating TLS 1.1 or prior
+       (?DTLS_1_X(Version) orelse ?TLS_GTE(Version, ?TLS_1_3)) andalso  %% TLS 1.3 client
+       (?TLS_LT(ServerVersion, ?TLS_1_2) andalso                        %% Negotiating TLS 1.1 or prior
         Down =:= ?RANDOM_OVERRIDE_TLS11) ->
     throw(?ALERT_REC(?FATAL, ?ILLEGAL_PARAMETER));
 
 %% TLS 1.2 clients SHOULD also check that the last eight bytes are not
 %% equal to the second value if the ServerHello indicates TLS 1.1 or below.
-hello(#server_hello{server_version = {Major, Minor},
+hello(#server_hello{server_version = ServerVersion,
                     random = <<_:24/binary,Down:8/binary>>},
-      #{versions := [{M,N}|_]}, _, _, _)
-  when (M =:= 3 andalso N =:= 3) andalso              %% TLS 1.2 client
-       (Major =:= 3 andalso Minor < 3 andalso         %% Negotiating TLS 1.1 or prior
+      #{versions := [Version|_]}, _, _, _)
+  when (Version == ?TLS_1_2) andalso              %% TLS 1.2 client
+       (?TLS_LT(ServerVersion, ?TLS_1_2) andalso         %% Negotiating TLS 1.1 or prior
         Down =:= ?RANDOM_OVERRIDE_TLS11) ->
     throw(?ALERT_REC(?FATAL, ?ILLEGAL_PARAMETER));
 
@@ -423,7 +424,7 @@ enc_handshake(#client_hello{client_version = ServerVersion,
     BinCipherSuites = list_to_binary(CipherSuites),
     CsLength = byte_size(BinCipherSuites),
     ExtensionsBin = ssl_handshake:encode_hello_extensions(HelloExtensions),
-    {Major,Minor} = ServerVersion,
+    {Major,Minor} = ?INTERNAL_VERSION_TO_RAW(ServerVersion),
 
     {?CLIENT_HELLO, <<?BYTE(Major), ?BYTE(Minor), Random:32/binary,
 		      ?BYTE(SIDLength), SessionID/binary,
@@ -461,10 +462,11 @@ decode_handshake(Version, ?CLIENT_HELLO,
                    ?BYTE(Cm_length), Comp_methods:Cm_length/binary,
                    Extensions/binary>>) ->
     Exts = ssl_handshake:decode_vector(Extensions),
-    DecodedExtensions = ssl_handshake:decode_hello_extensions(Exts, Version, {Major, Minor},
+    DecodedVersion = ?RAW_TO_INTERNAL_VERSION({Major, Minor}),
+    DecodedExtensions = ssl_handshake:decode_hello_extensions(Exts, Version, DecodedVersion,
                                                               client_hello),
     #client_hello{
-       client_version = {Major,Minor},
+       client_version = DecodedVersion,
        random = Random,
        session_id = Session_ID,
        cipher_suites = ssl_handshake:decode_suites('2_bytes', CipherSuites),

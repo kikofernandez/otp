@@ -55,7 +55,7 @@
 
 
 -record(handshake_env, {
-                        client_hello_version  :: ssl_record:ssl_version() | 'undefined', %% Legacy client hello
+                        client_hello_version  :: ssl_record:ssl_internal_version() | 'undefined', %% Legacy client hello
                         unprocessed_handshake_events = 0    :: integer(),
                         tls_handshake_history :: ssl_handshake:ssl_handshake_history() | secret_printout()
                                                | 'undefined',

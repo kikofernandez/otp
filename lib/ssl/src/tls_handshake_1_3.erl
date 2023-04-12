@@ -605,10 +605,11 @@ decode_handshake(?SERVER_HELLO, <<?BYTE(Major), ?BYTE(Minor), Random:32/binary,
                                   Cipher_suite:2/binary, ?BYTE(Comp_method),
                                   ?UINT16(ExtLen), Extensions:ExtLen/binary>>)
   when Random =:= ?HELLO_RETRY_REQUEST_RANDOM ->
-    HelloExtensions = ssl_handshake:decode_hello_extensions(Extensions, ?TLS_1_3, {Major, Minor},
+    Version = ?RAW_TO_INTERNAL_VERSION({Major, Minor}),
+    HelloExtensions = ssl_handshake:decode_hello_extensions(Extensions, ?TLS_1_3, Version,
                                                             hello_retry_request),
     #server_hello{
-       server_version = {Major,Minor},
+       server_version = Version,
        random = Random,
        session_id = Session_ID,
        cipher_suite = Cipher_suite,

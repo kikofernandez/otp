@@ -216,7 +216,7 @@ encode_change_cipher_spec(Version, Epoch, ConnectionStates) ->
     {[Enc], Cs}.
 
 %%--------------------------------------------------------------------
--spec encode_data(binary(), ssl_record:ssl_version(), ssl_record:connection_states()) ->
+-spec encode_data(binary(), ssl_record:ssl_internal_version(), ssl_record:connection_states()) ->
           {[iolist()],ssl_record:connection_states()}.
 %%
 %% Description: Encodes data to send on the ssl-socket.
@@ -265,7 +265,7 @@ decode_cipher_text(#ssl_tls{epoch = Epoch} = CipherText, ConnnectionStates0) ->
 
 
 %%--------------------------------------------------------------------
--spec protocol_version_name(dtls_atom_version()) -> ssl_record:ssl_version().
+-spec protocol_version_name(dtls_atom_version()) -> ssl_record:ssl_internal_version().
 %%
 %% Description: Creates a protocol version record from a version atom
 %% or vice versa.
@@ -277,7 +277,7 @@ protocol_version_name(dtlsv1) ->
     ?DTLS_1_0.
 
 %%--------------------------------------------------------------------
--spec protocol_version(ssl_record:ssl_version()) -> dtls_atom_version().
+-spec protocol_version(ssl_record:ssl_internal_version()) -> dtls_atom_version().
 
 %%
 %% Description: Creates a protocol version record from a version atom
@@ -289,7 +289,7 @@ protocol_version(?DTLS_1_2) ->
 protocol_version(?DTLS_1_0) ->
     dtlsv1.
 %%--------------------------------------------------------------------
--spec lowest_protocol_version(ssl_record:ssl_version(), ssl_record:ssl_version()) -> ssl_record:ssl_version().
+-spec lowest_protocol_version(ssl_record:ssl_internal_version(), ssl_record:ssl_internal_version()) -> ssl_record:ssl_internal_version().
 %%
 %% Description: Lowes protocol version of two given versions
 %%--------------------------------------------------------------------
@@ -299,7 +299,7 @@ lowest_protocol_version(_, Version2) ->
     Version2.
 
 %%--------------------------------------------------------------------
--spec lowest_protocol_version([ssl_record:ssl_version()]) -> ssl_record:ssl_version().
+-spec lowest_protocol_version([ssl_record:ssl_internal_version()]) -> ssl_record:ssl_internal_version().
 %%     
 %% Description: Lowest protocol version present in a list
 %%--------------------------------------------------------------------
@@ -307,7 +307,7 @@ lowest_protocol_version(Versions) ->
     check_protocol_version(Versions, fun lowest_protocol_version/2).
 
 %%--------------------------------------------------------------------
--spec highest_protocol_version_with_default([ssl_record:ssl_version()]) -> ssl_record:ssl_version().
+-spec highest_protocol_version_with_default([ssl_record:ssl_internal_version()]) -> ssl_record:ssl_internal_version().
 %%
 %% Description: Highest protocol version present in a list
 %%--------------------------------------------------------------------
@@ -321,7 +321,7 @@ check_protocol_version([], _Fun) -> [];
 check_protocol_version([Ver | Versions], Fun) -> lists:foldl(Fun, Ver, Versions).
 
 %%--------------------------------------------------------------------
--spec highest_protocol_version([ssl_record:ssl_version()]) -> ssl_record:ssl_version().
+-spec highest_protocol_version([ssl_record:ssl_internal_version()]) -> ssl_record:ssl_internal_version().
 %%
 %% Description: Highest protocol version of two given versions
 %%--------------------------------------------------------------------
@@ -335,11 +335,12 @@ highest_protocol_version(Versions)  ->
     check_protocol_version(Versions, Higher).
 
 %%--------------------------------------------------------------------
--spec is_higher(V1 :: ssl_record:ssl_version(), V2::ssl_record:ssl_version()) -> boolean().
+-spec is_higher(V1 :: ssl_record:ssl_internal_version(), V2::ssl_record:ssl_internal_version()) -> boolean().
 %%
 %% Description: Is V1 > V2
 %%--------------------------------------------------------------------
-is_higher(V1, V2) -> ?DTLS_GT(V1, V2).
+is_higher(V1, V2) ->
+    ?DTLS_GT(V1, V2).
 
 %%--------------------------------------------------------------------
 -spec supported_protocol_versions() -> [ssl_record:ssl_internal_version()].
@@ -430,7 +431,7 @@ get_dtls_records_aux({DataTag, StateName, _, Versions} = Vinfo,
         orelse ((StateName == abbreviated) andalso (DataTag == udp)))
        andalso ((Type == ?HANDSHAKE) orelse (Type == ?ALERT)) ->
     ssl_logger:debug(LogLevel, inbound, 'record', [RawDTLSRecord]),
-    Version = {MajVer,MinVer},
+    Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
     Acc = [#ssl_tls{type = Type, version = Version,
                     epoch = Epoch, sequence_number = SequenceNumber,
                     fragment = Data} | Acc0],
@@ -450,14 +451,14 @@ get_dtls_records_aux({_, _, Version, Versions} = Vinfo,
        (Type == ?ALERT) orelse
        (Type == ?CHANGE_CIPHER_SPEC) ->
     ssl_logger:debug(LogLevel, inbound, 'record', [RawDTLSRecord]),
-    Version1 = {MajVer,MinVer},
+    DTLSVersion = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
     Acc = [#ssl_tls{type = Type, version = Version,
                     epoch = Epoch, sequence_number = SequenceNumber,
                     fragment = Data} | Acc0],
-    if Version1 =:= Version ->
+    if DTLSVersion =:= Version ->
             get_dtls_records_aux(Vinfo, Rest, Acc, LogLevel);
        Type == ?HANDSHAKE ->
-            case is_acceptable_version(Version1, Versions) of
+            case is_acceptable_version(DTLSVersion, Versions) of
                 true ->
                     get_dtls_records_aux(Vinfo, Rest, Acc, LogLevel);
                 false ->
@@ -531,7 +532,7 @@ update_replay_window(SequenceNumber,
 encode_dtls_cipher_text(Type, Version, Fragment,
 		       #{epoch := Epoch, sequence_number := Seq} = WriteState) ->
     Length = erlang:iolist_size(Fragment),
-    {MajVer,MinVer} = Version,
+    {MajVer,MinVer} = ?INTERNAL_VERSION_TO_RAW(Version),
     {[<<?BYTE(Type), ?BYTE(MajVer), ?BYTE(MinVer), ?UINT16(Epoch),
 	?UINT48(Seq), ?UINT16(Length)>>, Fragment], 
      WriteState#{sequence_number => Seq + 1}}.
@@ -633,14 +634,14 @@ calc_mac_hash(Type, Version, #{mac_secret := MacSecret,
 	     Length, Fragment).
 
 mac_hash(Version, MacAlg, MacSecret, Epoch, SeqNo, Type, Length, Fragment) ->
-    {Major,Minor} = Version,
+    {Major,Minor} = ?INTERNAL_VERSION_TO_RAW(Version),
     Value = [<<?UINT16(Epoch), ?UINT48(SeqNo), ?BYTE(Type),
        ?BYTE(Major), ?BYTE(Minor), ?UINT16(Length)>>,
      Fragment],
     dtls_v1:hmac_hash(MacAlg, MacSecret, Value).
     
 start_additional_data(Type, Version, Epoch, SeqNo) ->
-    {MajVer,MinVer} = Version,
+    {MajVer,MinVer} = ?INTERNAL_VERSION_TO_RAW(Version),
     <<?UINT16(Epoch), ?UINT48(SeqNo), ?BYTE(Type), ?BYTE(MajVer), ?BYTE(MinVer)>>.
 
 %%--------------------------------------------------------------------

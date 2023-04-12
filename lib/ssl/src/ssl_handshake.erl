@@ -518,6 +518,7 @@ verify_server_key(#server_key_params{params_bin = EncParams,
                                       EncParams/binary>>),
     verify_signature(Version, Hash, HashSign, Signature, PubKeyInfo).
 
+%% -spec select_version(dtls_record | tls_record, ssl_record:ssl_internal_version())
 select_version(RecordCB, ClientVersion, Versions) ->
     do_select_version(RecordCB, ClientVersion, Versions).
 
@@ -546,7 +547,7 @@ encode_handshake(#server_hello{server_version = ServerVersion,
 			       compression_method = Comp_method,
 			       extensions = Extensions}, _Version) ->
 			SID_length = byte_size(Session_ID),
-    {Major,Minor} = ServerVersion,
+    {Major,Minor} = ?INTERNAL_VERSION_TO_RAW(ServerVersion),
     ExtensionsBin = encode_hello_extensions(Extensions),
     {?SERVER_HELLO, <<?BYTE(Major), ?BYTE(Minor), Random:32/binary,
 		     ?BYTE(SID_length), Session_ID/binary,
@@ -851,8 +852,9 @@ decode_handshake(_, ?NEXT_PROTOCOL, <<?BYTE(SelectedProtocolLength),
 decode_handshake(Version, ?SERVER_HELLO, <<?BYTE(Major), ?BYTE(Minor), Random:32/binary,
 					    ?BYTE(SID_length), Session_ID:SID_length/binary,
 					    Cipher_suite:2/binary, ?BYTE(Comp_method)>>) ->
+    ServerVersion = ?RAW_TO_INTERNAL_VERSION({Major,Minor}),
     #server_hello{
-       server_version = {Major,Minor},
+       server_version = ServerVersion,
        random = Random,
        session_id = Session_ID,
        cipher_suite = Cipher_suite,
@@ -863,7 +865,8 @@ decode_handshake(Version, ?SERVER_HELLO, <<?BYTE(Major), ?BYTE(Minor), Random:32
 		       ?BYTE(SID_length), Session_ID:SID_length/binary,
 		       Cipher_suite:2/binary, ?BYTE(Comp_method),
 		       ?UINT16(ExtLen), Extensions:ExtLen/binary>>) ->
-    HelloExtensions = decode_hello_extensions(Extensions, Version, {Major, Minor}, server_hello),
+    SelectedVersion = ?RAW_TO_INTERNAL_VERSION({Major, Minor}),
+    HelloExtensions = decode_hello_extensions(Extensions, Version, SelectedVersion, server_hello),
 
     #server_hello{
        server_version = {Major,Minor},
@@ -925,7 +928,7 @@ decode_vector(<<?UINT16(Len), Vector:Len/binary>>) ->
     Vector.
 
 %%--------------------------------------------------------------------
--spec decode_hello_extensions(binary(), ssl_record:ssl_version(),
+-spec decode_hello_extensions(binary(), ssl_record:ssl_internal_version(),
                               ssl_record:ssl_version(), atom()) -> map().
 %%
 %% Description: Decodes TLS hello extensions
@@ -2565,7 +2568,7 @@ encode_alpn(Protocols, _) ->
 
 
 encode_versions(Versions) ->
-    << <<?BYTE(M),?BYTE(N)>> || {M,N} <- Versions>>.
+    << <<?BYTE(M),?BYTE(N)>> || Version <- Versions, {M,N} <- [?INTERNAL_VERSION_TO_RAW(Version)] >>.
 
 encode_client_shares(ClientShares) ->
     << << (encode_key_share_entry(KeyShareEntry0))/binary >> || KeyShareEntry0 <- ClientShares >>.

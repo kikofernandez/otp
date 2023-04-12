@@ -290,7 +290,7 @@ get_server_version(Version, Extensions) ->
             Version
     end.
 
--spec version(ssl_record:ssl_version()) -> string().
+-spec version(ssl_record:ssl_internal_version()) -> string().
 version(?TLS_1_3) ->
     "TLS 1.3";
 version(?TLS_1_2) ->
@@ -305,7 +305,8 @@ version(?DTLS_1_2) ->
     "DTLS 1.2";
 version(?DTLS_1_0) ->
     "DTLS 1.0";
-version({M,N}) ->
+version(Version) ->
+    {M,N} = ?INTERNAL_VERSION_TO_RAW(Version),
     io_lib:format("TLS/DTLS [0x0~B0~B]", [M,N]).
 
 header_prefix(inbound) ->

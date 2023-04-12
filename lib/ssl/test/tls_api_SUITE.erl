@@ -788,12 +788,13 @@ tls_reject_warning_alert_in_initial_hs() ->
 tls_reject_warning_alert_in_initial_hs(Config) when is_list(Config) ->
     ServerOpts = ssl_test_lib:ssl_options(server_rsa_opts, Config),
     {_Clientnode, ServerNode, _Hostname} = ssl_test_lib:run_where(Config),
-    {Major, Minor} = case ssl_test_lib:protocol_version(Config, tuple) of
-                         ?TLS_1_3 ->
-                             ?TLS_1_2;
-                         Other ->
-                             Other
-                     end,
+    Version = case ssl_test_lib:protocol_version(Config, tuple) of
+                  ?TLS_1_3 ->
+                      ?TLS_1_2;
+                  Other ->
+                      Other
+              end,
+    {Major, Minor} = ?INTERNAL_VERSION_TO_RAW(Version),
     Server  = ssl_test_lib:start_server([{node, ServerNode}, {port, 0},
 					 {from, self()},
 					 {mfa, {ssl_test_lib, no_result, []}},
@@ -812,12 +813,13 @@ tls_reject_fake_warning_alert_in_initial_hs() ->
 tls_reject_fake_warning_alert_in_initial_hs(Config) when is_list(Config) ->
     ServerOpts = ssl_test_lib:ssl_options(server_rsa_opts, Config),
     {_ClientNode, ServerNode, _Hostname} = ssl_test_lib:run_where(Config),
-    {Major, Minor} = case ssl_test_lib:protocol_version(Config, tuple) of
-                         ?TLS_1_3 ->
-                             ?TLS_1_2;
-                         Other ->
-                             Other
-                     end,
+    Version = case ssl_test_lib:protocol_version(Config, tuple) of
+                  ?TLS_1_3 ->
+                      ?TLS_1_2;
+                  Other ->
+                      Other
+              end,
+    {Major, Minor} = ?INTERNAL_VERSION_TO_RAW(Version),
     Server  = ssl_test_lib:start_server([{node, ServerNode}, {port, 0},
 					 {from, self()},
 					 {mfa, {ssl_test_lib, no_result, []}},
@@ -838,12 +840,13 @@ tls_app_data_in_initial_hs_state(Config) when is_list(Config) ->
     ServerOpts = ssl_test_lib:ssl_options(server_rsa_opts, Config),
     {_ClientNode, ServerNode, _Hostname} = ssl_test_lib:run_where(Config),
     Version = ssl_test_lib:protocol_version(Config, tuple),
-    {Major, Minor} = case Version of
-                         ?TLS_1_3 ->
-                             ?TLS_1_2;
-                         Other ->
-                             Other
-                     end,
+    VersionDowngrade = case Version of
+                           ?TLS_1_3 ->
+                               ?TLS_1_2;
+                           Other ->
+                               Other
+                       end,
+    {Major, Minor} = ?INTERNAL_VERSION_TO_RAW(VersionDowngrade),
     Server  = ssl_test_lib:start_server([{node, ServerNode}, {port, 0},
 					 {from, self()},
 					 {mfa, {ssl_test_lib, no_result, []}},

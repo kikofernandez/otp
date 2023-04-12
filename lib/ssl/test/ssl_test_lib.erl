@@ -3660,6 +3660,7 @@ ssl_options(Options, Config) ->
     ProtocolOpts = proplists:get_value(protocol_opts, Config, []),
     Options ++ ProtocolOpts.
 
+-spec protocol_version(term()) -> ssl_record:ssl_internal_version().
 protocol_version(Config) ->
    case proplists:get_value(version, Config, undefined) of
        undefined -> 
@@ -3667,6 +3668,8 @@ protocol_version(Config) ->
        Version ->
            Version
    end.
+
+-spec protocol_version(term(), atom()) -> ssl_record:ssl_internal_version().
 protocol_version(Config, tuple) ->
     case proplists:get_value(protocol, Config) of
 	dtls ->

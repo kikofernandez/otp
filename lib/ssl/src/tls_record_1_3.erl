@@ -334,7 +334,7 @@ encode_tls_cipher_text(#tls_cipher_text{opaque_type = Type,
                                         encoded_record = Encoded},
                        #{sequence_number := Seq} = Write) ->
     Length = erlang:iolist_size(Encoded),
-    {MajVer,MinVer} = Version,
+    {MajVer,MinVer} = ?INTERNAL_VERSION_TO_RAW(Version),
     {[<<?BYTE(Type), ?BYTE(MajVer), ?BYTE(MinVer), ?UINT16(Length)>>, Encoded],
      Write#{sequence_number => Seq +1}}.
 

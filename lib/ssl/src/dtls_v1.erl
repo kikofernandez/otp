@@ -62,7 +62,7 @@ hmac_hash(MacAlg, MacSecret, Value) ->
 ecc_curves(Version) ->
     tls_v1:ecc_curves(corresponding_tls_version(Version)).
 
-
+-spec corresponding_tls_version(ssl_record:ssl_internal_version()) -> ssl_record:ssl_internal_version().
 corresponding_tls_version(?DTLS_1_0) ->
     ?TLS_1_1;
 corresponding_tls_version(?DTLS_1_2) ->

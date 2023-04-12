@@ -56,7 +56,7 @@
 
 -export_type([tls_version/0, tls_atom_version/0]).
 
--type tls_version()       :: ssl_record:ssl_version().
+-type tls_version()       :: ssl_record:ssl_internal_version().
 -type tls_atom_version()  :: sslv3 | tlsv1 | 'tlsv1.1' | 'tlsv1.2' | 'tlsv1.3'.
 -type tls_max_frag_len()  :: undefined | 512 | 1024 | 2048 | 4096.
 
@@ -220,7 +220,7 @@ decode_cipher_text(_, CipherTextRecord,
                     } = ConnectionStates0, _) ->
     SeqBin = <<?UINT64(Seq)>>,
     #ssl_tls{type = Type, version = Version, fragment = Fragment} = CipherTextRecord,
-    {MajVer,MinVer} = Version,
+    {MajVer,MinVer} = ?INTERNAL_VERSION_TO_RAW(Version),
     StartAdditionalData = <<SeqBin/binary, ?BYTE(Type), ?BYTE(MajVer), ?BYTE(MinVer)>>,
     CipherS = ssl_record:nonce_seed(BulkCipherAlgo, SeqBin, CipherS0),
     case ssl_record:decipher_aead(
@@ -359,7 +359,8 @@ highest_protocol_version(Versions)  ->
 %%     
 %% Description: Is V1 > V2
 %%--------------------------------------------------------------------
-is_higher(V1, V2) -> ?TLS_GT(V1, V2).
+is_higher(V1, V2) ->
+    ?TLS_GT(V1, V2).
 
 %%--------------------------------------------------------------------
 -spec supported_protocol_versions() -> [tls_version()].					 
@@ -500,7 +501,7 @@ initial_connection_state(ConnectionEnd, BeastMitigation, MaxEarlyDataSize) ->
 %% Used by logging to recreate the received bytes
 build_tls_record(#ssl_tls{type = Type, version = Version, fragment = Fragment}) ->
     Length = byte_size(Fragment),
-    {MajVer, MinVer} = Version,
+    {MajVer, MinVer} = ?INTERNAL_VERSION_TO_RAW(Version),
     <<?BYTE(Type),?BYTE(MajVer),?BYTE(MinVer),?UINT16(Length), Fragment/binary>>.
 
 
@@ -515,11 +516,11 @@ decode_tls_records(Versions, {_,Size,_} = Q0, MaxFragLen, SslOpts, Acc, undefine
         5 =< Size ->
             {<<?BYTE(Type),?BYTE(MajVer),?BYTE(MinVer), ?UINT16(Length)>>, Q} = binary_from_front(5, Q0),
             %% TODO: convert the MajVer and MinVer to corresponding macro
-            Version = {MajVer,MinVer},
+            Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
             validate_tls_records_type(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, Length);
         3 =< Size ->
             {<<?BYTE(Type),?BYTE(MajVer),?BYTE(MinVer)>>, Q} = binary_from_front(3, Q0),
-            Version = {MajVer,MinVer},
+            Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
             validate_tls_records_type(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, undefined);
         1 =< Size ->
             {<<?BYTE(Type)>>, Q} = binary_from_front(1, Q0),
@@ -531,11 +532,11 @@ decode_tls_records(Versions, {_,Size,_} = Q0, MaxFragLen, SslOpts, Acc, Type, un
     if
         4 =< Size ->
             {<<?BYTE(MajVer),?BYTE(MinVer), ?UINT16(Length)>>, Q} = binary_from_front(4, Q0),
-            Version = {MajVer,MinVer},
+            Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
             validate_tls_record_version(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, Length);
         2 =< Size ->
             {<<?BYTE(MajVer),?BYTE(MinVer)>>, Q} = binary_from_front(2, Q0),
-            Version = {MajVer,MinVer},
+            Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
             validate_tls_record_version(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, undefined);
         true ->
             validate_tls_record_version(Versions, Q0, MaxFragLen, SslOpts, Acc, Type, undefined, undefined)
@@ -688,7 +689,7 @@ encode_fragments(Type, Version, [Text|Data],
     {CompText, CompS} = ssl_record:compress(CompAlg, Text, CompS0),
     SeqBin = <<?UINT64(Seq)>>,
     CipherS1 = ssl_record:nonce_seed(BCAlg, SeqBin, CipherS0),
-    {MajVer, MinVer} = Version,
+    {MajVer, MinVer} = ?INTERNAL_VERSION_TO_RAW(Version),
     VersionBin = <<?BYTE(MajVer), ?BYTE(MinVer)>>,
     StartAdditionalData = <<SeqBin/binary, ?BYTE(Type), VersionBin/binary>>,
     {CipherFragment,CipherS} = ssl_record:cipher_aead(Version, CompText, CipherS1, StartAdditionalData, SecPars),
@@ -706,7 +707,7 @@ encode_fragments(Type, Version, [Text|Data],
     MacHash = ssl_cipher:calc_mac_hash(Type, Version, CompText, MacAlgorithm, MacSecret, Seq),
     {CipherFragment,CipherS} = ssl_record:cipher(Version, CompText, CipherS0, MacHash, SecPars),
     Length = byte_size(CipherFragment),
-    {MajVer, MinVer} = Version,
+    {MajVer, MinVer} = ?INTERNAL_VERSION_TO_RAW(Version),
     CipherHeader = <<?BYTE(Type), ?BYTE(MajVer), ?BYTE(MinVer), ?UINT16(Length)>>,
     encode_fragments(Type, Version, Data, CS, CompS, CipherS, Seq + 1,
                      [[CipherHeader, CipherFragment] | CipherFragments]).

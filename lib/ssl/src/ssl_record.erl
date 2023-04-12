@@ -56,12 +56,13 @@
          cipher_aead/4, cipher_aead/5, decipher_aead/5,
          is_correct_mac/2, nonce_seed/3]).
 
--export_type([ssl_version/0, ssl_atom_version/0, connection_states/0, connection_state/0]).
+-export_type([ssl_version/0, ssl_internal_version/0, ssl_atom_version/0, connection_states/0, connection_state/0]).
 
--type ssl_version()       :: {non_neg_integer(), non_neg_integer()}.
--type ssl_atom_version()  :: tls_record:tls_atom_version().
--type connection_states() :: map(). %% Map
--type connection_state()  :: map(). %% Map
+-type ssl_version()           :: {non_neg_integer(), non_neg_integer()}.
+-type ssl_internal_version()  :: {non_neg_integer(), non_neg_integer()}.
+-type ssl_atom_version()      :: tls_record:tls_atom_version().
+-type connection_states()     :: map(). %% Map
+-type connection_state()      :: map(). %% Map
 
 %%====================================================================
 %% Connection state handling

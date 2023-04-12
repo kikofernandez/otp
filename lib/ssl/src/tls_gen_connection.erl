@@ -362,10 +362,11 @@ handle_info({CloseTag, Socket}, StateName,
             %% is called after all data has been deliver.
             {next_state, StateName, State#state{protocol_specific = PS#{active_n_toggle => true}}, []}
     end;
-handle_info({ssl_tls, Port, Type, {Major, Minor}, Data}, StateName,
+handle_info({ssl_tls, Port, Type, Version, Data}, StateName,
             #state{static_env = #static_env{data_tag = Protocol},
                    ssl_options = #{ktls := true}} = State0) ->
     Len = byte_size(Data),
+    {Major, Minor} = ?INTERNAL_VERSION_TO_RAW(Version),
     handle_info({Protocol, Port, <<Type, Major, Minor, Len:16, Data/binary>>}, StateName, State0);
 handle_info(Msg, StateName, State) ->
     ssl_gen_statem:handle_info(Msg, StateName, State).

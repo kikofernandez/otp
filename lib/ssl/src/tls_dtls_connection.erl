@@ -478,13 +478,14 @@ certify(internal, #server_hello_done{},
 certify(internal, #server_hello_done{},
 	#state{static_env = #static_env{role = client,
                                        protocol_cb = Connection},
-               connection_env = #connection_env{negotiated_version = {Major, Minor}},
+               connection_env = #connection_env{negotiated_version = NegotiatedVersion},
                handshake_env = #handshake_env{kex_algorithm = KexAlg,
                                               premaster_secret = undefined,
                                               server_psk_identity = PSKIdentity} = HsEnv,
                session = #session{master_secret = undefined},
 	       ssl_options = #{user_lookup_fun := PSKLookup}} = State0)
   when KexAlg == rsa_psk ->
+    {Major, Minor} = ?INTERNAL_VERSION_TO_RAW(NegotiatedVersion),
     Rand = ssl_cipher:random_bytes(?NUM_OF_PREMASTERSECRET_BYTES-2),
     RSAPremasterSecret = <<?BYTE(Major), ?BYTE(Minor), Rand/binary>>,
     case ssl_handshake:premaster_secret({KexAlg, PSKIdentity}, PSKLookup, 
@@ -944,10 +945,11 @@ server_certify_and_key_exchange(State0, Connection) ->
 
 certify_client_key_exchange(#encrypted_premaster_secret{premaster_secret= EncPMS},
 			    #state{session = #session{private_key = PrivateKey},
-                                   handshake_env = #handshake_env{client_hello_version = {Major, Minor} = Version},
+                                   handshake_env = #handshake_env{client_hello_version = Version},
                                    client_certificate_status = CCStatus}
                             = State, Connection) ->
     FakeSecret = make_premaster_secret(Version, rsa),
+    {Major, Minor} = ?INTERNAL_VERSION_TO_RAW(Version),
     %% Countermeasure for Bleichenbacher attack always provide some kind of premaster secret
     %% and fail handshake later.RFC 5246 section 7.4.7.1.
     PremasterSecret =
@@ -1647,9 +1649,10 @@ handle_resumed_session(SessId, #state{static_env = #static_env{host = Host,
             throw(Alert)
     end.
 
+-spec make_premaster_secret(ssl_record:ssl_internal_version(), atom()) -> binary() | undefined.
 make_premaster_secret(Version, rsa) ->
     Rand = ssl_cipher:random_bytes(?NUM_OF_PREMASTERSECRET_BYTES-2),
-    {MajVer,MinVer} = Version,
+    {MajVer,MinVer} = ?INTERNAL_VERSION_TO_RAW(Version),
     <<?BYTE(MajVer), ?BYTE(MinVer), Rand/binary>>;
 make_premaster_secret(_, _) ->
     undefined.
