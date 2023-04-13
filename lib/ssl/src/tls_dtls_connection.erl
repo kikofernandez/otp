@@ -810,25 +810,21 @@ update_server_random(#{pending_read := #{security_parameters := ReadSecParams0} 
 %% bytes:
 %%
 %%   44 4F 57 4E 47 52 44 00
-override_server_random(<<Random0:24/binary,_:8/binary>> = Random, {M,N}, {Major,Minor})
-  when Major > 3 orelse Major =:= 3 andalso Minor >= 4 -> %% TLS 1.3 or above
-    if M =:= 3 andalso N =:= 3 ->                         %% Negotiating TLS 1.2
+override_server_random(<<Random0:24/binary,_:8/binary>> = Random, Version, HighestVersion)
+  when ?DTLS_1_X(HighestVersion) orelse ?TLS_GTE(HighestVersion, ?TLS_1_3) -> %% TLS 1.3 or above
+    if Version == ?TLS_1_2 ->                     %% Negotiating TLS 1.2
             Down = ?RANDOM_OVERRIDE_TLS12,
             <<Random0/binary,Down/binary>>;
-       M =:= 3 andalso N < 3 ->                           %% Negotiating TLS 1.1 or prior
+       ?TLS_LT(Version, ?TLS_1_2) ->              %% Negotiating TLS 1.1 or prior
             Down = ?RANDOM_OVERRIDE_TLS11,
             <<Random0/binary,Down/binary>>;
        true ->
             Random
     end;
-override_server_random(<<Random0:24/binary,_:8/binary>> = Random, {M,N}, {Major,Minor})
-  when Major =:= 3 andalso Minor =:= 3 ->   %% TLS 1.2
-    if M =:= 3 andalso N < 3 ->             %% Negotiating TLS 1.1 or prior
-            Down = ?RANDOM_OVERRIDE_TLS11,
-            <<Random0/binary,Down/binary>>;
-       true ->
-            Random
-    end;
+override_server_random(<<Random0:24/binary,_:8/binary>>, Version, ?TLS_1_2) when ?TLS_LT(Version, ?TLS_1_2) ->
+    %% Negotiating TLS 1.1 or prior
+    Down = ?RANDOM_OVERRIDE_TLS11,
+    <<Random0/binary,Down/binary>>;
 override_server_random(Random, _, _) ->
     Random.
 

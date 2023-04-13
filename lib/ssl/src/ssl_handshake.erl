@@ -792,20 +792,12 @@ encode_cert_status_req(
     ReqExtnsBin = encode_request_extensions(ReqExtns),
     <<?BYTE(StatusType), ResponderIDListBin/binary, ReqExtnsBin/binary>>.
 
-encode_responderID_list([]) ->
-    <<?UINT16(0)>>;
-encode_responderID_list(List) ->
-    do_encode_responderID_list(List, <<>>).
 
-%% ResponderID is DER-encoded ASN.1 type defined in RFC6960.
-do_encode_responderID_list([], Acc) ->
-    Len = byte_size(Acc),
-    <<?UINT16(Len), Acc/binary>>;
-do_encode_responderID_list([Responder | Rest], Acc)
-  when is_binary(Responder) ->
-    Len = byte_size(Responder),
-    do_encode_responderID_list(
-        Rest, <<Acc/binary, ?UINT16(Len), Responder/binary>>).
+encode_responderID_list(Responders) ->
+    true = lists:all(fun is_binary/1, Responders),
+    Result = << <<?UINT16(Len), Responder/binary>> || Responder <- Responders, Len <- [byte_size(Responder)] >>,
+    Len = byte_size(Result),
+    <<?UINT16(Len), Result/binary>>.
 
 %% Extensions are DER-encoded ASN.1 type defined in RFC6960 following
 %% extension model employed in X.509 version 3 certificates(RFC5280).
@@ -3132,31 +3124,14 @@ decode_alpn(#alpn{extension_data=Data}) ->
     decode_protocols(Data, []).
 
 decode_versions(Versions) ->
-    decode_versions(Versions, []).
-%%
-decode_versions(<<>>, Acc) ->
-    lists:reverse(Acc);
-decode_versions(<<?BYTE(M),?BYTE(N),Rest/binary>>, Acc) ->
-    decode_versions(Rest, [{M,N}|Acc]).
+    [?RAW_TO_INTERNAL_VERSION({M,N}) || <<?BYTE(M),?BYTE(N)>> <= Versions].
 
 
 decode_client_shares(ClientShares) ->
-    decode_client_shares(ClientShares, []).
-%%
-decode_client_shares(<<>>, Acc) ->
-    lists:reverse(Acc);
-decode_client_shares(<<?UINT16(Group0),?UINT16(Len),KeyExchange:Len/binary,Rest/binary>>, Acc) ->
-    case tls_v1:enum_to_group(Group0) of
-        undefined ->
-            %% Ignore key_share with unknown group
-            decode_client_shares(Rest, Acc);
-        Group ->
-            decode_client_shares(Rest, [#key_share_entry{
-                                           group = Group,
-                                           key_exchange= KeyExchange
-                                          }|Acc])
-    end.
-
+    [#key_share_entry{ group = Group, key_exchange= KeyExchange}
+     || <<?UINT16(Group0),?UINT16(Len),KeyExchange:Len/binary>> <= ClientShares,
+        Group <- [tls_v1:enum_to_group(Group0)],
+        Group =/= undefined].
 
 decode_next_protocols({next_protocol_negotiation, Protocols}) ->
     decode_protocols(Protocols, []).
