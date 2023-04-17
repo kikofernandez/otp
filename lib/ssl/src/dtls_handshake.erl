@@ -144,9 +144,11 @@ hello_verify_request(Cookie, Version) ->
 fragment_handshake(Bin, _) when is_binary(Bin)-> 
     %% This is the change_cipher_spec not a "real handshake" but part of the flight
     Bin;
-fragment_handshake([MsgType, Len, Seq, _, Len, Bin], Size) ->
-    Bins = bin_fragments(Bin, Size-26),  %% Remove packet headers
-    handshake_fragments(MsgType, Seq, Len, Bins, []).
+fragment_handshake([MsgType, Len, Seq, _, Len, Bin0], Size) ->
+    Bins = bin_fragments(Bin0, Size-26),  %% Remove packet headers
+    [<<?BYTE(MsgType), Len/binary, Seq/binary, ?UINT24(Offset),
+	 ?UINT24(FragLen), Bin/binary>> || {Bin, Offset} <- Bins, FragLen <- [byte_size(Bin)]].
+
 
 encode_handshake(Handshake, Version, Seq) ->
     {MsgType, Bin} = enc_handshake(Handshake, Version),
@@ -165,8 +167,19 @@ encode_handshake(Handshake, Version, Seq) ->
 %% and returns it as a list of handshake messages, also returns 
 %% possible leftover data in the new "protocol_buffers".
 %%--------------------------------------------------------------------
-get_dtls_handshake(Version, Fragment, ProtocolBuffers, Options) ->
-    handle_fragments(Version, Fragment, ProtocolBuffers, Options, []).
+get_dtls_handshake(Version, Fragments, ProtocolBuffers, #{log_level := LogLevel}=_Options) ->
+    lists:foldl(fun ([], {Acc0,Buffers}) -> {lists:reverse(Acc0), Buffers};
+                    (Fragment, {Acc0, Buffers1}) ->
+                        {HsPacket, Buffers} = reassemble(Version, Fragment, Buffers1),
+                        HandshakeMessages = handle_hspacket(HsPacket, LogLevel, Acc0),
+                        {HandshakeMessages, Buffers}
+                end,
+                {[], ProtocolBuffers}, decode_handshake_fragments(Fragments)).
+
+handle_hspacket(moredata, _LogLevel, HandshakeMessages) -> HandshakeMessages;
+handle_hspacket({Handshake, _}=HsPacket, LogLevel, HandshakeMessages) ->
+    ssl_logger:debug(LogLevel, inbound, 'handshake', Handshake),
+    [HsPacket | HandshakeMessages].
 
 %%--------------------------------------------------------------------
 %%% Internal functions
@@ -303,37 +316,12 @@ bin_fragments(Bin, BinSize,  FragSize, Offset, Fragments) ->
 	    lists:reverse([{Frag, Offset} | Fragments])
     end.
 
-handshake_fragments(_, _, _, [], Acc) ->
-    lists:reverse(Acc);
-handshake_fragments(MsgType, Seq, Len, [{Bin, Offset} | Bins], Acc) ->
-    FragLen = byte_size(Bin),
-    handshake_fragments(MsgType, Seq, Len, Bins, 
-      [<<?BYTE(MsgType), Len/binary, Seq/binary, ?UINT24(Offset),
-	 ?UINT24(FragLen), Bin/binary>> | Acc]).
-
 address_to_bin({A,B,C,D}, Port) ->
     <<0:80,16#ffff:16,A,B,C,D,Port:16>>;
 address_to_bin({A,B,C,D,E,F,G,H}, Port) ->
     <<A:16,B:16,C:16,D:16,E:16,F:16,G:16,H:16,Port:16>>.
 
 %%--------------------------------------------------------------------
-
-handle_fragments(Version, FragmentData, Buffers0, Options, Acc) ->
-    Fragments = decode_handshake_fragments(FragmentData),
-    do_handle_fragments(Version, Fragments, Buffers0, Options, Acc).
-
-do_handle_fragments(_, [], Buffers, _Options, Acc) ->
-    {lists:reverse(Acc), Buffers};
-do_handle_fragments(Version, [Fragment | Fragments], Buffers0, #{log_level := LogLevel} = Options, Acc) ->
-    case reassemble(Version, Fragment, Buffers0) of
-	{more_data, Buffers} when Fragments == [] ->
-	    {lists:reverse(Acc), Buffers};
-	{more_data, Buffers} ->
-	    do_handle_fragments(Version, Fragments, Buffers, Options, Acc);
-	{{Handshake, _} = HsPacket, Buffers} ->
-            ssl_logger:debug(LogLevel, inbound, 'handshake', Handshake),
-	    do_handle_fragments(Version, Fragments, Buffers, Options, [HsPacket | Acc])
-    end.
 
 decode_handshake(Version, <<?BYTE(Type), Bin/binary>>) ->
     decode_handshake(Version, Type, Bin).
@@ -379,18 +367,17 @@ decode_tls_handshake(Version, Tag, Msg) ->
     TLSVersion = dtls_v1:corresponding_tls_version(Version),
     ssl_handshake:decode_handshake(TLSVersion, Tag, Msg).
 
-decode_handshake_fragments(<<>>) ->
-    [<<>>];
-decode_handshake_fragments(<<?BYTE(Type), ?UINT24(Length),
-			     ?UINT16(MessageSeq),
-			     ?UINT24(FragmentOffset), ?UINT24(FragmentLength),
-			    Fragment:FragmentLength/binary, Rest/binary>>) ->
-    [#handshake_fragment{type = Type, 
-			length = Length,
-			message_seq = MessageSeq,
-			fragment_offset = FragmentOffset,
-			fragment_length = FragmentLength,
-			fragment = Fragment} | decode_handshake_fragments(Rest)].
+decode_handshake_fragments(<<>>) -> [<<>>];
+decode_handshake_fragments(Fragments) ->
+    [#handshake_fragment{type = Type,
+                         length = Length,
+                         message_seq = MessageSeq,
+                         fragment_offset = FragmentOffset,
+                         fragment_length = FragmentLength,
+                         fragment = Fragment} ||
+        <<?BYTE(Type), ?UINT24(Length),
+          ?UINT16(MessageSeq), ?UINT24(FragmentOffset),
+          ?UINT24(FragmentLength), Fragment:FragmentLength/binary>> <= Fragments].
 
 reassemble(Version,  #handshake_fragment{message_seq = Seq} = Fragment, 
 	   #protocol_buffers{dtls_handshake_next_seq = Seq,
@@ -581,12 +568,5 @@ split_frags([#handshake_fragment{message_seq = Seq} = Frag | Rest], Seq, Acc) ->
 split_frags(Frags, _, Acc) ->
     {lists:reverse(Acc), Frags}.
 
-is_complete_handshake(#handshake_fragment{length = Length, fragment_length = Length}) ->
-    true;
-is_complete_handshake(_) ->
-    false.
-
-
-
-
-	    
+is_complete_handshake(#handshake_fragment{length = Length, fragment_length = FragmentLength}) ->
+    Length == FragmentLength.
