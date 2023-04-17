@@ -129,7 +129,7 @@ cookie(Key, Address, Port, #client_hello{client_version = Version,
 		  Random, SessionId, CipherSuites, CompressionMethods],
     crypto:mac(hmac, sha, Key, CookieData).
 %%--------------------------------------------------------------------
--spec hello_verify_request(binary(),  ssl_record:ssl_version()) -> #hello_verify_request{}.
+-spec hello_verify_request(binary(),  ssl_record:ssl_internal_version()) -> #hello_verify_request{}.
 %%
 %% Description: Creates a hello verify request message sent by server to
 %% verify client
@@ -160,7 +160,7 @@ encode_handshake(Handshake, Version, Seq) ->
 %%--------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
--spec get_dtls_handshake(ssl_record:ssl_version(), binary(), #protocol_buffers{}, ssl_options()) ->
+-spec get_dtls_handshake(ssl_record:ssl_internal_version(), binary(), #protocol_buffers{}, ssl_options()) ->
                                 {[{dtls_handshake(), binary()}], #protocol_buffers{}}.                
 %%
 %% Description:  Given buffered and new data from dtls_record, collects
@@ -286,7 +286,8 @@ enc_handshake(#server_hello{} = HandshakeMsg, Version) ->
     {Type, <<?BYTE(Major), ?BYTE(Minor), Rest/binary>>} = 
 	ssl_handshake:encode_handshake(HandshakeMsg, Version),
     Version0 = ?RAW_TO_INTERNAL_VERSION({Major, Minor}),
-    {DTLSMajor, DTLSMinor} = dtls_v1:corresponding_dtls_version(Version0),
+    DTLSVersion = dtls_v1:corresponding_dtls_version(Version0),
+    {DTLSMajor, DTLSMinor} = ?INTERNAL_VERSION_TO_RAW(DTLSVersion),
     {Type,  <<?BYTE(DTLSMajor), ?BYTE(DTLSMinor), Rest/binary>>};
 enc_handshake(HandshakeMsg, Version) ->
     ssl_handshake:encode_handshake(HandshakeMsg, dtls_v1:corresponding_tls_version(Version)).
@@ -322,6 +323,7 @@ address_to_bin({A,B,C,D,E,F,G,H}, Port) ->
     <<A:16,B:16,C:16,D:16,E:16,F:16,G:16,H:16,Port:16>>.
 
 %%--------------------------------------------------------------------
+
 
 decode_handshake(Version, <<?BYTE(Type), Bin/binary>>) ->
     decode_handshake(Version, Type, Bin).

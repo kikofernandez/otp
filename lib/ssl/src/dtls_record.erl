@@ -140,7 +140,7 @@ set_connection_state_by_epoch(ReadState, Epoch, #{saved_read := #{epoch := Epoch
     States#{saved_read := ReadState}.
 
 %%--------------------------------------------------------------------
--spec init_connection_state_seq(ssl_record:ssl_version(), ssl_record:connection_states()) ->
+-spec init_connection_state_seq(ssl_record:ssl_internal_version(), ssl_record:connection_states()) ->
           ssl_record:connection_state().
 %%
 %% Description: Copy the read sequence number to the write sequence number
@@ -168,7 +168,7 @@ current_connection_state_epoch(#{current_write := #{epoch := Epoch}},
     Epoch.
 
 %%--------------------------------------------------------------------
--spec get_dtls_records(binary(), {atom(), atom(), ssl_record:ssl_version(), [ssl_record:ssl_version()]}, binary(),
+-spec get_dtls_records(binary(), {atom(), atom(), ssl_record:ssl_internal_version(), [ssl_record:ssl_internal_version()]}, binary(),
                        ssl_options()) -> {[binary()], binary()} | #alert{}.
 %%
 %% Description: Given old buffer and new data from UDP/SCTP, packs up a records
@@ -184,7 +184,7 @@ get_dtls_records(Data, Vinfo, Buffer, #{log_level := LogLevel}) ->
 %%====================================================================
 
 %%--------------------------------------------------------------------
--spec encode_handshake(iolist(), ssl_record:ssl_version(), integer(), ssl_record:connection_states()) ->
+-spec encode_handshake(iolist(), ssl_record:ssl_internal_version(), integer(), ssl_record:connection_states()) ->
 			      {iolist(), ssl_record:connection_states()}.
 %
 %% Description: Encodes a handshake message to send on the ssl-socket.
@@ -194,7 +194,7 @@ encode_handshake(Frag, Version, Epoch, ConnectionStates) ->
 
 
 %%--------------------------------------------------------------------
--spec encode_alert_record(#alert{}, ssl_record:ssl_version(), ssl_record:connection_states()) ->
+-spec encode_alert_record(#alert{}, ssl_record:ssl_internal_version(), ssl_record:connection_states()) ->
 				 {iolist(), ssl_record:connection_states()}.
 %%
 %% Description: Encodes an alert message to send on the ssl-socket.
@@ -206,7 +206,7 @@ encode_alert_record(#alert{level = Level, description = Description},
 		      ConnectionStates).
 
 %%--------------------------------------------------------------------
--spec encode_change_cipher_spec(ssl_record:ssl_version(), integer(), ssl_record:connection_states()) ->
+-spec encode_change_cipher_spec(ssl_record:ssl_internal_version(), integer(), ssl_record:connection_states()) ->
           {[iolist()], ssl_record:connection_states()}.
 %%
 %% Description: Encodes a change_cipher_spec-message to send on the ssl socket.

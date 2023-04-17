@@ -104,7 +104,7 @@ prf(ConnectionPid, Secret, Label, Seed, WantedLength) ->
 %% Help functions for tls|dtls_connection.erl
 %%====================================================================
 %%--------------------------------------------------------------------
--spec handle_session(#server_hello{}, ssl_record:ssl_version(),
+-spec handle_session(#server_hello{}, ssl_record:ssl_internal_version(),
 		     binary(), ssl_record:connection_states(), _,_, #state{}) ->
 			    gen_statem:state_function_result().
 %%--------------------------------------------------------------------

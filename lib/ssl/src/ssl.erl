@@ -1016,7 +1016,7 @@ negotiated_protocol(#sslsocket{pid = [Pid|_]}) when is_pid(Pid) ->
 %%--------------------------------------------------------------------
 -spec cipher_suites(Description, Version) -> ciphers() when
       Description :: default | all | exclusive | anonymous | exclusive_anonymous,
-      Version :: protocol_version() | ssl_record:ssl_version().
+      Version :: protocol_version() | ssl_record:ssl_internal_version().
 
 %% Description: Returns all default and all supported cipher suites for a
 %% TLS/DTLS version
@@ -1029,17 +1029,22 @@ cipher_suites(Description, Version) when Version == 'tlsv1.3';
 cipher_suites(Description, Version)  when Version == 'dtlsv1.2';
                                    Version == 'dtlsv1'->
     cipher_suites(Description, dtls_record:protocol_version_name(Version));
+%% TODO: split this function into one accepting protocol_version and other fn
+%% accepting internal values, i.e., ssl_internal_version()
 cipher_suites(Description, Version) ->
     [ssl_cipher_format:suite_bin_to_map(Suite) || Suite <- supported_suites(Description, Version)].
 
 %%--------------------------------------------------------------------
 -spec cipher_suites(Description, Version, rfc | openssl) -> [string()] when
       Description :: default | all | exclusive | anonymous,
-      Version :: protocol_version() | ssl_record:ssl_version().
+      Version :: protocol_version() | ssl_record:ssl_internal_version().
 
 %% Description: Returns all default and all supported cipher suites for a
 %% TLS/DTLS version
 %%--------------------------------------------------------------------
+%% TODO: split this function into one accepting protocol_version and other fn
+%% accepting internal values, i.e., ssl_internal_version()
+
 cipher_suites(Description, Version, StringType) when  Version == 'tlsv1.3';
                                                Version == 'tlsv1.2';
                                                Version == 'tlsv1.1';

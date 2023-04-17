@@ -1943,7 +1943,7 @@ connection_info(#state{handshake_env = #handshake_env{sni_hostname = SNIHostname
                                           srp_username = SrpUsername,
                                           ecc = ECCCurve} = Session,
                        connection_states = #{current_write := CurrentWrite},
-		       connection_env = #connection_env{negotiated_version =  {_,_} = Version},
+		       connection_env = #connection_env{negotiated_version = Version},
 		       ssl_options = #{protocol := Protocol} = Opts}) ->
     RecordCB = record_cb(Protocol),
     CipherSuiteDef = #{key_exchange := KexAlg} = ssl_cipher_format:suite_bin_to_map(CipherSuite),

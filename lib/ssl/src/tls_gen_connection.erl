@@ -499,7 +499,7 @@ handle_protocol_record(#ssl_tls{type = _Unknown}, StateName, State) ->
 %%====================================================================	     
 
 %%--------------------------------------------------------------------
--spec encode_alert(#alert{}, ssl_record:ssl_version(), ssl_record:connection_states()) -> 
+-spec encode_alert(#alert{}, ssl_record:ssl_internal_version(), ssl_record:connection_states()) ->
 		    {iolist(), ssl_record:connection_states()}.
 %%
 %% Description: Encodes an alert

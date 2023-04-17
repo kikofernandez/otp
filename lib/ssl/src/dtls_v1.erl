@@ -36,7 +36,7 @@
 
 -define(COOKIE_BASE_TIMEOUT, 30000).
 
--spec suites(ssl_record:ssl_version()) -> [ssl_cipher_format:cipher_suite()].
+-spec suites(ssl_record:ssl_internal_version()) -> [ssl_cipher_format:cipher_suite()].
 
 suites(Version) -> suites_generic(?FUNCTION_NAME, Version).
 all_suites(Version) -> suites_generic(?FUNCTION_NAME, Version).

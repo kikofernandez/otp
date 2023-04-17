@@ -55,7 +55,7 @@
                             %% decrypted version will still use #ssl_tls for code reuse purposes
                             %% with real values for content type and version
                             opaque_type = ?OPAQUE_TYPE,
-                            legacy_version = ?LEGACY_VERSION :: ssl_record:ssl_version(),
+                            legacy_version = ?LEGACY_VERSION :: ssl_record:ssl_internal_version(),
                             encoded_record
                          }).
 

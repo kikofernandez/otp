@@ -359,7 +359,7 @@ compressions() ->
 %%====================================================================
 
 %%--------------------------------------------------------------------
--spec cipher(ssl_version(), iodata(), connection_state(), MacHash::binary()) ->
+-spec cipher(ssl_internal_version(), iodata(), connection_state(), MacHash::binary()) ->
 		    {CipherFragment::binary(), connection_state()}.
 %%
 %% Description: Payload encryption
@@ -376,7 +376,7 @@ cipher(Version, Fragment,
     {CipherFragment,  WriteState0#{cipher_state => CipherS1}}.
 
 %%--------------------------------------------------------------------
--spec cipher(ssl_version(), iodata(), #cipher_state{}, MacHash::binary(), #security_parameters{}) ->
+-spec cipher(ssl_internal_version(), iodata(), #cipher_state{}, MacHash::binary(), #security_parameters{}) ->
 		    {CipherFragment::binary(), #cipher_state{}}.
 %%
 %% Description: Payload encryption
@@ -387,7 +387,7 @@ cipher(Version, Fragment, CipherS0, MacHash,
     ssl_cipher:cipher(BulkCipherAlgo, CipherS0, MacHash, Fragment, Version).
 
 %%--------------------------------------------------------------------
--spec cipher_aead(ssl_version(), iodata(), connection_state(), AAD::binary()) ->
+-spec cipher_aead(ssl_internal_version(), iodata(), connection_state(), AAD::binary()) ->
  			 {CipherFragment::binary(), connection_state()}.
 
 %% Description: Payload encryption
@@ -403,7 +403,7 @@ cipher_aead(_Version, Fragment,
     {CipherFragment,  WriteState0#{cipher_state => CipherS1}}.
 
 %%--------------------------------------------------------------------
--spec cipher_aead(ssl_version(), iodata(), #cipher_state{}, AAD::binary(), #security_parameters{}) ->
+-spec cipher_aead(ssl_internal_version(), iodata(), #cipher_state{}, AAD::binary(), #security_parameters{}) ->
                          {CipherFragment::binary(), #cipher_state{}}.
 
 %% Description: Payload encryption
@@ -413,7 +413,7 @@ cipher_aead(_Version, Fragment, CipherS, AAD,
     do_cipher_aead(BulkCipherAlgo, Fragment, CipherS, AAD).
 
 %%--------------------------------------------------------------------
--spec decipher(ssl_version(), binary(), connection_state(), boolean()) ->
+-spec decipher(ssl_internal_version(), binary(), connection_state(), boolean()) ->
                       {binary(), binary(), connection_state()} | #alert{}.
 %%
 %% Description: Payload decryption
@@ -433,7 +433,7 @@ decipher(Version, CipherFragment,
 	    Alert
     end.
 %%--------------------------------------------------------------------
--spec decipher_aead(ssl_cipher:cipher_enum(),  #cipher_state{}, binary(), binary(), ssl_record:ssl_version()) ->
+-spec decipher_aead(ssl_cipher:cipher_enum(),  #cipher_state{}, binary(), binary(), ssl_record:ssl_internal_version()) ->
 			   binary() | #alert{}.
 %%
 %% Description: Decrypts the data and checks the associated data (AAD) MAC using

@@ -107,7 +107,7 @@ client_select_session({_, _, #{versions := Versions,
     end.
 
 %%--------------------------------------------------------------------
--spec server_select_session(ssl_record:ssl_version(), pid(), ssl:session_id(), map(),
+-spec server_select_session(ssl_record:ssl_internal_version(), pid(), ssl:session_id(), map(),
                             list())  -> {binary(), #session{} | undefined}.
 %%
 %% Description: Should be called by the server side to get an id

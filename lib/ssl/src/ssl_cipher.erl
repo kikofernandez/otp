@@ -94,7 +94,7 @@ security_parameters(?TLS_NULL_WITH_NULL_NULL = CipherSuite, SecParams) ->
     security_parameters(undefined, CipherSuite, SecParams).
 
 %%--------------------------------------------------------------------
--spec security_parameters(ssl_record:ssl_version() | undefined, 
+-spec security_parameters(ssl_record:ssl_internal_version() | undefined,
                           ssl_cipher_format:cipher_suite(), #security_parameters{}) ->
 				 #security_parameters{}.
 %%
@@ -150,7 +150,7 @@ nonce_seed(Seed, CipherState) ->
     CipherState#cipher_state{nonce = Seed}.
 
 %%--------------------------------------------------------------------
--spec cipher(cipher_enum(), #cipher_state{}, binary(), iodata(), ssl_record:ssl_version()) ->
+-spec cipher(cipher_enum(), #cipher_state{}, binary(), iodata(), ssl_record:ssl_internal_version()) ->
 		    {binary(), #cipher_state{}}. 
 %%
 %% Description: Encrypts the data and the MAC using cipher described
@@ -238,7 +238,7 @@ block_cipher(Fun, BlockSz, #cipher_state{key=Key, iv=IV, state = IV_Cache0} = CS
 
 %%--------------------------------------------------------------------
 -spec decipher(cipher_enum(), integer(), #cipher_state{}, binary(), 
-	       ssl_record:ssl_version(), boolean()) ->
+	       ssl_record:ssl_internal_version(), boolean()) ->
 		      {binary(), binary(), #cipher_state{}} | #alert{}.
 %%
 %% Description: Decrypts the data and the MAC using cipher described
@@ -316,7 +316,7 @@ block_decipher(Fun, #cipher_state{key=Key, iv=IV} = CipherState0,
     end.
 
 %%--------------------------------------------------------------------
--spec suites(ssl_record:ssl_version()) -> [ssl_cipher_format:cipher_suite()].
+-spec suites(ssl_record:ssl_internal_version()) -> [ssl_cipher_format:cipher_suite()].
 %%
 %% Description: Returns a list of supported cipher suites.
 %%--------------------------------------------------------------------
@@ -340,7 +340,7 @@ tls_legacy_suites(Version) ->
     lists:flatmap(fun (Fun) -> Fun(Version) end, Tests).
 
 %%--------------------------------------------------------------------
--spec anonymous_suites(ssl_record:ssl_version()) -> [ssl_cipher_format:cipher_suite()].
+-spec anonymous_suites(ssl_record:ssl_internal_version()) -> [ssl_cipher_format:cipher_suite()].
 %%
 %% Description: Returns a list of the anonymous cipher suites, only supported
 %% if explicitly set by user. Intended only for testing.
@@ -359,7 +359,7 @@ anonymous_suite_to_test(?TLS_1_3) -> [?TLS_1_3].
 
 %%--------------------------------------------------------------------
 -spec filter(undefined | binary(), [ssl_cipher_format:cipher_suite()],
-             ssl_record:ssl_version()) -> [ssl_cipher_format:cipher_suite()].
+             ssl_record:ssl_internal_version()) -> [ssl_cipher_format:cipher_suite()].
 %%
 %% Description: Select the cipher suites that can be used together with the 
 %% supplied certificate. (Server side functionality)  

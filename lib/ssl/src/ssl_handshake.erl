@@ -105,7 +105,7 @@ hello_request() ->
     #hello_request{}.
 
 %%--------------------------------------------------------------------
-%%-spec server_hello(binary(), ssl_record:ssl_version(), ssl_record:connection_states(),
+%%-spec server_hello(binary(), ssl_record:ssl_internal_version(), ssl_record:connection_states(),
 %%		   Extension::map()) -> #server_hello{}.
 %%
 %% Description: Creates a server hello message.
@@ -148,7 +148,7 @@ certificate([_, _ |_] = Chain, _, _, _) ->
 
 %%--------------------------------------------------------------------
 -spec client_certificate_verify([der_cert()], binary(),
-				ssl_record:ssl_version(), term(), public_key:private_key(),
+				ssl_record:ssl_internal_version(), term(), public_key:private_key(),
 				ssl_handshake_history()) ->
     #certificate_verify{} | ignore | #alert{}.
 %%
@@ -173,7 +173,7 @@ client_certificate_verify([OwnCert|_], MasterSecret, Version,
 
 %%--------------------------------------------------------------------
 -spec certificate_request(db_handle(), 
-			  certdb_ref(),  #hash_sign_algos{}, ssl_record:ssl_version()) ->
+			  certdb_ref(),  #hash_sign_algos{}, ssl_record:ssl_internal_version()) ->
 				 #certificate_request{}.
 %%
 %% Description: Creates a certificate_request message, called by the server.
@@ -187,7 +187,7 @@ certificate_request(CertDbHandle, CertDbRef, HashSigns, Version) ->
 		    certificate_authorities = Authorities
 		   }.
 %%--------------------------------------------------------------------
--spec key_exchange(client | server, ssl_record:ssl_version(),
+-spec key_exchange(client | server, ssl_record:ssl_internal_version(),
 		   {premaster_secret, binary(), public_key_info()} |
 		   {dh, binary()} |
 		   {dh, {binary(), binary()}, #'DHParameter'{}, {HashAlgo::atom(), SignAlgo::atom()},
@@ -312,7 +312,7 @@ key_exchange(server, Version, {srp, {PublicKey, _},
 			    ClientRandom, ServerRandom, PrivateKey).
 
 %%--------------------------------------------------------------------
--spec finished(ssl_record:ssl_version(), client | server, integer(), binary(), ssl_handshake_history()) ->
+-spec finished(ssl_record:ssl_internal_version(), client | server, integer(), binary(), ssl_handshake_history()) ->
     #finished{}.
 %%
 %% Description: Creates a handshake finished message
@@ -334,7 +334,7 @@ next_protocol(SelectedProtocol) ->
 %%--------------------------------------------------------------------
 -spec certify(#certificate{}, db_handle(), certdb_ref(), ssl_options(), term(),
 	      client | server, inet:hostname() | inet:ip_address(),
-              ssl_record:ssl_version(), map()) ->  {der_cert(), public_key_info()} | #alert{}.
+              ssl_record:ssl_internal_version(), map()) ->  {der_cert(), public_key_info()} | #alert{}.
 %%
 %% Description: Handles a certificate handshake message
 %%--------------------------------------------------------------------
@@ -364,7 +364,7 @@ certify(#certificate{asn1_certificates = ASN1Certs}, CertDbHandle, CertDbRef,
             ?ALERT_REC(?FATAL, ?INTERNAL_ERROR, {unexpected_error, OtherReason})
     end.
 %%--------------------------------------------------------------------
--spec certificate_verify(binary(), public_key_info(), ssl_record:ssl_version(), term(),
+-spec certificate_verify(binary(), public_key_info(), ssl_record:ssl_internal_version(), term(),
 			 binary(), ssl_handshake_history()) -> valid | #alert{}.
 %%
 %% Description: Checks that the certificate_verify message is valid.
@@ -382,7 +382,7 @@ certificate_verify(Signature, PublicKeyInfo, Version,
 	    ?ALERT_REC(?FATAL, ?BAD_CERTIFICATE)
     end.
 %%--------------------------------------------------------------------
--spec verify_signature(ssl_record:ssl_version(), binary(), {term(), term()}, binary(),
+-spec verify_signature(ssl_record:ssl_internal_version(), binary(), {term(), term()}, binary(),
 				   public_key_info()) -> true | false.
 %%
 %% Description: Checks that a public_key signature is valid.
@@ -418,7 +418,7 @@ verify_signature(Version, Msg, {HashAlgo, dsa}, Signature, {?'id-dsa', PublicKey
     public_key:verify(Msg, HashAlgo, Signature, {PublicKey, PublicKeyParams}).
 
 %%--------------------------------------------------------------------
--spec master_secret(ssl_record:ssl_version(), #session{} | binary(), ssl_record:connection_states(),
+-spec master_secret(ssl_record:ssl_internal_version(), #session{} | binary(), ssl_record:connection_states(),
 		   client | server) -> {binary(), ssl_record:connection_states()} | #alert{}.
 %%
 %% Description: Sets or calculates the master secret and calculate keys,
@@ -469,7 +469,7 @@ server_key_exchange_hash(_, Value) ->
     Value.
 
 %%--------------------------------------------------------------------
--spec verify_connection(ssl_record:ssl_version(), #finished{}, client | server, integer(), binary(),
+-spec verify_connection(ssl_record:ssl_internal_version(), #finished{}, client | server, integer(), binary(),
 			ssl_handshake_history()) -> verified | #alert{}.
 %%
 %% Description: Checks the ssl handshake finished message to verify
@@ -921,7 +921,7 @@ decode_vector(<<?UINT16(Len), Vector:Len/binary>>) ->
 
 %%--------------------------------------------------------------------
 -spec decode_hello_extensions(binary(), ssl_record:ssl_internal_version(),
-                              ssl_record:ssl_version(), atom()) -> map().
+                              ssl_record:ssl_internal_version(), atom()) -> map().
 %%
 %% Description: Decodes TLS hello extensions
 %%--------------------------------------------------------------------
@@ -943,7 +943,7 @@ decode_hello_extensions(Extensions, LocalVersion, LegacyVersion, MessageType0) -
     decode_extensions(Extensions, Version, MessageType, empty_extensions(Version, MessageType)).
 
 %%--------------------------------------------------------------------
--spec decode_extensions(binary(),tuple(), atom()) -> map().
+-spec decode_extensions(binary(),ssl_record:ssl_internal_version(), atom()) -> map().
 %%
 %% Description: Decodes TLS hello extensions
 %%--------------------------------------------------------------------
@@ -951,7 +951,7 @@ decode_extensions(Extensions, Version, MessageType) ->
     decode_extensions(Extensions, Version, MessageType, empty_extensions()).
 
 %%--------------------------------------------------------------------
--spec decode_server_key(binary(), ssl:kex_algo(), ssl_record:ssl_version()) ->
+-spec decode_server_key(binary(), ssl:kex_algo(), ssl_record:ssl_internal_version()) ->
 			       #server_key_params{}.
 %%
 %% Description: Decode server_key data and return appropriate type
@@ -960,7 +960,7 @@ decode_server_key(ServerKey, Type, Version) ->
     dec_server_key(ServerKey, key_exchange_alg(Type), Version).
 
 %%--------------------------------------------------------------------
--spec decode_client_key(binary(), ssl:kex_algo(), ssl_record:ssl_version()) ->
+-spec decode_client_key(binary(), ssl:kex_algo(), ssl_record:ssl_internal_version()) ->
 			    #encrypted_premaster_secret{}
 			    | #client_diffie_hellman_public{}
 			    | #client_ec_diffie_hellman_public{}
@@ -1049,7 +1049,7 @@ cipher_suites(Suites, false) ->
 cipher_suites(Suites, true) ->
     Suites.
 %%--------------------------------------------------------------------
--spec prf(ssl_record:ssl_version(), non_neg_integer(), binary(), binary(), [binary()], non_neg_integer()) ->
+-spec prf(ssl_record:ssl_internal_version(), non_neg_integer(), binary(), binary(), [binary()], non_neg_integer()) ->
 		 {ok, binary()} | {error, undefined}.
 %%
 %% Description: use the TLS PRF to generate key material
@@ -1598,7 +1598,7 @@ select_curve({supported_groups, Groups}, Server, HonorServerOrder) ->
 
 %%--------------------------------------------------------------------
 -spec select_hashsign(#hash_sign_algos{} | undefined,  undefined | binary(), 
-		      atom(), [atom()], ssl_record:ssl_version()) ->
+		      atom(), [atom()], ssl_record:ssl_internal_version()) ->
 			     {atom(), atom()} | undefined  | #alert{}.
 
 %%
@@ -1664,7 +1664,7 @@ select_hashsign(_, Cert, _, _, Version) ->
     select_hashsign_algs(undefined, Algo, Version).
 %%--------------------------------------------------------------------
 -spec select_hashsign(#certificate_request{},  binary(), 
-		      [atom()], ssl_record:ssl_version()) ->
+		      [atom()], ssl_record:ssl_internal_version()) ->
 			     {atom(), atom()} | #alert{}.
 
 %%
@@ -1876,7 +1876,7 @@ client_signature_schemes(_, #signature_algorithms_cert{
 
 
 %%--------------------------------------------------------------------
--spec select_hashsign_algs({atom(), atom()}| undefined, oid(), ssl_record:ssl_version()) ->
+-spec select_hashsign_algs({atom(), atom()}| undefined, oid(), ssl_record:ssl_internal_version()) ->
 				  {atom(), atom()}.
 
 %% Description: For TLS 1.2 hash function and signature algorithm pairs can be
@@ -2325,7 +2325,7 @@ encrypted_premaster_secret(Secret, RSAPublicKey) ->
             throw(?ALERT_REC(?FATAL, ?HANDSHAKE_FAILURE, premaster_encryption_failed))
     end.
 
--spec calc_certificate_verify(ssl_record:ssl_version(), md5sha | ssl:hash(), _, [binary()]) -> binary().
+-spec calc_certificate_verify(ssl_record:ssl_internal_version(), md5sha | ssl:hash(), _, [binary()]) -> binary().
 calc_certificate_verify(Version, HashAlgo, _MasterSecret, Handshake) when ?TLS_1_X(Version) ->
     tls_v1:certificate_verify(HashAlgo, lists:reverse(Handshake)).
 
