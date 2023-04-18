@@ -137,7 +137,7 @@ create_server_hello_with_advertised_protocols_test(_Config) ->
 %% Internal functions ------------------------------------------------
 %%--------------------------------------------------------------------
 create_client_handshake(Npn) ->
-    Vsn = {1, 2},
+    Vsn = ?TLS_1_1,
     tls_handshake:encode_handshake(#client_hello{
 				      client_version = Vsn,
 				      random = <<1:256>>,
@@ -149,7 +149,7 @@ create_client_handshake(Npn) ->
 				     }, Vsn).
 
 create_server_handshake(Npn) ->
-    Vsn = {1, 2},
+    Vsn = ?TLS_1_1,
     tls_handshake:encode_handshake(#server_hello{
 				      server_version = Vsn,
 				      random = <<1:256>>,
