@@ -516,11 +516,11 @@ decode_tls_records(Versions, {_,Size,_} = Q0, MaxFragLen, SslOpts, Acc, undefine
     if
         5 =< Size ->
             {<<?BYTE(Type),?BYTE(MajVer),?BYTE(MinVer), ?UINT16(Length)>>, Q} = binary_from_front(5, Q0),
-            Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
+            Version = ?RAW_TO_INTERNAL_VERSION_WITH_DEFAULT({MajVer,MinVer}),
             validate_tls_records_type(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, Length);
         3 =< Size ->
             {<<?BYTE(Type),?BYTE(MajVer),?BYTE(MinVer)>>, Q} = binary_from_front(3, Q0),
-            Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
+            Version = ?RAW_TO_INTERNAL_VERSION_WITH_DEFAULT({MajVer,MinVer}),
             validate_tls_records_type(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, undefined);
         1 =< Size ->
             {<<?BYTE(Type)>>, Q} = binary_from_front(1, Q0),
@@ -532,11 +532,11 @@ decode_tls_records(Versions, {_,Size,_} = Q0, MaxFragLen, SslOpts, Acc, Type, un
     if
         4 =< Size ->
             {<<?BYTE(MajVer),?BYTE(MinVer), ?UINT16(Length)>>, Q} = binary_from_front(4, Q0),
-            Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
+            Version = ?RAW_TO_INTERNAL_VERSION_WITH_DEFAULT({MajVer,MinVer}),
             validate_tls_record_version(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, Length);
         2 =< Size ->
             {<<?BYTE(MajVer),?BYTE(MinVer)>>, Q} = binary_from_front(2, Q0),
-            Version = ?RAW_TO_INTERNAL_VERSION({MajVer,MinVer}),
+            Version = ?RAW_TO_INTERNAL_VERSION_WITH_DEFAULT({MajVer,MinVer}),
             validate_tls_record_version(Versions, Q, MaxFragLen, SslOpts, Acc, Type, Version, undefined);
         true ->
             validate_tls_record_version(Versions, Q0, MaxFragLen, SslOpts, Acc, Type, undefined, undefined)

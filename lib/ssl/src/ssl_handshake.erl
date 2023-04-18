@@ -859,9 +859,10 @@ decode_handshake(Version, ?SERVER_HELLO, <<?BYTE(Major), ?BYTE(Minor), Random:32
 		       ?UINT16(ExtLen), Extensions:ExtLen/binary>>) ->
     SelectedVersion = ?RAW_TO_INTERNAL_VERSION({Major, Minor}),
     HelloExtensions = decode_hello_extensions(Extensions, Version, SelectedVersion, server_hello),
+    HelloVersion = ?RAW_TO_INTERNAL_VERSION({Major,Minor}),
 
     #server_hello{
-       server_version = {Major,Minor},
+       server_version = HelloVersion,
        random = Random,
        session_id = Session_ID,
        cipher_suite = Cipher_suite,

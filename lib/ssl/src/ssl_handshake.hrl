@@ -122,7 +122,7 @@
 	 }).
 
 -record(server_hello, {
-	  server_version,
+	  server_version :: ssl_record:ssl_internal_version() | 'undefined',
 	  random,             
 	  session_id,         % opaque SessionID<0..32>
 	  cipher_suite,       % cipher_suites

@@ -280,5 +280,6 @@
 
 -define(PROTOCOL_INTERNAL_MAPPING, maps:from_list(lists:zip(maps:values(?PROTOCOL_BINARY_MAPPING), maps:keys(?PROTOCOL_BINARY_MAPPING)))).
 -define(RAW_TO_INTERNAL_VERSION(Version), (maps:get(Version, ?PROTOCOL_INTERNAL_MAPPING))).
+-define(RAW_TO_INTERNAL_VERSION_WITH_DEFAULT(Version), (maps:get(Version, ?PROTOCOL_INTERNAL_MAPPING, Version))).
 
 -endif. % -ifdef(ssl_record).
