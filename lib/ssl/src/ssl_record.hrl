@@ -177,44 +177,78 @@
           next_iv  % opaque IV[SecurityParameters.record_iv_length];
          }). 
 
-%% -define(INTERNAL_VERSION_TO_RAW(Version), (Version)).
-%% -define(RAW_TO_INTERNAL_VERSION(Version), (Version)).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% (D)TLS Internal Definitions
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-define(TLS_1_3, tls13).
+-define(TLS_1_2, tls12).
+-define(TLS_1_1, tls11).
+-define(TLS_1_0, tls10).
+-define(DTLS_1_2, dtls12).
+-define(DTLS_1_0, dtls10).
+-define(SSL_3_0, ssl30).
+-define(SSL_2_0, ssl20).
 
-%% -define(TLS_1_X(Version), (element(1,Version) == 3)).
-%% -define(DTLS_1_X(Version), (element(1,Version) == 254)).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% (D)TLS RFC (Raw / wire) Definitions
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% -define(TLS_GTE(Version1, Version2), (Version1 >= Version2)).
-%% -define(TLS_GT(Version1, Version2),  (Version1 > Version2)).
-%% -define(TLS_LTE(Version1, Version2), (Version1 =< Version2)).
-%% -define(TLS_LT(Version1, Version2),  (Version1 < Version2)).
+-define(TLS_1_3_RAW, {3,4}).
+-define(TLS_1_2_RAW, {3,3}).
+-define(TLS_1_1_RAW, {3,2}).
+-define(TLS_1_0_RAW, {3,1}).
+-define(DTLS_1_2_RAW, {254,253}).
+-define(DTLS_1_0_RAW, {254,255}).
+-define(SSL_3_0_RAW, {3,0}).
+-define(SSL_2_0_RAW, {2,0}).
 
-%% -define(DTLS_GTE(Version1, Version2), (Version1 =< Version2)).
-%% -define(DTLS_GT(Version1, Version2),  (Version1 < Version2)).
-%% -define(DTLS_LTE(Version1, Version2), (Version >= Version2)).
-%% -define(DTLS_LT(Version1, Version2),  (Version1 > Version2)).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% API Operations
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Atoms used to refer to protocols
+-define(TLS_GTE(Version1, Version2), (is_map_key(Version2, map_get(Version1, ?TLS_GE_MAP)))).
+-define(TLS_GT(Version1, Version2),  (is_map_key(Version2,     map_get(Version1, ?TLS_G_MAP)))).
+-define(TLS_LTE(Version1, Version2), (not is_map_key(Version2, map_get(Version1, ?TLS_G_MAP)))).
+-define(TLS_LT(Version1, Version2),  (not is_map_key(Version2, map_get(Version1, ?TLS_GE_MAP)))).
+-define(TLS_EQ(Version1, Version2), Version1 == Version2).
 
-%% -define(TLS_1_3, {3,4}).
-%% -define(TLS_1_2, {3,3}).
-%% -define(TLS_1_1, {3,2}).
-%% -define(TLS_1_0, {3,1}).
+-define(DTLS_GTE(Version1, Version2), (is_map_key(Version2,     map_get(Version1, ?DTLS_GE_MAP)))).
+-define(DTLS_GT(Version1, Version2),  (is_map_key(Version2,     map_get(Version1, ?DTLS_G_MAP)))).
+-define(DTLS_LTE(Version1, Version2), (not is_map_key(Version2, map_get(Version1, ?DTLS_G_MAP)))).
+-define(DTLS_LT(Version1, Version2),  (not is_map_key(Version2, map_get(Version1, ?DTLS_GE_MAP)))).
 
-%% -define(DTLS_1_2, {254,253}).
-%% -define(DTLS_1_0, {254,255}).
+-define(TLS_1_X(Version), is_map_key(Version, #{?TLS_1_0 => [], ?TLS_1_1 =>[], ?TLS_1_2 =>[], ?TLS_1_3 =>[] })).
+-define(DTLS_1_X(Version), is_map_key(Version, #{?DTLS_1_0 => [], ?DTLS_1_2 =>[] })).
 
-%% -define(SSL_3_0, {3,0}).
-%% -define(SSL_2_0, {2,0}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Conversion API
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Use the following macros to transform from/to internal representation
+%% to/from raw representation (RFC representation on the wire).
+%%
 
+-define(INTERNAL_VERSION_TO_RAW(Version), (map_get(Version, ?PROTOCOL_BINARY_MAPPING))).
+-define(RAW_TO_INTERNAL_VERSION(Version), (maps:get(Version, ?PROTOCOL_INTERNAL_MAPPING))).
+-define(RAW_TO_INTERNAL_VERSION_WITH_DEFAULT(Version), (maps:get(Version, ?PROTOCOL_INTERNAL_MAPPING, Version))).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Internal Functions
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--define(TLS_1_X(Version), is_map_key(Version, #{tls10 => [], tls11=>[], tls12=>[], tls13=>[]})).
--define(DTLS_1_X(Version), is_map_key(Version, #{dtls10 => [], dtls12=>[]})).
-
-%% %% The first key identifies the first item, Version1, from the macro TLS_GE(Version1, Version2).
-%% %% The result of the initial map with Version returns which items are bigger or equal
-%% %% than Version1. If Version2 is bigger or equal than Version1, then it does not appear in
-%% %% the second map
+%% The first key identifies the first item, Version1, from the macro TLS_GE(Version1, Version2).
+%% The result of the initial map with Version returns which items are bigger or equal
+%% than Version1. If Version2 is bigger or equal than Version1, then it does not appear in
+%% the second map
 -define(TLS_GE_MAP, #{ ?TLS_1_3 => #{?TLS_1_3 => [], ?TLS_1_2 => [], ?TLS_1_1 => [], ?TLS_1_0 => []}
                      , ?TLS_1_2 => #{?TLS_1_2 => [], ?TLS_1_1 => [], ?TLS_1_0 => []}
                      , ?TLS_1_1 => #{?TLS_1_1 => [], ?TLS_1_0 => []}
@@ -235,51 +269,12 @@
                      , ?DTLS_1_0 => #{}
                      }).
 
--define(TLS_GTE(Version1, Version2), (is_map_key(Version2, map_get(Version1, ?TLS_GE_MAP)))).
--define(TLS_GT(Version1, Version2),  (is_map_key(Version2,     map_get(Version1, ?TLS_G_MAP)))).
--define(TLS_LTE(Version1, Version2), (not is_map_key(Version2, map_get(Version1, ?TLS_G_MAP)))).
--define(TLS_LT(Version1, Version2),  (not is_map_key(Version2, map_get(Version1, ?TLS_GE_MAP)))).
--define(TLS_EQ(Version1, Version2), Version1 == Version2).
-
--define(DTLS_GTE(Version1, Version2), (is_map_key(Version2,     map_get(Version1, ?DTLS_GE_MAP)))).
--define(DTLS_GT(Version1, Version2),  (is_map_key(Version2,     map_get(Version1, ?DTLS_G_MAP)))).
--define(DTLS_LTE(Version1, Version2), (not is_map_key(Version2, map_get(Version1, ?DTLS_G_MAP)))).
--define(DTLS_LT(Version1, Version2),  (not is_map_key(Version2, map_get(Version1, ?DTLS_GE_MAP)))).
-
--define(TLS_1_3, tls13).
--define(TLS_1_2, tls12).
--define(TLS_1_1, tls11).
--define(TLS_1_0, tls10).
-
--define(DTLS_1_2, dtls12).
--define(DTLS_1_0, dtls10).
-
--define(SSL_3_0, ssl30).
--define(SSL_2_0, ssl20).
-
-
-%% -define(TLS_1_3, {3,4}).
-%% -define(TLS_1_2, {3,3}).
-%% -define(TLS_1_1, {3,2}).
-%% -define(TLS_1_0, {3,1}).
-
-%% -define(DTLS_1_2, {254,253}).
-%% -define(DTLS_1_0, {254,255}).
-
-%% -define(SSL_3_0, {3,0}).
-%% -define(SSL_2_0, {2,0}).
-
-
 %% These are used for encoding / decoding to
 %% binary to read/write from the wire.
--define(PROTOCOL_BINARY_MAPPING, (#{?TLS_1_3 => {3,4},       ?TLS_1_2 => {3,3},
-                                   ?TLS_1_1 => {3, 2},      ?TLS_1_0 => {3,1},
-                                   ?DTLS_1_2 => {254, 253}, ?DTLS_1_0 => {254, 255},
-                                   ?SSL_3_0 => {3,0},       ?SSL_2_0 => {2,0}})).
--define(INTERNAL_VERSION_TO_RAW(Version), (map_get(Version, ?PROTOCOL_BINARY_MAPPING))).
-
+-define(PROTOCOL_BINARY_MAPPING, (#{?TLS_1_3 => ?TLS_1_3_RAW,     ?TLS_1_2 => ?TLS_1_2_RAW,
+                                   ?TLS_1_1 => ?TLS_1_1_RAW,      ?TLS_1_0 => ?TLS_1_0_RAW,
+                                   ?DTLS_1_2 => ?DTLS_1_2_RAW,    ?DTLS_1_0 => ?DTLS_1_0_RAW,
+                                   ?SSL_3_0 => ?SSL_3_0_RAW,      ?SSL_2_0 => ?SSL_2_0_RAW})).
 -define(PROTOCOL_INTERNAL_MAPPING, maps:from_list(lists:zip(maps:values(?PROTOCOL_BINARY_MAPPING), maps:keys(?PROTOCOL_BINARY_MAPPING)))).
--define(RAW_TO_INTERNAL_VERSION(Version), (maps:get(Version, ?PROTOCOL_INTERNAL_MAPPING))).
--define(RAW_TO_INTERNAL_VERSION_WITH_DEFAULT(Version), (maps:get(Version, ?PROTOCOL_INTERNAL_MAPPING, Version))).
 
 -endif. % -ifdef(ssl_record).
