@@ -2140,10 +2140,15 @@ validate_protocols(true, Opt, List) ->
     lists:foreach(Check, List).
 
 opt_mitigation(UserOpts, #{versions := Versions} = Opts, _Env) ->
-    DefBeast = case ?TLS_GT(lists:last(Versions), ?TLS_1_0) of
-                   true -> disabled;
-                   false -> one_n_minus_one
-               end,
+    Fun = fun (true) -> disabled;
+              (false) -> one_n_minus_one
+          end,
+    LastVersion = lists:last(Versions),
+    DefBeast = case Fun(?DTLS_1_X(LastVersion)) of
+                   disabled -> disabled;
+                   _ -> Fun(?TLS_GT(LastVersion, ?TLS_1_0))
+    end,
+
     {Where1, BM} = get_opt_of(beast_mitigation, [disabled, one_n_minus_one, zero_n], DefBeast, UserOpts, Opts),
     assert_version_dep(Where1 =:= new, beast_mitigation, Versions, ['tlsv1']),
 
