@@ -465,7 +465,7 @@ is_acceptable_version(_) ->
 
 -spec is_acceptable_version(tls_version(), Supported :: [tls_version()]) -> boolean().
 is_acceptable_version(Version, Versions) ->
-    ?TLS_1_X(Version) andalso lists:member(Version, Versions).
+    (?TLS_1_X(Version) orelse ?SSL_X(Version)) andalso lists:member(Version, Versions).
 
 -spec hello_version([tls_version()]) -> tls_version().
 hello_version([Highest|_]) when ?TLS_GTE(Highest, ?TLS_1_2) ->

@@ -225,6 +225,7 @@
 
 -define(TLS_1_X(Version), is_map_key(Version, #{?TLS_1_0 => [], ?TLS_1_1 =>[], ?TLS_1_2 =>[], ?TLS_1_3 =>[] })).
 -define(DTLS_1_X(Version), is_map_key(Version, #{?DTLS_1_0 => [], ?DTLS_1_2 =>[] })).
+-define(SSL_X(Version), is_map_key(Version, #{?SSL_2_0 => [], ?SSL_3_0 =>[] })).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
