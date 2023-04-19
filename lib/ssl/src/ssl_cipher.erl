@@ -669,7 +669,7 @@ scheme_to_components({Hash,Sign}) -> {Hash, Sign, undefined}.
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-mac_hash({_,_}, ?NULL, _MacSecret, _SeqNo, _Type,
+mac_hash(_Version, ?NULL, _MacSecret, _SeqNo, _Type,
 	 _Length, _Fragment) ->
     <<>>;
 mac_hash(Version, MacAlg, MacSecret, SeqNo, Type, Length, Fragment)
