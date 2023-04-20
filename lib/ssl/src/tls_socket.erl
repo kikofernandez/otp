@@ -474,25 +474,18 @@ emulated_socket_options(InetValues, #socket_options{
        packet_size = proplists:get_value(packet_size, InetValues, Size)
       }.
 
-emulated_options([{mode, Value} = Opt |Opts], Inet, Emulated) ->
-    validate_inet_option(mode, Value),
-    emulated_options(Opts, Inet, [Opt | proplists:delete(mode, Emulated)]);
-emulated_options([{header, Value} = Opt | Opts], Inet, Emulated) ->
-    validate_inet_option(header, Value),
-    emulated_options(Opts, Inet,  [Opt | proplists:delete(header, Emulated)]);
-emulated_options([{active, Value} = Opt |Opts], Inet, Emulated) ->
-    validate_inet_option(active, Value),
-    emulated_options(Opts, Inet, [Opt | proplists:delete(active, Emulated)]);
-emulated_options([{packet, Value} = Opt |Opts], Inet, Emulated) ->
-    validate_inet_option(packet, Value),
-    emulated_options(Opts, Inet, [Opt | proplists:delete(packet, Emulated)]);
-emulated_options([{packet_size, Value} = Opt | Opts], Inet, Emulated) ->
-    validate_inet_option(packet_size, Value),
-    emulated_options(Opts, Inet, [Opt | proplists:delete(packet_size, Emulated)]);
-emulated_options([Opt|Opts], Inet, Emulated) ->
-    emulated_options(Opts, [Opt|Inet], Emulated);
-emulated_options([], Inet,Emulated) ->
-    {Inet, Emulated}.
+emulated_options(Opts, Inet, Emulated) ->
+    lists:foldl(fun emulated_options_validator/2, {Inet, Emulated}, Opts).
+
+emulated_options_validator({Option, Value}=Opt, {AccInet, AccEmulated}) ->
+    validate_inet_option(Opt, Value),
+    ValidationOptions = sets:from_list([mode, header, active, packet, packet_size]),
+    case sets:is_element(Option, ValidationOptions) of
+        true ->
+            {AccInet, [Opt | proplists:delete(Option, AccEmulated) ]};
+        false ->
+            {[Opt | AccInet], AccEmulated}
+    end.
 
 validate_inet_option(mode, Value)
   when Value =/= list, Value =/= binary ->
