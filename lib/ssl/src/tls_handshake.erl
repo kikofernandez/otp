@@ -123,11 +123,11 @@ hello(#server_hello{server_version = ServerVersion,
                     random = <<_:24/binary,Down:8/binary>>},
       #{versions := [Version|_]}, _, _, _)
   when
-      (?DTLS_1_X(Version) orelse ?TLS_GTE(Version, ?TLS_1_3)) andalso %% TLS 1.3 client
+      (?TLS_GTE(Version, ?TLS_1_3)) andalso %% TLS 1.3 client
        (?TLS_1_2 == ServerVersion andalso                             %% Negotiating TLS 1.2
         Down =:= ?RANDOM_OVERRIDE_TLS12) orelse
 
-       (?DTLS_1_X(Version) orelse ?TLS_GTE(Version, ?TLS_1_3)) andalso  %% TLS 1.3 client
+       (?TLS_GTE(Version, ?TLS_1_3)) andalso  %% TLS 1.3 client
        (?TLS_LT(ServerVersion, ?TLS_1_2) andalso                        %% Negotiating TLS 1.1 or prior
         Down =:= ?RANDOM_OVERRIDE_TLS11) ->
 

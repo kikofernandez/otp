@@ -811,7 +811,7 @@ update_server_random(#{pending_read := #{security_parameters := ReadSecParams0} 
 %%
 %%   44 4F 57 4E 47 52 44 00
 override_server_random(<<Random0:24/binary,_:8/binary>> = Random, Version, HighestVersion)
-  when ?DTLS_1_X(HighestVersion) orelse ?TLS_GTE(HighestVersion, ?TLS_1_3) -> %% TLS 1.3 or above
+  when ?TLS_GTE(HighestVersion, ?TLS_1_3) -> %% TLS 1.3 or above
     if Version == ?TLS_1_2 ->                     %% Negotiating TLS 1.2
             Down = ?RANDOM_OVERRIDE_TLS12,
             <<Random0/binary,Down/binary>>;
