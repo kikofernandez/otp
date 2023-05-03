@@ -2140,15 +2140,7 @@ validate_protocols(true, Opt, List) ->
     lists:foreach(Check, List).
 
 opt_mitigation(UserOpts, #{versions := Versions} = Opts, _Env) ->
-    Fun = fun (true) -> disabled;
-              (false) -> one_n_minus_one
-          end,
-    LastVersion = lists:last(Versions),
-    DefBeast = case Fun(?DTLS_1_X(LastVersion)) of
-                   disabled -> disabled;
-                   _ -> Fun(?TLS_GT(LastVersion, ?TLS_1_0))
-    end,
-
+    DefBeast = otp_mitigation_defbeast(lists:last(Versions)),
     {Where1, BM} = get_opt_of(beast_mitigation, [disabled, one_n_minus_one, zero_n], DefBeast, UserOpts, Opts),
     assert_version_dep(Where1 =:= new, beast_mitigation, Versions, ['tlsv1']),
 
@@ -2158,6 +2150,15 @@ opt_mitigation(UserOpts, #{versions := Versions} = Opts, _Env) ->
     %% Use 'new' we need to check for non default 'one_n_minus_one'
     Opts1 = set_opt_new(new, beast_mitigation, disabled, BM, Opts),
     set_opt_new(Where2, padding_check, true, PC, Opts1).
+
+otp_mitigation_defbeast(Version) when
+  (?TLS_1_X(Version) andalso ?TLS_GT(Version, ?TLS_1_0))
+      orelse ?DTLS_1_X(Version) ->
+    disabled;
+otp_mitigation_defbeast(_) ->
+    one_n_minus_one.
+
+
 
 opt_server(UserOpts, #{versions := Versions, log_level := LogLevel} = Opts, #{role := server}) ->
     {_, ECC} = get_opt_bool(honor_ecc_order, false, UserOpts, Opts),
