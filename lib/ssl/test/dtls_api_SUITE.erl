@@ -139,7 +139,7 @@ end_per_testcase(_TestCase, Config) ->
 %%--------------------------------------------------------------------
 
 dtls_listen_owner_dies() ->
-    [{doc, "Test that you can start new DTLS 'listner' if old owner dies"}].
+    [{doc, "Test that you can start new DTLS 'listener' if old owner dies"}].
 
 dtls_listen_owner_dies(Config) when is_list(Config) ->    
     ClientOpts = ssl_test_lib:ssl_options(client_rsa_opts, Config),
@@ -373,6 +373,7 @@ client_restarts(Config) ->
                                          {mfa, {ssl_test_lib, no_result, []}},
                                          {from, self()},
                                          {options, ClientOpts}]),
+    ct:log("[Client] ~p", [Client0]),
 
     ssl_test_lib:send(Client0, Msg1 = "from client 0"),
     ssl_test_lib:send(Server, Msg2 = "from server to client 0"),
