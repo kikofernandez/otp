@@ -788,6 +788,7 @@ handle_common_event(internal, {handshake, {Handshake, Raw}}, StateName,
      [{next_event, internal, Handshake}]};
 handle_common_event(internal, {protocol_record, TLSorDTLSRecord}, StateName,
                     #state{static_env = #static_env{protocol_cb = Connection}} = State) ->
+    ct:pal("[handle_common]"),
     Connection:handle_protocol_record(TLSorDTLSRecord, StateName, State);
 handle_common_event(timeout, hibernate, _, _) ->
     {keep_state_and_data, [hibernate]};
@@ -804,6 +805,7 @@ handle_common_event(internal, {recv, RecvFrom}, StateName, #state{start_or_recv_
 handle_common_event(internal, new_connection, StateName, State) ->
     {next_state, StateName, State};
 handle_common_event(Type, Msg, StateName, State) ->
+    ct:pal("[unexpected message] ~p", [Type, Msg, StateName, State]),
     Alert =  ?ALERT_REC(?FATAL,?UNEXPECTED_MESSAGE, {unexpected_msg, {Type, Msg}}),
     handle_own_alert(Alert, StateName, State).
 

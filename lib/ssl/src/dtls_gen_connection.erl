@@ -349,7 +349,7 @@ handle_protocol_record(#ssl_tls{type = ?APPLICATION_DATA, fragment = Data}, Stat
 	{stop, _, _} = Stop->
             Stop;
 	{Record, State1} ->
-            {next_state, StateName, State, Actions} = next_event(StateName0, Record, State1), 
+            {next_state, StateName, State, Actions} = next_event(StateName0, Record, State1),
             ssl_gen_statem:hibernate_after(StateName, State, Actions)
     end;
 %%% DTLS record protocol level handshake messages 
@@ -369,12 +369,15 @@ handle_protocol_record(#ssl_tls{type = ?HANDSHAKE, epoch = Epoch, fragment = Dat
                              true  -> [{next_event, internal, new_connection} | HSEvents];
                              false -> HSEvents
                          end,
-                {next_state, StateName,
+
+                NextState={next_state, StateName,
                  State#state{protocol_buffers = Buffers,
                              handshake_env =
                                  HsEnv#handshake_env{
                                    unprocessed_handshake_events = unprocessed_events(HSEvents)}
-                            }, Events}
+                            }, Events},
+            ct:pal("[dtls_gen_connection:handle_protocol_record Kiko] ~p~n", [NextState]),
+            NextState
 	end
     catch throw:#alert{} = Alert ->
 	    handle_own_alert(Alert, StateName, State)
@@ -392,6 +395,7 @@ handle_protocol_record(#ssl_tls{type = ?ALERT, fragment = EncAlerts}, StateName,
     end;
 %% Ignore unknown TLS record level protocol messages
 handle_protocol_record(#ssl_tls{type = _Unknown}, StateName, State) ->
+    ct:pal("IGNORE"),
     {next_state, StateName, State, []}.
 
 %%====================================================================

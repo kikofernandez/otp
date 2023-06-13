@@ -158,8 +158,10 @@ hello(internal, {common_client_hello, Type, ServerHelloExt}, State) ->
 hello(info, Msg, State) ->
     handle_info(Msg, ?FUNCTION_NAME, State);
 hello(internal,  #hello_request{}, _) ->
+    ct:pal("hello_internal keep state"),
     keep_state_and_data;
 hello(Type, Event, State) ->
+    ct:pal("[ssl_gen_statem:handle_common_event Kiko] Type: ~p~n Event~p~nState~p~n", [Type, Event, State]),
     ssl_gen_statem:handle_common_event(Type, Event, ?FUNCTION_NAME, State).
 
 %%--------------------------------------------------------------------
@@ -392,7 +394,7 @@ certify(internal, #server_key_exchange{exchange_keys = Keys},
        KexAlg == srp_dss; 
        KexAlg == srp_rsa; 
        KexAlg == srp_anon ->
-    
+    ct:pal("[certify internal client] ~p", [State]),
     Params = ssl_handshake:decode_server_key(Keys, KexAlg, ssl:tls_version(Version)),
 
     %% Use negotiated value if TLS-1.2 otherwise return default
@@ -416,7 +418,7 @@ certify(internal, #server_key_exchange{exchange_keys = Keys},
     end;
 certify(internal, #certificate_request{},
 	#state{static_env = #static_env{role = client},
-               handshake_env = #handshake_env{kex_algorithm = KexAlg}})
+               handshake_env = #handshake_env{kex_algorithm = KexAlg}}=State)
   when KexAlg == dh_anon; 
        KexAlg == ecdh_anon;
        KexAlg == psk; 
@@ -426,6 +428,7 @@ certify(internal, #certificate_request{},
        KexAlg == srp_dss; 
        KexAlg == srp_rsa; 
        KexAlg == srp_anon ->
+    ct:pal("[certify internal client error] ~p", [State]),
     throw(?ALERT_REC(?FATAL, ?HANDSHAKE_FAILURE));
 certify(internal, #certificate_request{},
 	#state{static_env = #static_env{role = client,
@@ -448,6 +451,7 @@ certify(internal, #certificate_request{} = CertRequest,
                                                },
                session = Session0,
                ssl_options = #{signature_algs := SupportedHashSigns}} = State) ->
+    ct:pal("[certify internal client2] ~p", [State]),
     TLSVersion = ssl:tls_version(Version),
     CertKeyPairs = ssl_certificate:available_cert_key_pairs(CertKeyAlts, ssl:tls_version(Version)),
     Session = select_client_cert_key_pair(Session0, CertRequest, CertKeyPairs,
@@ -466,6 +470,7 @@ certify(internal, #server_hello_done{},
                                               server_psk_identity = PSKIdentity} = HsEnv,
 	       ssl_options = #{user_lookup_fun := PSKLookup}} = State0)
   when KexAlg == psk ->
+    ct:pal("[certify internal client3] ~p", [State0]),
     case ssl_handshake:premaster_secret({KexAlg, PSKIdentity}, PSKLookup) of
 	#alert{} = Alert ->
             throw(Alert);
@@ -552,6 +557,7 @@ certify(internal, #client_key_exchange{exchange_keys = Keys},
 certify(internal, #hello_request{}, _) ->
     keep_state_and_data;
 certify(Type, Event, State) ->
+    ct:pal("[certify] call to ssl_gen_statem:handle_common_event: Type ~p Event ~p State ~p", [Type, Event, State]),
     ssl_gen_statem:handle_common_event(Type, Event, ?FUNCTION_NAME, State).
  
 %%--------------------------------------------------------------------
