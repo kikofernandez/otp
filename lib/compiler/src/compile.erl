@@ -280,6 +280,8 @@ expand_opt(no_module_opt=O, Os) ->
     [O,no_recv_opt | Os];
 expand_opt({check_ssa,Tag}, Os) ->
     [check_ssa, Tag | Os];
+expand_opt(beam_docs, Os) ->
+    [beam_docs, debug_info | Os];
 expand_opt(O, Os) -> [O|Os].
 
 -spec format_error(error_description()) -> iolist().
@@ -923,6 +925,7 @@ asm_passes() ->
 
 binary_passes() ->
     [{iff,'to_dis',?pass(to_dis)},
+     {iff,beam_docs,?pass(beam_docs)},
      {unless,binary,?pass(save_binary,not_werror)}
     ].
 
@@ -1674,6 +1677,15 @@ beam_validator_1(Code, #compile{errors=Errors0}=St, Level) ->
             {ok, Code, St};
         {error, Es} ->
             {error, St#compile{errors=Errors0 ++ Es}}
+    end.
+
+beam_docs(Code0, St) ->
+    try
+        {ok, Code1} = beam_doc:main(Code0),
+        {ok, Code1, St}
+    catch E:R:ST ->
+            io:format("Failed to add docs to ~ts~n",[St#compile.ifile]),
+            erlang:raise(E, R, ST)
     end.
 
 beam_asm(Code0, #compile{ifile=File,extra_chunks=ExtraChunks,options=CompilerOpts}=St) ->
