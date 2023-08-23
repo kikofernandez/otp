@@ -2961,10 +2961,10 @@ warn_redefined_builtin_type(Anno, TypePair, #lint{compile=Opts}=St) ->
 check_type(Types, St) ->
     {SeenVars, St1} = check_type_1(Types, maps:new(), St),
     maps:fold(fun(Var, {seen_once, Anno}, AccSt) ->
-		      case atom_to_list(Var) of
-			  "_"++_ -> AccSt;
-			  _ -> add_error(Anno, {singleton_typevar, Var}, AccSt)
-		      end;
+                      case atom_to_list(Var) of
+                          "_"++_ -> AccSt;
+                          _ -> add_error(Anno, {singleton_typevar, Var}, AccSt)
+                      end;
                  (Var, {seen_once_union, Anno}, AccSt) ->
                       case is_warn_enabled(singleton_typevar, AccSt) of
                           true ->
@@ -2975,9 +2975,10 @@ check_type(Types, St) ->
                           false ->
                               AccSt
                       end;
-		 (_Var, seen_multiple, AccSt) ->
-		      AccSt
-	      end, St1, SeenVars).
+                 (_Var, seen_multiple, AccSt) ->
+                      AccSt
+              end, St1, SeenVars).
+
 
 check_type_1({type, Anno, TypeName, Args}=Type, SeenVars, #lint{types=Types}=St) ->
     TypePair = {TypeName,
@@ -2994,8 +2995,16 @@ check_type_1({type, Anno, TypeName, Args}=Type, SeenVars, #lint{types=Types}=St)
 check_type_1(Types, SeenVars, St) ->
     check_type_2(Types, SeenVars, St).
 
-check_type_2({ann_type, _A, [_Var, Type]}, SeenVars, St) ->
-    check_type_1(Type, SeenVars, St);
+
+check_type_2({ann_type, _A, [{var, _Anno, Name}, Type]}, SeenVars, St) ->
+    NewSeenVars =
+        case maps:find(Name, SeenVars) of
+            {ok, {seen_once, _}} -> maps:put(Name, seen_multiple, SeenVars);
+            {ok, {seen_once_union, _}} -> maps:put(Name, seen_multiple, SeenVars);
+            {ok, seen_multiple} -> SeenVars;
+            error -> maps:put(Name, seen_multiple, SeenVars)
+        end,
+    check_type_1(Type, NewSeenVars, St);
 check_type_2({remote_type, A, [{atom, _, Mod}, {atom, _, Name}, Args]},
 	   SeenVars, St00) ->
     St0 = check_module_name(Mod, A, St00),
