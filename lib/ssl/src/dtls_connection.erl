@@ -464,7 +464,6 @@ certify(internal,  #change_cipher_spec{type = <<1>>}, State0) ->
 certify(state_timeout, Event, State) ->
     handle_state_timeout(Event, ?FUNCTION_NAME, State);
 certify(Type, Event, State) ->
-    ct:pal("[CertifyKiko] Type: ~p Event: ~p State:~p", [Type, Event, State]),
     gen_handshake(?FUNCTION_NAME, Type, Event, State).
 
 
@@ -761,10 +760,8 @@ alert_or_reset_connection(Alert, StateName, #state{connection_states = Cs} = Sta
     end.
 
 gen_handshake(_, {call, _From}, {application_data, _Data}, _State) ->
-    ct:pal("Keep state and Data Kiko"),
     {keep_state_and_data, [postpone]};
 gen_handshake(StateName, Type, Event, State) ->
-    ct:pal("[gen_handshake] StateName: ~p Type: ~p Event: ~p ~n[State] ~p", [StateName, Type, Event, State]),
     try tls_dtls_connection:StateName(Type, Event, State)
     catch
         throw:#alert{}=Alert ->

@@ -176,7 +176,7 @@ get_dtls_handshake(Version, Fragments, ProtocolBuffers, #{log_level := LogLevel}
                 end,
                 {[], ProtocolBuffers}, decode_handshake_fragments(Fragments)).
 
-handle_hspacket(moredata, _LogLevel, HandshakeMessages) -> HandshakeMessages;
+handle_hspacket(more_data, _LogLevel, HandshakeMessages) -> HandshakeMessages;
 handle_hspacket({Handshake, _}=HsPacket, LogLevel, HandshakeMessages) ->
     ssl_logger:debug(LogLevel, inbound, 'handshake', Handshake),
     [HsPacket | HandshakeMessages].
