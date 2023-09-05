@@ -62,8 +62,8 @@
 %%%===================================================================
 
 -spec start_link(pid(), map()) -> {ok, Pid :: pid()} |
-                      {error, Error :: {already_started, pid()}} |
-                      {error, Error :: term()} |
+                      {error, Error1 :: {already_started, pid()}} |
+                      {error, Error2 :: term()} |
                       ignore.
 start_link(ssl_unknown_listener = Listener, Map) ->
     gen_server:start_link({local, Listener}, ?MODULE, [Listener, Map], []);

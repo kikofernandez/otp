@@ -59,8 +59,8 @@
 %%%===================================================================
 -spec start_link(term(), Mode, integer(), integer(), integer(), tuple(), Seed) ->
                       {ok, Pid :: pid()} |
-                      {error, Error :: {already_started, pid()}} |
-                      {error, Error :: term()} |
+                      {error, Error1 :: {already_started, pid()}} |
+                      {error, Error2 :: term()} |
                       ignore
     when Mode :: stateful | stateless |  stateful_with_cert | stateless_with_cert,
          Seed :: undefined | binary().
@@ -156,7 +156,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 -spec format_status(Opt :: normal | terminate,
-                    Status :: list()) -> Status :: term().
+                    ListStatus :: list()) -> Status :: term().
 format_status(_Opt, Status) ->
     Status.
 
