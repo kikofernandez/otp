@@ -3324,11 +3324,12 @@ check_specs([FunType|Left]=E, ETag, Arity, St0) ->
                   add_error(A, ETag, St0)
           end,
     St2 = check_type({type, nowarn(), product, [FunType1|CTypes]}, St1),
-    St3 = check_annotated_types(E, St2),
+    St3 = lists:foldl(fun check_annotated_types/2, St2, E),
     check_specs(Left, ETag, Arity, St3);
 check_specs([], _ETag, _Arity, St) ->
     St.
 
+%% Checks that there are no annotated types with the same name and different type
 -spec check_annotated_types([InputType], St :: term()) -> TypeAnnotations when
       InputType       :: {Tag, A, Kind, Args :: [InputType] | any}
                        | {Tag, A, Args :: [InputType] | any}
@@ -3340,22 +3341,17 @@ check_specs([], _ETag, _Arity, St) ->
                        | union | product | is_subset | constraint | term(),
       TypeAnnotations :: [TypeAnnotation],
       TypeAnnotation  :: {var, Tag, A, TypeAnnotations} | {var, Tag, A}.
-
 check_annotated_types([], St) ->
-    %% io:format("(~p:~p) Annptated Types ~p~n", [?MODULE, ?LINE, E]),
     St;
-check_annotated_types([T0 | Ts], St) ->
+check_annotated_types(T0, St) ->
     AnnotatedTypes = collect_annotations(T0, []),
-        %% ct:pal("Types ~p", [AnnotatedTypes]),
     GroupedAnnTypes = maps:groups_from_list(fun ({var, _, Name, _Type}) -> Name end,
                                             fun ({var, A, _Name, Type}) -> {A, Type} end,
                                             AnnotatedTypes),
-    %% ct:pal("Types ~p~n", [GroupedAnnTypes]),
     TypeClashes = maps:fold(fun check_different_types/3, [], GroupedAnnTypes),
-    St1 = lists:foldl(fun ({TypeError, A}, Acc) ->
-                              add_error(A, {multiple_definitions_of_type, TypeError}, Acc)
-                      end, St, TypeClashes),
-    check_annotated_types(Ts, St1).
+    lists:foldl(fun ({TypeError, A}, Acc) ->
+                        add_error(A, {multiple_definitions_of_type, TypeError}, Acc)
+                end, St, TypeClashes).
 
 
 check_different_types(_VarName, [], Acc) ->
@@ -3410,7 +3406,6 @@ collect_annotations({remote_type, _, [M, N, Args]}, Acc) ->
 collect_annotations(_, Acc) ->
     Acc.
 
-
 strip_annotation_types({type, A, Op, Args}) when is_list(Args) ->
     {type, A, Op, lists:map(fun strip_annotation_types/1, Args)};
 strip_annotation_types({remote_type, A, [M, N, Args]}) ->
@@ -3421,7 +3416,6 @@ strip_annotation_types({user_type, A, UserDefinedType, Args}) ->
     {user_type, A, UserDefinedType, lists:map(fun strip_annotation_types/1, Args)};
 strip_annotation_types(Other) when is_tuple(Other)->
     Other.
-
 
 nowarn() ->
     A0 = erl_anno:new(0),
