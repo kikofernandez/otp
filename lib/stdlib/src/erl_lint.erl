@@ -3348,21 +3348,18 @@ check_annotated_types(T0, St) ->
     GroupedAnnTypes = maps:groups_from_list(fun ({var, _, Name, _Type}) -> Name end,
                                             fun ({var, A, _Name, Type}) -> {A, Type} end,
                                             AnnotatedTypes),
-    TypeClashes = maps:fold(fun check_different_types/3, [], GroupedAnnTypes),
-    lists:foldl(fun ({TypeError, A}, Acc) ->
-                        add_error(A, {multiple_definitions_of_type, TypeError}, Acc)
-                end, St, TypeClashes).
+    maps:fold(fun add_type_clash_errors/3, St, GroupedAnnTypes).
 
 
-check_different_types(_VarName, [], Acc) ->
-    Acc;
-check_different_types(VarName, [{A, Type0} | T], Acc) ->
+add_type_clash_errors(_VarName, [], St) ->
+    St;
+add_type_clash_errors(VarName, [{A, Type0} | T], St) ->
     EqualTypes = fun ({_, Type1}) -> equal_types(Type0, Type1) end,
     case lists:all(EqualTypes, T) of
         true ->
-            Acc;
+            St;
         false ->
-            [{VarName, A} | Acc]
+            add_error(A, {multiple_definitions_of_type, VarName}, St)
     end.
 
 equal_types({Tag0, _, Kind0, Args0}, {Tag0, _, Kind0, Args1}) ->
