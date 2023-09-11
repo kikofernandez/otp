@@ -624,11 +624,12 @@
     </note>
     <note>
       <p>Since <c>OTP-26.1</c>, argument names become global in the type specification.
-      That is, the following examples are all isomorphic:
+      That is, the following examples are all equivalent:
       </p>
       <pre>-spec id(X :: tuple()) -> X.</pre>
       <pre>-spec id(X) -> X :: tuple()</pre>
       <pre>-spec id(X) -> X when X :: tuple()</pre>
+      <pre>-spec id(X :: tuple()) -> X :: tuple()</pre>
     </note>
     <p>
       The scope of a <c>::</c> constraint is the
