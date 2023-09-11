@@ -3400,21 +3400,29 @@ collect_annotations({type, _, _, Args}, Acc) when is_list(Args) ->
 collect_annotations({user_type, _, _, Args}, Acc) when is_list(Args) ->
     lists:foldl(fun collect_annotations/2, Acc, Args);
 collect_annotations({ann_type, _, _}=AnnType, Acc) ->
-    [strip_annotation_types(AnnType) | Acc];
+    [parse_annotation_types(AnnType) | Acc];
 collect_annotations({remote_type, _, [M, N, Args]}, Acc) ->
     lists:foldl(fun collect_annotations/2, Acc, [M, N, Args]);
 collect_annotations(_, Acc) ->
     Acc.
 
-strip_annotation_types({type, A, Op, Args}) when is_list(Args) ->
-    {type, A, Op, lists:map(fun strip_annotation_types/1, Args)};
-strip_annotation_types({remote_type, A, [M, N, Args]}) ->
-    {remote_type, A, lists:map(fun strip_annotation_types/1, [M, N | Args])};
-strip_annotation_types({ann_type, _, [{var, A, VarName}, Type]}) ->
-    {var, A, VarName, strip_annotation_types(Type)};
-strip_annotation_types({user_type, A, UserDefinedType, Args}) ->
-    {user_type, A, UserDefinedType, lists:map(fun strip_annotation_types/1, Args)};
-strip_annotation_types(Other) when is_tuple(Other)->
+%% One should only reach this function from an annotated type. This function
+%% parses annotation types, recursing on items that may contain other annotated
+%% types, and leaves invariant any non-annotated type built from an annotate
+%% type, e.g.,
+%%
+%%   > parse_annotation_types({ann_type, A, [{var, _, VarName}, {type, _A, map, any}]})
+%%   {var, A, VarName, {type, _A, map, any}}
+%%
+parse_annotation_types({type, A, Op, Args}) when is_list(Args) ->
+    {type, A, Op, lists:map(fun parse_annotation_types/1, Args)};
+parse_annotation_types({remote_type, A, [M, N, Args]}) ->
+    {remote_type, A, lists:map(fun parse_annotation_types/1, [M, N | Args])};
+parse_annotation_types({ann_type, _, [{var, A, VarName}, Type]}) ->
+    {var, A, VarName, parse_annotation_types(Type)};
+parse_annotation_types({user_type, A, UserDefinedType, Args}) ->
+    {user_type, A, UserDefinedType, lists:map(fun parse_annotation_types/1, Args)};
+parse_annotation_types(Other) when is_tuple(Other)->
     Other.
 
 nowarn() ->
