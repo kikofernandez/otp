@@ -157,7 +157,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 -spec format_status(Opt :: normal | terminate,
-                    ListStatus :: list()) -> Status :: term().
+                    Status) -> Status :: list().
 format_status(_Opt, Status) ->
     Status.
 %%%===================================================================
