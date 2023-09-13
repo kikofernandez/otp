@@ -3375,7 +3375,7 @@ equal_types({var, Tag0, _, TypeAnnotation0}, {var, Tag0, _, TypeAnnotation1}) ->
 equal_types({var, Tag0, _}, {var, Tag0, _}) ->
     true;
 equal_types(T1, T2) ->
-    T1 == T2.
+    T1 =:= T2.
 
 -spec collect_annotations(InputType, Acc :: [term()]) -> TypeAnnotations when
       InputType       :: {Tag, A, Kind, Args :: [InputType] | any}
@@ -3405,7 +3405,7 @@ collect_annotations(_, Acc) ->
 
 %% One should only reach this function from an annotated type. This function
 %% parses annotation types, recursing on items that may contain other annotated
-%% types, and leaves invariant any non-annotated type built from an annotate
+%% types, and leaves invariant any non-annotated type built from an annotated
 %% type, e.g.,
 %%
 %%   > parse_annotation_types({ann_type, A, [{var, _, VarName}, {type, _A, map, any}]})
