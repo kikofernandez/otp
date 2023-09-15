@@ -27,8 +27,11 @@
 -export([default_encoding/0, encoding_to_string/1,
          read_encoding_from_binary/1, read_encoding_from_binary/2,
          set_encoding/1, set_encoding/2, read_encoding/1, read_encoding/2]).
+
 -export([interpret_file_attribute/1]).
 -export([normalize_typed_record_fields/1,restore_typed_record_fields/1]).
+
+-include_lib("kernel/include/file.hrl").
 
 %%------------------------------------------------------------------------
 
@@ -234,6 +237,8 @@ format_error({circular,M,A}) ->
     io_lib:format("circular macro '~ts/~p'", [M,A]);
 format_error({include,W,F}) ->
     io_lib:format("can't find include ~s \"~ts\"", [W,F]);
+format_error({moduledoc, Filename}) ->
+    io_lib:format("can't find file ~s", [Filename]);
 format_error({illegal,How,What}) ->
     io_lib:format("~s '-~s'", [How,What]);
 format_error({illegal_function,Macro}) ->
@@ -932,6 +937,9 @@ scan_toks([{'-',_Lh},{atom,_Ld,warning}=Warn|Toks], From, St) ->
     scan_err_warn(Toks, Warn, From, leave_prefix(St));
 scan_toks([{'-',_Lh},{atom,_Li,include}=Inc|Toks], From, St) ->
     scan_include(Toks, Inc, From, St);
+scan_toks([{'-',_Lh}=Def,{atom,_Li,D}=Doc|[{Sep,_}| _]=Toks], From, St) when
+      (D =:= doc orelse D =:= moduledoc) andalso (Sep =:= '{' orelse Sep =:= '(')->
+    scan_filedoc(Toks, [Def, Doc], From, St);
 scan_toks([{'-',_Lh},{atom,_Li,include_lib}=IncLib|Toks], From, St) ->
     scan_include_lib(Toks, IncLib, From, St);
 scan_toks([{'-',_Lh},{atom,_Li,ifdef}=IfDef|Toks], From, St) ->
@@ -978,14 +986,45 @@ scan_toks(Toks0, From, St) ->
 	    wait_req_scan(St)
     end.
 
+%% Reads the content of the file and rewrites the AST as if
+%% the content had been written in-place.
+scan_filedoc([{'(', _}|Toks], Module, From, St) ->
+    scan_filedoc(Toks, Module, From, St);
+scan_filedoc([{'{',_}, {atom, _,file},
+              {',', _}, {string, A, DocFilename},
+              {'}', _} | OptParen], [Dash, {atom, DocLoc, Doc}], From, #epp{name = CurrentFilename}=St) ->
+    [End] = [End0 || {dot, _}=End0 <- OptParen],
+    case file:path_open([hd(St#epp.path)], DocFilename, [read, binary]) of
+        {ok, NewF, Pname} ->
+            case file:read_file_info(NewF) of
+                {ok, #file_info{ size = Sz }} ->
+                    {ok, Bin} = file:read(NewF, Sz),
+                    ok = file:close(NewF),
+                    StartLoc = start_loc(St#epp.location),
+                    enter_file_reply(From, Pname, erl_anno:new(StartLoc), StartLoc, code, St#epp.deterministic),
+                    epp_reply(From, {ok,
+                                     [Dash, {atom, StartLoc, Doc}]
+                                     ++ [{string, A, unicode:characters_to_list(Bin)}, End]}),
+                    enter_file_reply(From, CurrentFilename, erl_anno:new(loc(End)), loc(End), code, St#epp.deterministic),
+                    wait_req_scan(St);
+                {error, _} ->
+                    ok = file:close(NewF),
+                    epp_reply(From, {error,{DocLoc,epp,{Doc, DocFilename}}}),
+                    wait_req_scan(St)
+            end;
+        {error, _} ->
+            epp_reply(From, {error,{DocLoc,epp,{Doc, DocFilename}}}),
+            wait_req_scan(St)
+    end.
+
 %% Determine whether we have passed the prefix where a -feature
 %% directive is allowed.
 in_prefix({atom, _, Atom}) ->
     %% These directives are allowed inside the prefix
     lists:member(Atom, ['module', 'feature',
                         'if', 'else', 'elif', 'endif', 'ifdef', 'ifndef',
-                        'define', 'undef',
-                        'include', 'include_lib']);
+                        'define', 'undef', 'include', 'include_lib',
+                        'moduledoc', 'doc']);
 in_prefix(_T) ->
     false.
 

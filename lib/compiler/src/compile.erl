@@ -340,19 +340,19 @@ format_error_reason(Class, Reason, Stack) ->
     erl_error:format_exception(Class, Reason, Stack, Opts).
 
 %% The compile state record.
--record(compile, {filename="" :: file:filename(),
-		  dir=""      :: file:filename(),
-		  base=""     :: file:filename(),
-		  ifile=""    :: file:filename(),
-		  ofile=""    :: file:filename(),
-		  module=[]   :: module() | [],
-		  abstract_code=[] :: abstract_code(), %Abstract code for debugger.
-		  options=[]  :: [option()],  %Options for compilation
-		  mod_options=[]  :: [option()], %Options for module_info
-                  encoding=none :: none | epp:source_encoding(),
-		  errors=[]     :: errors(),
-		  warnings=[]   :: warnings(),
-		  extra_chunks=[] :: [{binary(), binary()}]}).
+-record(compile, {filename=""      :: file:filename(),
+                  dir=""           :: file:filename(),
+                  base=""          :: file:filename(),
+                  ifile=""         :: file:filename(),
+                  ofile=""         :: file:filename(),
+                  module=[]        :: module() | [],
+                  abstract_code=[] :: abstract_code(), %Abstract code for debugger.
+                  options=[]       :: [option()],  %Options for compilation
+                  mod_options=[]   :: [option()], %Options for module_info
+                  encoding=none    :: none | epp:source_encoding(),
+                  errors=[]        :: errors(),
+                  warnings=[]      :: warnings(),
+                  extra_chunks=[]  :: [{binary(), binary()}]}).
 
 internal({forms,Forms}, Opts0) ->
     {_,Ps} = passes(forms, Opts0),
@@ -812,6 +812,8 @@ standard_passes() ->
 
      {iff,'dpp',{listing,"pp"}},
      ?pass(lint_module),
+     {iff,beam_docs,?pass(beam_docs)},
+     ?pass(remove_doc_attributes),
 
      {iff,'P',{src_listing,"P"}},
      {iff,'to_pp',{done,"P"}},
@@ -821,7 +823,9 @@ standard_passes() ->
 
 abstr_passes(AbstrStatus) ->
     case AbstrStatus of
-        non_verified_abstr -> [{unless, no_lint, ?pass(lint_module)}];
+        non_verified_abstr -> [{unless, no_lint, ?pass(lint_module)},
+                               {iff,beam_docs,?pass(beam_docs)},
+                               ?pass(remove_doc_attributes)];
         verified_abstr -> []
     end ++
         [
@@ -1588,6 +1592,30 @@ core_inline_module(Code0, #compile{options=Opts}=St) ->
 
 save_abstract_code(Code, St) ->
     {ok,Code,St#compile{abstract_code=erl_parse:anno_to_term(Code)}}.
+
+-define(META_DOC_CHUNK, <<"Docs">>).
+
+
+%% Adds documentation attributes to extra_chunks (beam file)
+beam_docs(Code, #compile{dir = Dir,
+                         extra_chunks = ExtraChunks}=St) ->
+    Docs = beam_doc:main(Dir, Code),
+    MetaDocs = [{?META_DOC_CHUNK, term_to_binary(Docs)} | ExtraChunks],
+    {ok, Code, St#compile{extra_chunks = MetaDocs}}.
+
+
+%% Strips documentation attributes from the code
+remove_doc_attributes(Code, St) ->
+    {ok, [Attr || Attr <- Code, not is_doc_attribute(Attr)], St}.
+
+
+is_doc_attribute(Attr) ->
+    case Attr of
+        {attribute, _Anno, DocAttr, _Meta}
+          when DocAttr =:= doc; DocAttr =:= moduledoc; DocAttr =:= docformat ->
+            true;
+        _ -> false
+    end.
 
 debug_info(#compile{module=Module,ofile=OFile}=St) ->
     {DebugInfo,Opts2} = debug_info_chunk(St),
