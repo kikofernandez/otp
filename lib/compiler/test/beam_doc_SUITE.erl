@@ -316,4 +316,5 @@ compile_file(Conf, ModuleName) ->
 compile_file(Conf, ModuleName, ExtraOpts) ->
     ErlModName = ModuleName ++ ".erl",
     Filename = filename:join(proplists:get_value(data_dir, Conf), ErlModName),
+    io:format("Compiling: ~ts~n",[Filename]),
     compile:file(Filename, [beam_docs | ExtraOpts]).

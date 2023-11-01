@@ -237,10 +237,10 @@ format_error({circular,M,A}) ->
     io_lib:format("circular macro '~ts/~p'", [M,A]);
 format_error({include,W,F}) ->
     io_lib:format("can't find include ~s \"~ts\"", [W,F]);
-format_error({moduledoc, Filename}) ->
-    io_lib:format("can't find moduledoc file ~s", [Filename]);
-format_error({doc, Filename}) ->
-    io_lib:format("can't find doc file ~s", [Filename]);
+format_error({Tag, invalid, Alternative}) when Tag =:= moduledoc; Tag =:= doc ->
+    io_lib:format("invalid ~s tag, only ~s allowed", [Tag, Alternative]);
+format_error({Tag, W, Filename}) when Tag =:= moduledoc; Tag =:= doc ->
+    io_lib:format("can't find ~s ~s \"~ts\"", [Tag, W, Filename]);
 format_error({illegal,How,What}) ->
     io_lib:format("~s '-~s'", [How,What]);
 format_error({illegal_function,Macro}) ->
@@ -939,9 +939,12 @@ scan_toks([{'-',_Lh},{atom,_Ld,warning}=Warn|Toks], From, St) ->
     scan_err_warn(Toks, Warn, From, leave_prefix(St));
 scan_toks([{'-',_Lh},{atom,_Li,include}=Inc|Toks], From, St) ->
     scan_include(Toks, Inc, From, St);
-scan_toks([{'-',_Lh}=Def,{atom,_Li,D}=Doc|[{Sep,_}| _]=Toks], From, St) when
-      (D =:= doc orelse D =:= moduledoc) andalso (Sep =:= '{' orelse Sep =:= '(')->
-    scan_filedoc(Toks, [Def, Doc], From, St);
+scan_toks([{'-',_Lh},{atom,_Ld,D}=Doc | [{'(', _},{'{',_} | _] = Toks], From, St)
+  when D =:= doc; D =:= moduledoc ->
+    scan_filedoc(coalesce_strings(Toks), Doc, From, St);
+scan_toks([{'-',_Lh},{atom,_Ld,D}=Doc | [{'{',_} | _] = Toks], From, St)
+  when D =:= doc; D =:= moduledoc ->
+    scan_filedoc(coalesce_strings(Toks), Doc, From, St);
 scan_toks([{'-',_Lh},{atom,_Li,include_lib}=IncLib|Toks], From, St) ->
     scan_include_lib(Toks, IncLib, From, St);
 scan_toks([{'-',_Lh},{atom,_Li,ifdef}=IfDef|Toks], From, St) ->
@@ -988,34 +991,62 @@ scan_toks(Toks0, From, St) ->
 	    wait_req_scan(St)
     end.
 
+%% First we parse either ({file, "filename"}) or {file, "filename"} and
+%% return proper errors if syntax is incorrect. Only literal strings are allowed.
+scan_filedoc([{'(', _},{'{',_}, {atom, _,file},
+              {',', _}, {string, _, _} = DocFilename,
+              {'}', _},{')',_},{dot,_} = Dot], DocType, From, St) ->
+    scan_filedoc_content(DocFilename, Dot, DocType, From, St);
+scan_filedoc([{'(', _},{'{',_}, {atom, _,file} | _] = Toks, DocType, From, St) ->
+    T = find_mismatch(['(','{',atom,',',string,'}',')',dot], Toks, DocType),
+    epp_reply(From, {error,{loc(T),epp,{bad,DocType}}}),
+    wait_req_scan(St);
+scan_filedoc([{'(', _},{'{',_}, T | _], DocType, From, St) ->
+    epp_reply(From, {error,{loc(T),epp,{DocType, invalid, file}}}),
+    wait_req_scan(St);
+scan_filedoc([{'{',_}, {atom, _,file},
+              {',', _}, {string, _, _} = DocFilename,
+              {'}', _},{dot,_} = Dot], DocType, From, St) ->
+    scan_filedoc_content(DocFilename, Dot, DocType, From, St);
+scan_filedoc([{'{',_}, {atom, _,file} | _] = Toks, {atom,_,DocType}, From, St) ->
+    T = find_mismatch(['{',{atom, file},',',string,'}',dot], Toks, DocType),
+    epp_reply(From, {error,{loc(T),epp,{bad,DocType}}}),
+    wait_req_scan(St);
+scan_filedoc([{'{',_}, T | _], {atom,_,DocType}, From, St) ->
+    epp_reply(From, {error,{loc(T),epp,{DocType, invalid, file}}}),
+    wait_req_scan(St).
+
 %% Reads the content of the file and rewrites the AST as if
 %% the content had been written in-place.
-scan_filedoc([{'(', _}|Toks], Module, From, St) ->
-    scan_filedoc(Toks, Module, From, St);
-scan_filedoc([{'{',_}, {atom, _,file},
-              {',', _}, {string, A, DocFilename},
-              {'}', _} | OptParen], [Dash, {atom, DocLoc, Doc}], From, #epp{name = CurrentFilename}=St) ->
-    [End] = [End0 || {dot, _}=End0 <- OptParen],
-    case file:path_open([hd(St#epp.path)], DocFilename, [read, binary]) of
+scan_filedoc_content({string, _A, DocFilename}, Dot,
+                     {atom,DocLoc,Doc}, From, #epp{name = CurrentFilename} = St) ->
+    %% The head of the path is the dir where the current file is
+    Cwd = hd(St#epp.path),
+    case file:path_open([Cwd], DocFilename, [read, binary]) of
         {ok, NewF, Pname} ->
             case file:read_file_info(NewF) of
                 {ok, #file_info{ size = Sz }} ->
                     {ok, Bin} = file:read(NewF, Sz),
                     ok = file:close(NewF),
                     StartLoc = start_loc(St#epp.location),
-                    enter_file_reply(From, Pname, erl_anno:new(StartLoc), StartLoc, code, St#epp.deterministic),
+                    %% Enter a new file for this doc entry
+                    enter_file_reply(From, Pname, erl_anno:new(StartLoc), StartLoc,
+                                     code, St#epp.deterministic),
                     epp_reply(From, {ok,
-                                     [Dash, {atom, StartLoc, Doc}]
-                                     ++ [{string, A, unicode:characters_to_list(Bin)}, End]}),
-                    enter_file_reply(From, CurrentFilename, erl_anno:new(loc(End)), loc(End), code, St#epp.deterministic),
+                                     [{'-',StartLoc}, {atom, StartLoc, Doc}]
+                                     ++ [{string, StartLoc, unicode:characters_to_list(Bin)}, {dot,StartLoc}]}),
+                    %% Restore the previous file
+                    enter_file_reply(From, CurrentFilename,
+                                     erl_anno:new(loc(Dot)), loc(Dot), code,
+                                     St#epp.deterministic),
                     wait_req_scan(St);
                 {error, _} ->
                     ok = file:close(NewF),
-                    epp_reply(From, {error,{DocLoc,epp,{Doc, DocFilename}}}),
+                    epp_reply(From, {error,{DocLoc,epp,{Doc, file, DocFilename}}}),
                     wait_req_scan(St)
             end;
         {error, _} ->
-            epp_reply(From, {error,{DocLoc,epp,{Doc, DocFilename}}}),
+            epp_reply(From, {error,{DocLoc,epp,{Doc, file, DocFilename}}}),
             wait_req_scan(St)
     end.
 
@@ -1977,6 +2008,8 @@ find_mismatch([Tag|Tags], [{Tag,_A,_V}=T|Ts], _T0) ->
 find_mismatch([var_or_atom|Tags], [{var,_A,_V}=T|Ts], _T0) ->
     find_mismatch(Tags, Ts, T);
 find_mismatch([var_or_atom|Tags], [{atom,_A,_N}=T|Ts], _T0) ->
+    find_mismatch(Tags, Ts, T);
+find_mismatch([{Tag,Value}|Tags], [{Tag,_A,Value}=T|Ts], _T0) ->
     find_mismatch(Tags, Ts, T);
 find_mismatch(_, Ts, T0) ->
     no_match(Ts, T0).
