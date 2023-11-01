@@ -13,7 +13,7 @@
 main(X) ->
     X.
 
--doc(({file, "folder/FILE"})).
+-doc ({file, "folder/FILE"}).
 -spec main2( I :: integer()) -> bar(I :: integer()).
 main2(X) when is_atom(X) ->
     X;
