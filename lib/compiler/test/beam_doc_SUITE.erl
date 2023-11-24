@@ -238,11 +238,12 @@ private_types(Conf) ->
     {ok, ModName} = compile_file(Conf, ModuleName),
     Code = code:get_doc(ModName),
     {ok, {docs_v1, _,_, _, none, _,
-          [
+          [{{type,private,0}, {26,2}, [<<"private()">>], hidden, #{exported := false}},
            {{type,hidden_export_t,0},_,[<<"hidden_export_t()">>],hidden,#{exported := true}},
            {{type,public_t,0},_, [<<"public_t()">>], none,#{ exported := true}},
 
            {{type,private_t,0},_, [<<"private_t()">>], none,#{ exported := false}},
+           {{function,hidden_type_exposed,0},{29,1},[<<"hidden_type_exposed()">>],none,#{}},
            {{function,hidden,0},_,[<<"hidden()">>],hidden,#{}},
            {{function,bar,0},_,[<<"bar()">>],none,#{}}
            ]}} = Code,

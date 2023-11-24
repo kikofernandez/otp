@@ -1,6 +1,6 @@
 -module(private_types).
 
--export([bar/0, hidden/0]).
+-export([bar/0, hidden/0, hidden_type_exposed/0]).
 -export_type([public_t/0, hidden_export_t/0]).
 
 -type private_t() :: integer(). %% In chunk because referred to by exported bar/0
@@ -21,3 +21,9 @@ baz() -> 1.
 -doc false.
 -spec hidden() -> hidden_t().
 hidden() -> 1.
+
+-doc false.
+-type private() :: integer().
+
+-spec hidden_type_exposed() -> private().
+hidden_type_exposed() -> 1.

@@ -48,15 +48,24 @@ documentation format.
 -record(docs, {cwd                 :: unicode:chardata(),             % Cwd
                module_name = undefined  :: unicode:chardata() | undefined,
 
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               %%
+               %% EXPORT TRACKING
+               %%
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
                %% tracks exported functions from multiple `-export([...])`
                exported_functions = sets:new() :: sets:set({FunName :: atom(), Arity :: non_neg_integer()}),
 
                %% tracks exported type from multiple `-export_type([...])`
                exported_types     = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
 
+
                % user defined types that need to be shown in the documentation. these are types that are not
                %% exported but that the documentation needs to show because exported functions referred to them.
                user_defined_types = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
+
+               types_from_exported_funs = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
 
                %% on analysing the AST, and upon finding a spec of a exported function,
                %% the types from the spec are added to the field below.
@@ -74,12 +83,17 @@ documentation format.
 
                % keeps track of `-compile(export_all)`
                export_all         = false :: boolean(),
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               %%
+               %% END
+               %%
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-               %% slogan :: none | {FunName, ListOfVars, Arity}
-               slogan             = none  :: none
-                                           | {FunName    :: atom(),
-                                              ListOfVars :: [atom()],
-                                              Arity      :: non_neg_integer()},
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               %%
+               %% DOCUMENTATION TRACKING
+               %%
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                % Function/type/callback local doc. either none of some string was added
                doc    = none  :: none
@@ -97,13 +111,24 @@ documentation format.
                %% doc = none | {hidden, "" | none} | "".
                %%
                %% The order in which `-doc hidden.` and `-doc "documentation here"` is written
-               %% is not defined, so one cannot assume that the following cannot happen:
+               %% is not defined, so one cannot assume that the following order:
                %%
                %% -doc "This is a hidden function".
                %% -doc hidden.
                %%
                %% Because of this, we use two fields to keep track of documentation.
                doc_status = none :: none  | hidden | set,
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               %%
+               %% END
+               %%
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+               %% slogan :: none | {FunName, ListOfVars, Arity}
+               slogan             = none  :: none
+                                           | {FunName    :: atom(),
+                                              ListOfVars :: [atom()],
+                                              Arity      :: non_neg_integer()},
 
                % Function/type/callback local meta.
                %% exported => boolean(), keeps track of types that are private but used in public functions
@@ -112,11 +137,23 @@ documentation format.
                meta   = #{exported => false} :: map(),
 
 
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               %%
+               %% STATEFUL RESULT OF ANALYSIS
+               %%
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                %% Useful resulting state. The state fields before this line are intermediate state
                ast_fns = [] :: list(),
                ast_types = [] :: list(),
-               ast_callbacks = [] :: list()}).
+               ast_callbacks = [] :: list(),
+               ast_warnings = sets:new() :: sets:set()
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               %%
+               %% END
+               %%
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+              }).
 
 -type internal_docs() :: #docs{}.
 
@@ -128,22 +165,21 @@ Transforms an Erlang abstract syntax form into EEP-48 documentation format.
 ".
 -spec main(term(), term()) -> #docs_v1{} | badarg.
 main(Dirname, AST) ->
-   io:format("~p~n~n", [AST]),
     try
        State = new_state(Dirname),
-        {ModuleDocAnno, ModuleDoc} = extract_moduledoc(AST),
-        DocFormat = extract_docformat(AST),
-        {State1, AST1} = extract_exported_types(AST, State),
-        Docs = extract_documentation(AST1, State1),
-        DocV1 = #docs_v1{},
-        Meta = extract_meta(AST, DocV1#docs_v1.metadata),
-        DocV1#docs_v1{ format = DocFormat,
-                       anno = ModuleDocAnno,
-                       metadata = Meta,
-                       module_doc = create_module_doc(ModuleDoc),
-                       docs = process_docs(Docs) }
+       {ModuleDocAnno, ModuleDoc} = extract_moduledoc(AST),
+       DocFormat = extract_docformat(AST),
+       {State1, AST1} = extract_exported_types(AST, State),
+       Docs = extract_documentation(AST1, State1),
+       DocV1 = #docs_v1{},
+       Meta = extract_meta(AST, DocV1#docs_v1.metadata),
+       DocV1#docs_v1{ format = DocFormat,
+                      anno = ModuleDocAnno,
+                      metadata = Meta,
+                      module_doc = create_module_doc(ModuleDoc),
+                      docs = process_docs(Docs) }
     catch E:R:ST ->
-            erlang:raise(E, R, ST)
+          erlang:raise(E, R, ST)
     end.
 
 process_docs(#docs{ast_callbacks = AstCallbacks, ast_fns = AstFns, ast_types = AstTypes}) ->
@@ -166,6 +202,8 @@ extract_exported_types([{attribute,_ANNO,compile, export_all} | T], State, NewAS
    extract_exported_types(T, update_export_all(State, true), NewAST);
 extract_exported_types([Other | AST], State, NewAST) ->
    extract_exported_types(AST, State, [Other | NewAST]).
+
+%% extract_hidden_types()
 
 
 -spec extract_moduledoc(AST :: [tuple()]) -> ModuleDoc :: {erl_anno:anno(), binary() | none | hidden}.
@@ -300,7 +338,20 @@ remove_exported_type_info(State) ->
 
 extract_documentation(AST, State) ->
    State1 = extract_documentation0(AST, State),
-   purge_private_types(State1).
+   State2 = purge_private_types(State1),
+   warnings(AST, State2).
+
+warnings(AST, State) ->
+   warn_hidden_types_used_in_public_fns(AST, State).
+
+warn_hidden_types_used_in_public_fns(AST, #docs{types_from_exported_funs = TypesFromExportedFuns,
+                                                ast_warnings = AstWarnings}=State) ->
+
+   %% new pass to the AST to avoid more complexity in the State
+   HiddenTypes = extract_hidden_types(AST),
+
+   Result = {hidden_types_in_public_fns, sets:intersection(HiddenTypes, TypesFromExportedFuns)},
+   State#docs{ast_warnings = sets:add_element(Result, AstWarnings)}.
 
 purge_private_types(#docs{ast_types = AstTypes,
                           user_defined_types = UserDefinedTypes}=State) ->
@@ -308,7 +359,6 @@ purge_private_types(#docs{ast_types = AstTypes,
                                   sets:is_element({F, A}, UserDefinedTypes) orelse Exported
                             end, AstTypes),
    State#docs{ast_types = AstTypes1}.
-
 
 extract_documentation0([{attribute,_ANNO,export,ExportedFuns} | T]=_AST, State) ->
     extract_documentation0(T, update_export_funs(State, ExportedFuns));
@@ -356,8 +406,6 @@ extract_documentation_spec([{attribute, _Anno, spec, Form}=AST0| T], State) ->
    State2 = extract_spec_types(Form, State1),
    extract_documentation0(T, State2).
 
-
-
 %% this is because public functions may use private types and these private
 %% types need to be included in the beam and documentation.
 extract_spec_types({{Name,Arity}, SpecTypes}, #docs{exported_functions = ExpFuns}=State) ->
@@ -372,7 +420,13 @@ extract_spec_types({{_Mod, Name, Arity}, Types}, State) ->
 
 add_user_types(SpecTypes, State) ->
    Types = extract_user_types(SpecTypes, sets:new()),
-   set_last_read_user_types(State, Types).
+   State1 = set_types_used_in_public_funs(State, Types),
+   set_last_read_user_types(State1, Types).
+
+%% pre: only call this function to add types from external functions.
+set_types_used_in_public_funs(#docs{types_from_exported_funs = TypesFromExportedFuns}=State, Types) ->
+   Types0 = sets:union(TypesFromExportedFuns, Types),
+   State#docs{types_from_exported_funs = Types0}.
 
 
 extract_user_types([], Acc) ->
@@ -467,7 +521,7 @@ extract_documentation_from_type([{attribute, Anno, TypeOrOpaque, {TypeName, Type
    case sets:is_element({TypeName, length(Args)}, ExpTypes) of
       true ->
          State1 = State0#docs{ meta = Meta#{exported := true}},
-         State2 = template_gen_doc({type, Anno, TypeName, length(Args), Args}, State1),
+         State2 = gen_doc_with_slogan({type, Anno, TypeName, length(Args), Args}, State1),
          extract_documentation0(T, State2);
       false ->
          %% the reason is that a public function that returns a private type,
@@ -476,7 +530,7 @@ extract_documentation_from_type([{attribute, Anno, TypeOrOpaque, {TypeName, Type
          %% another function in this module will deal with removing private types
          %% that are not used in public functions.
          State1 = State0#docs{ meta = Meta#{exported := false}},
-         State2 = template_gen_doc({type, Anno, TypeName, length(Args), Args}, State1),
+         State2 = gen_doc_with_slogan({type, Anno, TypeName, length(Args), Args}, State1),
          extract_documentation0(T, State2)
    end.
 
@@ -493,6 +547,23 @@ extract_documentation_from_doc([{attribute, Anno, doc, Doc}=_AST | T], State) wh
 extract_documentation_from_doc([{attribute, Anno, doc, Doc}=_AST | T], State) when is_binary(Doc) ->
    extract_documentation0(T, update_doc(State, {unicode:characters_to_list(Doc), Anno})).
 
+extract_hidden_types(AST) ->
+   extract_hidden_types(AST, {none, sets:new()}).
+extract_hidden_types([], {_, HiddenTypes}) ->
+   HiddenTypes;
+extract_hidden_types([{attribute, _Anno, doc, DocStatus} | T], {_TypeState, HiddenTypes}) when
+   DocStatus =:= hidden; DocStatus =:= false ->
+   extract_hidden_types(T, {hidden, HiddenTypes});
+extract_hidden_types([{attribute, _Anno, doc, _} | T], {TypeState, HiddenTypes}) ->
+   extract_hidden_types(T, {TypeState, HiddenTypes});
+extract_hidden_types([{attribute, _Anno, TypeOrOpaque, {Name, _Type, Args}} | T], {hidden, HiddenTypes})
+  when TypeOrOpaque =:= type; TypeOrOpaque =:= opaque ->
+   extract_hidden_types(T, {none, sets:add_element({Name, length(Args)}, HiddenTypes)});
+extract_hidden_types([{attribute, _Anno, TypeOrOpaque, _} | T], {none, HiddenTypes})
+  when TypeOrOpaque =:= type; TypeOrOpaque =:= opaque ->
+   extract_hidden_types(T, {none, HiddenTypes});
+extract_hidden_types([_ | T], {_, HiddenTypes}) ->
+   extract_hidden_types(T, {none, HiddenTypes}).
 
 
 %% NOTE: Terminal elements for the documentation, such as `-type`, `-opaque`, `-callback`,
@@ -502,7 +573,7 @@ extract_documentation_from_funs([{function, Anno, F, A, [{clause, _, ClauseArgs,
                       #docs{exported_functions = ExpFuns}=State) ->
     State1 = case (sets:is_element({F, A}, ExpFuns) orelse State#docs.export_all) of
                 true ->
-                   template_gen_doc({function, Anno, F, A, ClauseArgs}, State);
+                   gen_doc_with_slogan({function, Anno, F, A, ClauseArgs}, State);
                 false ->
                    reset_state(State)
              end,
@@ -558,7 +629,7 @@ extract_documentation_from_cb([{attribute, Anno, callback, {{CB, A}, [Fun]=Form}
 
 
    Args = fun_to_varargs(Fun),
-   State3 = template_gen_doc({callback, Anno, CB, A, Args}, State2),
+   State3 = gen_doc_with_slogan({callback, Anno, CB, A, Args}, State2),
    extract_documentation0(T, State3);
 extract_documentation_from_cb([{attribute, Anno0, callback, {{CB, A}, Form}}=AST0 | T], #docs{doc = Doc0}=State) ->
    %% Multi-clause callback. Do not create a slogan from the callback args.
@@ -572,7 +643,6 @@ extract_documentation_from_cb([{attribute, Anno0, callback, {{CB, A}, Form}}=AST
                         none -> {none, Anno0};
                         {Doc, Anno} -> {Doc, Anno}
                     end,
-
 
    {Slogan1, DocsWithoutSlogan} =
       %% First we check if there is a doc prototype
@@ -588,17 +658,14 @@ extract_documentation_from_cb([{attribute, Anno0, callback, {{CB, A}, Form}}=AST
    extract_documentation0(T, State3).
 
 
-
+%% Generates documentation
 -spec gen_doc(Anno, AttrBody, Slogan, Docs, State) -> Response when
       Anno      :: erl_anno:anno(),
       AttrBody  :: {function | type | callback, term(), integer()},
       Slogan    :: unicode:chardata(),
       Docs      :: none | hidden | unicode:chardata(),
       State     :: internal_docs(),
-      Signature :: [binary()],
-      D         :: map() | none | hidden,
-      Meta      :: map(),
-      Response  :: {AttrBody, Anno, Signature, D, Meta}.
+      Response  :: internal_docs().
 gen_doc(Anno, {Attr, _F, _A}=AttrBody, Slogan, DocWithoutSlogan, #docs{meta = Meta}=State)
   when DocWithoutSlogan =:= none; DocWithoutSlogan =:= hidden ->
    Result = {AttrBody, Anno, [unicode:characters_to_binary(Slogan)], DocWithoutSlogan, Meta},
@@ -610,7 +677,8 @@ gen_doc(Anno, {Attr, _F, _A}=AttrBody, Slogan, Docs, #docs{meta = Meta}=State) -
    State1 = update_user_defined_types(State),
    reset_state(update_ast(Attr, State1, Result)).
 
-template_gen_doc({Attr, _Anno0, F, A, Args}=AST, #docs{doc = Doc0, doc_status = DocStatus}=State) ->
+%% Generates the documentation inferring the slogan from the documentation.
+gen_doc_with_slogan({Attr, _Anno0, F, A, Args}=AST, #docs{doc = Doc0, doc_status = DocStatus}=State) ->
     {Doc1, Anno1} = fetch_doc_and_anno(DocStatus, Doc0, AST),
     {Slogan1, DocsWithoutSlogan} =
         case extract_slogan(Doc1, F, A) of
