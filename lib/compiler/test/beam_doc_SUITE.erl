@@ -13,7 +13,7 @@
 -define(get_name(), atom_to_list(?FUNCTION_NAME)).
 
 all() ->
-    [{group, documentation_generation_tests}].
+    [{group, documentation_generation_tests}, doc_with_file].
 
 groups() ->
     [{documentation_generation_tests, [parallel], documentation_generation_tests()}].
@@ -40,7 +40,6 @@ documentation_generation_tests() ->
      export_all,
      equiv,
      spec,
-     doc_with_file,
      doc_with_file_error
     ].
 
@@ -290,19 +289,27 @@ spec(Conf) ->
 
 doc_with_file(Conf) ->
     ModuleName = ?get_name(),
-    {ok, ModName} = compile_file(Conf, ModuleName),
-    {ok, {docs_v1, ModuleAnno,_, _, #{<<"en">> := <<"# README\n\nThis is a test">>}, _,
-          [{{type,bar,1},_,[<<"bar(X)">>],none,#{exported := false}},
-           {{type,foo,1},_,[<<"foo(X)">>],none,#{exported := true}},
-           {{type,private_type_exported,0},_,[<<"private_type_exported()">>],
-            #{<<"en">> := <<"# TYPES\n\nTest">>}, #{exported := false}},
-           {{function,main2,1},_,[<<"main2/1">>],
-              #{<<"en">> := <<"# File\n\ntesting fetching docs from other folders">>}, #{}},
-           {{function,main,1},_,[<<"main(Var)">>],
-              #{<<"en">> := <<"# Fun\n\nTest importing function">>},#{}}]}} = code:get_doc(ModName),
+    {ok, Cwd} = file:get_cwd(),
+    try
+        ok = file:set_cwd(proplists:get_value(data_dir, Conf)),
+        {ok, ModName} = compile_file(Conf, ModuleName, [{i, "./folder"}]),
+        {ok, {docs_v1, ModuleAnno,_, _, #{<<"en">> := <<"# README\n\nThis is a test">>}, _,
+              [{{type,bar,1},_,[<<"bar(X)">>],none,#{exported := false}},
+               {{type,foo,1},_,[<<"foo(X)">>],none,#{exported := true}},
+               {{type,private_type_exported,0},_,[<<"private_type_exported()">>],
+                #{<<"en">> := <<"# TYPES\n\nTest">>}, #{exported := false}},
+               {{function,main2,1},Main2Anno,[<<"main2/1">>],
+                #{<<"en">> := <<"# File\n\ntesting fetching docs from other folders">>}, #{}},
+               {{function,main,1},_,[<<"main(Var)">>],
+                #{<<"en">> := <<"# Fun\n\nTest importing function">>},#{}}]}} = code:get_doc(ModName),
 
-    ?assertEqual(1, erl_anno:line(ModuleAnno)),
-    ok.
+        ?assertEqual(1, erl_anno:line(ModuleAnno)),
+        ?assertEqual(1, erl_anno:line(Main2Anno)),
+        ?assertEqual("./folder/FILE", erl_anno:file(Main2Anno)),
+        ok
+    after
+        ok = file:set_cwd(Cwd)
+    end.
 
 doc_with_file_error(Conf) ->
     ModuleName = ?get_name(),
