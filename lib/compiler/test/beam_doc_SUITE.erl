@@ -4,7 +4,7 @@
          docmodule_with_doc_attributes/1, hide_moduledoc/1, docformat/1,
          singleton_docformat/1, singleton_meta/1, slogan/1,
          types_and_opaques/1, callback/1, hide_moduledoc2/1,
-         private_types/1, export_all/1, equiv/1, doc_with_file/1, spec/1]).
+         private_types/1, export_all/1, equiv/1, spec/1, doc_with_file/1, doc_with_file_error/1]).
 
 -include_lib("common_test/include/ct.hrl").
 -include_lib("kernel/include/eep48.hrl").
@@ -40,7 +40,9 @@ documentation_generation_tests() ->
      export_all,
      equiv,
      spec,
-     doc_with_file].
+     doc_with_file,
+     doc_with_file_error
+    ].
 
 singleton_moduledoc(Conf) ->
     ModuleName = "singletonmoduledoc",
@@ -302,7 +304,16 @@ doc_with_file(Conf) ->
     ?assertEqual(1, erl_anno:line(ModuleAnno)),
     ok.
 
+doc_with_file_error(Conf) ->
+    ModuleName = ?get_name(),
+    {error, Errors, []} = compile_file(Conf, ModuleName, [return]),
+    [[Mod:format_error(Error) || {_Loc, Mod, Error} <- Errs] || {_File, Errs} <- Errors],
+    error = compile_file(Conf, ModuleName, [report]),
+    ok.
+
 compile_file(Conf, ModuleName) ->
+    compile_file(Conf, ModuleName, []).
+compile_file(Conf, ModuleName, ExtraOpts) ->
     ErlModName = ModuleName ++ ".erl",
     Filename = filename:join(proplists:get_value(data_dir, Conf), ErlModName),
-    compile:file(Filename, [beam_docs]).
+    compile:file(Filename, [beam_docs | ExtraOpts]).

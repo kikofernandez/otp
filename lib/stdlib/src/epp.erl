@@ -238,7 +238,9 @@ format_error({circular,M,A}) ->
 format_error({include,W,F}) ->
     io_lib:format("can't find include ~s \"~ts\"", [W,F]);
 format_error({moduledoc, Filename}) ->
-    io_lib:format("can't find file ~s", [Filename]);
+    io_lib:format("can't find moduledoc file ~s", [Filename]);
+format_error({doc, Filename}) ->
+    io_lib:format("can't find doc file ~s", [Filename]);
 format_error({illegal,How,What}) ->
     io_lib:format("~s '-~s'", [How,What]);
 format_error({illegal_function,Macro}) ->
