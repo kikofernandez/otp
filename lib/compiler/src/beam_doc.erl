@@ -597,7 +597,7 @@ extract_documentation_from_funs([{function, Anno0, F, A, _Body}=_AST | T],
                   AttrBody = {function, F, A},
                   gen_doc(Anno1, AttrBody, Slogan, DocsWithoutSlogan, State);
                false ->
-                  State
+                  reset_state(State)
             end,
    extract_documentation0(T, State1).
 

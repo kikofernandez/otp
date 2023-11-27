@@ -7,7 +7,7 @@
 main() ->
     main1().
 
--doc #{ equiv => main(_) }.
+-doc (#{ equiv => main(_) }).
 -doc "
 main1()
 
