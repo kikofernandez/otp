@@ -13,7 +13,7 @@
 main(X) ->
     X.
 
--doc ({file, "folder/FILE"}).
+-include("doc_with_file.hrl").
 -spec main2( I :: integer()) -> bar(I :: integer()).
 main2(X) when is_atom(X) ->
     X;
