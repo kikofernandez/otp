@@ -152,13 +152,13 @@ moduledoc_include(Config) when is_list(Config) ->
     DocName = CreateFile("module_attr", "README.md", DocFileContent),
     {ok, List} = epp:parse_file(ModuleName, []),
     {attribute, _, moduledoc, ModuleDoc} = lists:keyfind(moduledoc, 3, List),
-    {ok, ModuleDoc} = file:read_file(DocName),
+    ?assertEqual({ok, unicode:characters_to_binary(ModuleDoc)}, file:read_file(DocName)),
 
     %% negative test: checks that we produce an expected error
     ModuleErrContent = binary:replace(ModuleFileContent, <<"README">>, <<"NotExistingFile">>),
     ModuleErrName = CreateFile("module_attr", "moduledoc_err.erl", ModuleErrContent),
     {ok, ListErr} = epp:parse_file(ModuleErrName, []),
-    {error,{_,epp,{moduledoc,"NotExistingFile.md"}}} = lists:keyfind(error, 1, ListErr),
+    {error,{_,epp,{moduledoc,file, "NotExistingFile.md"}}} = lists:keyfind(error, 1, ListErr),
 
     ok.
 
