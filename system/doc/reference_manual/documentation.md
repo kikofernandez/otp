@@ -173,6 +173,11 @@ There are three reserved metadata keys for `-moduledoc`:
     the user to `add/3`. In the second example there will be an addition check done
     by the compiler that `One` and `Two` are variable names in the `-spec` of the
     function.
+- `exported` - A [boolean/0][] signifying if the entry is `exported` or not. For any `-type`
+    attribute this value is automatically set by the compiler to show if the type was exported
+    or not.
+
+[boolean/0]: seetype/erts:erlang#boolean
 
 ### Doc slogans
 
@@ -279,6 +284,49 @@ The link can also be used to point many other things:
     
       -doc "See `e:stdlib:unicode_usage` for more details".
       -doc "See `e:stdlib:unicode_usage#notes-about-raw-filenames` for more details".
+
+## What is visible vs hidden?
+
+An Erlang [application][] normally consists of various public and private modules. That is
+modules that should be used by other applications and modules that should not. By default
+all modules in an application are visible, but by setting `-moduledoc false.` you can hide
+specific modules from being listed as part of the available API.
+
+An Erlang [module][] consists of public and private functions and type attributes.
+By default, all exported functions, exported types and callbacks are considered
+visible and part of the modules public API. In addition, any non-exported
+type that is referred to by any other visible type attribute is also visible,
+but not considered to be part of the public API. For example:
+
+    -export([example/0]).
+    
+    -type private() :: one.
+    -spec example() -> private().
+    example() -> one.
+
+in the above code, the function `example/0` is exported and it referenced the
+un-exported type `private/0`. Therefore both `example/0` and `private/0` will
+marked as visible. The `private/0` type will have the metadata field `exported`
+set to `false` to show that it is not part of the public API.
+
+If you want to make a visible entity hidden you need to set the `-doc` attribute to
+`false`. Lets revisit out previous example:
+
+    -export([example/0]).
+    
+    -type private() :: one.
+    -spec example() -> private().
+    -doc false.
+    example() -> one.
+
+Now, the function `example/0` is exported but explicitly marked as hidden, so therefore
+both `example/0` and `private/0` will be hidden.
+
+Any documentation added to an automatically hidden entity (non-exported function or type)
+is ignored and will generate a warning. You should use comments to document such functions.
+
+[application]: seeerl/kernel:application
+[module]: modules
 
 ## Compiling and getting documentation
 
