@@ -146,6 +146,14 @@
 	      exception at runtime).</p>
           </item>
 
+          <tag><c>beam_docs</c></tag>
+          <item>
+            <p>Tell the compiler to extract <seeguide marker="system/reference_manual:documentation">documentation</seeguide> from
+              <seeguide marker="system/reference_manual:modules#documentation-attributes"><c>-doc</c> attributes</seeguide>
+              and place them in the <seetype marker="stdlib:beam_lib#chunkid"><c>Docs</c> chunk</seetype> according to <seeguide marker="kernel:eep48_chapter">EEP-48</seeguide>.
+            </p>
+          </item>
+
           <tag><c>binary</c></tag>
           <item>
             <p>The compiler returns the object code in a
