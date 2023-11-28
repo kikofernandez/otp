@@ -1426,6 +1426,13 @@ build_attribute({atom,Aa,Attr}, Val) when Attr =:= doc; Attr =:= moduledoc ->
 	    {attribute,Aa,Attr,Value};
 	[{string,_,Value}] ->
 	    {attribute,Aa,Attr,Value};
+        [{bin,_, _} = Bin] ->
+            case term(Bin) of
+                Value when is_binary(Value) ->
+                    {attribute,Aa,Attr,Value};
+                _Else ->
+                    error_bad_decl(Bin, doc)
+            end;
 	[{map,_,Pairs} = Expr] ->
             Value =
                 try
@@ -1449,7 +1456,9 @@ build_attribute({atom,Aa,Attr}, Val) when Attr =:= doc; Attr =:= moduledoc ->
             {attribute,Aa,Attr,Value};
         [{tuple,_,[{atom,_,file},{string,_,Value}]}] ->
             {attribute,Aa,Attr,{file,Value}};
-	[Other|_] -> error_bad_decl(Other, doc)
+	[Other|_] = Rest ->
+            io:format("~p~n",[Rest]),
+            error_bad_decl(Other, doc)
     end;
 build_attribute({atom,Aa,Attr}, Val) ->
     case Val of

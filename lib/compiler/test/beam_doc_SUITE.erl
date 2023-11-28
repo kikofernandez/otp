@@ -4,7 +4,8 @@
          docmodule_with_doc_attributes/1, hide_moduledoc/1, docformat/1,
          singleton_docformat/1, singleton_meta/1, slogan/1,
          types_and_opaques/1, callback/1, hide_moduledoc2/1,
-         private_types/1, export_all/1, equiv/1, spec/1, doc_with_file/1, doc_with_file_error/1]).
+         private_types/1, export_all/1, equiv/1, spec/1, doc_with_file/1, doc_with_file_error/1,
+         all_string_formats/1]).
 
 -include_lib("common_test/include/ct.hrl").
 -include_lib("kernel/include/eep48.hrl").
@@ -40,7 +41,8 @@ documentation_generation_tests() ->
      export_all,
      equiv,
      spec,
-     doc_with_file_error
+     doc_with_file_error,
+     all_string_formats
     ].
 
 singleton_moduledoc(Conf) ->
@@ -316,6 +318,21 @@ doc_with_file_error(Conf) ->
     {error, Errors, []} = compile_file(Conf, ModuleName, [return]),
     [[Mod:format_error(Error) || {_Loc, Mod, Error} <- Errs] || {_File, Errs} <- Errors],
     error = compile_file(Conf, ModuleName, [report]),
+    ok.
+
+all_string_formats(Conf) ->
+    ModuleName = ?get_name(),
+    {ok, ModName} = compile_file(Conf, ModuleName),
+
+    {ok, {docs_v1, _ModuleAnno,_, _, #{<<"en">> := <<"Moduledoc test module">>}, _,
+              [
+               {{function,six,0},_,_, #{<<"en">> := <<"all_string_formats-all_string_formats">>}, #{}},
+               {{function,five,0},_,_, #{<<"en">> := <<"all_string_formats-Doc module">>}, #{}},
+               {{function,four,0},_,_, #{<<"en">> := <<"Doc test mödule"/utf8>>}, #{}},
+               {{function,three,0},_,_, #{<<"en">> := <<"Doctestmodule">>}, #{}},
+               {{function,two,0},_,_, #{<<"en">> := <<"Doc test module">>}, #{}},
+               {{function,one,0},_,_, #{<<"en">> := <<"Doc test module">>}, #{}}
+              ]}} = code:get_doc(ModName),
     ok.
 
 compile_file(Conf, ModuleName) ->
