@@ -290,6 +290,9 @@ example() -> ok.
             </item>
             <tag><c>{file, </c><seetype marker="kernel:file#filename"><c>file:filename()</c></seetype><c>}</c></tag>
             <item>Read the contents of filename and use that as the documentation string.</item>
+            <tag><c>false</c></tag>
+            <item>Set the current entity as hidden, that is, it should not be listed as an
+              available function and has no documentation.</item>
             <tag><c>Metadata :: </c><seetype marker="erts:erlang#map"><c>map()</c></seetype></tag>
             <item>
                 <p>
