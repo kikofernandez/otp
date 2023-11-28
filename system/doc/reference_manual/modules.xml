@@ -364,12 +364,6 @@ behaviour_info(callbacks) -> Callbacks.</pre>
 	  all NIF functions in the module.</p>
 	  </item>
 
-        <tag><c>native</c></tag>
-	  <item>
-	  <p>Return <c>true</c> if the module has native compiled code.
-          Return <c>false</c> otherwise. In a system compiled without HiPE
-          support, the result is always <c>false</c></p>
-	  </item>
       </taglist>
     </section>
   </section>
