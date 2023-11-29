@@ -23,6 +23,8 @@ A good starting point to writing Markdown is [Basic writing and formatting synta
 For details on what is allowed to be part of the `-moduledoc` and `-doc` attributes, see
 [Documentation Attributes][doc_attrs].
 
+`-doc` attributes have been available since Erlang/OTP 27.
+
 [attributes]: system/reference_manual:modules#module-attributes
 [Earmark]: https://github.com/robertdober/earmark_parser
 [wikipedia]: https://en.wikipedia.org/wiki/Markdown
