@@ -159,10 +159,10 @@ slogan(Conf) ->
           [{{function,spec_multiclause_slogan_ignored,1},_,[<<"spec_multiclause_slogan_ignored(X)">>],none,#{}},
            {{function, spec_no_doc_slogan, 1}, _, [<<"spec_no_doc_slogan(Y)">>], none, #{}},
            {{function, no_doc_slogan, 1}, _, [<<"no_doc_slogan(X)">>], none, #{}},
-           {{function, spec_slogan, 1}, _, [<<"spec_slogan(X)">>], _, #{}},
+           {{function, spec_slogan, 2}, _, [<<"spec_slogan(Y, Z)">>], _, #{}},
+           {{function, spec_slogan, 1}, _, [<<"spec_slogan(Y)">>], _, #{}},
            {{function, no_slogan,1},_,[<<"no_slogan/1">>], NoSloganDoc, #{}},
            {{function, bar,0},_,[<<"bar()">>], BarDoc, #{}},
-           {{function, main,2},_,[<<"main(Foo, Bar)">>], Doc, #{}},
            {{function, main,1},_,[<<"main(Foo)">>], Doc, #{}}
           ]}
     } = code:get_doc(ModName),
@@ -306,7 +306,7 @@ doc_with_file(Conf) ->
                {{type,foo,1},_,[<<"foo(X)">>],none,#{exported := true}},
                {{type,private_type_exported,0},_,[<<"private_type_exported()">>],
                 #{<<"en">> := <<"# TYPES\n\nTest">>}, #{exported := false}},
-               {{function,main2,1},Main2Anno,[<<"main2/1">>],
+               {{function,main2,1},Main2Anno,[<<"main2(I)">>],
                 #{<<"en">> := <<"# File\n\ntesting fetching docs from other folders">>}, #{}},
                {{function,main,1},_,[<<"main(Var)">>],
                 #{<<"en">> := <<"# Fun\n\nTest importing function">>},#{}}]}} = code:get_doc(ModName),
