@@ -166,22 +166,18 @@ Transforms an Erlang abstract syntax form into EEP-48 documentation format.
 -spec main(file:filename(), file:filename(), [erl_parse:abstract_form()]) ->
           #docs_v1{}.
 main(Dirname, Filename, AST) ->
-    try
-       State = new_state(Dirname, Filename),
-       {ModuleDocAnno, ModuleDoc} = extract_moduledoc(AST),
-       DocFormat = extract_docformat(AST),
-       {State1, AST1} = extract_exported_types(AST, State),
-       Docs = extract_documentation(AST1, State1),
-       DocV1 = #docs_v1{},
-       Meta = extract_meta(AST, DocV1#docs_v1.metadata),
-       DocV1#docs_v1{ format = DocFormat,
-                      anno = ModuleDocAnno,
-                      metadata = Meta,
-                      module_doc = create_module_doc(ModuleDoc),
-                      docs = process_docs(Docs) }
-    catch E:R:ST ->
-          erlang:raise(E, R, ST)
-    end.
+    State = new_state(Dirname, Filename),
+    {ModuleDocAnno, ModuleDoc} = extract_moduledoc(AST),
+    DocFormat = extract_docformat(AST),
+    {State1, AST1} = extract_exported_types(AST, State),
+    Docs = extract_documentation(AST1, State1),
+    DocV1 = #docs_v1{},
+    Meta = extract_meta(AST, DocV1#docs_v1.metadata),
+    DocV1#docs_v1{ format = DocFormat,
+                   anno = ModuleDocAnno,
+                   metadata = Meta,
+                   module_doc = create_module_doc(ModuleDoc),
+                   docs = process_docs(Docs) }.
 
 process_docs(#docs{ast_callbacks = AstCallbacks, ast_fns = AstFns, ast_types = AstTypes}) ->
     AstTypes ++ AstCallbacks ++ AstFns.

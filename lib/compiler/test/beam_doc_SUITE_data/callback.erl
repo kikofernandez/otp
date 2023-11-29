@@ -24,6 +24,11 @@ Test changing order
              (X :: atom()) -> X :: atom().
 
 
+-doc "multi(Argument)
+
+A multiclause callback with slogan docs".
+-callback multi(X :: integer()) -> X :: integer();
+               (X :: atom()) -> X :: atom().
 
 -doc #{equiv => ok/0}.
 -doc "
