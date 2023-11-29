@@ -82,7 +82,8 @@ docmodule_with_doc_attributes(Conf) ->
                  }} = code:get_doc(ModName),
 
     
-    [{{function,with_file_docs,0},FileDocsAnno, [<<"with_file_docs()">>],FileDocs,#{}},
+    [{{function,no_docs_multi,1},NoDocsMultiAnno,[<<"no_docs_multi/1">>],none,#{}},
+     {{function,with_file_docs,0},FileDocsAnno, [<<"with_file_docs()">>],FileDocs,#{}},
      {{function,no_docs,0},NoDocsAnno, [<<"no_docs()">>],none,#{}},
      {{function,ok,0}, OkAnno, [<<"ok()">>],none,#{authors := "Someone"}},
      {{function, main,_},MainAnno, _, Doc, _}] = Docs,
@@ -92,6 +93,9 @@ docmodule_with_doc_attributes(Conf) ->
     ?assertEqual(18, erl_anno:line(OkAnno)),
     ?assertEqual(21, erl_anno:line(NoDocsAnno)),
     ?assertEqual(1, erl_anno:line(FileDocsAnno)),
+    ?assertEqual("README", filename:basename(erl_anno:file(FileDocsAnno))),
+    ?assertEqual(28, erl_anno:line(NoDocsMultiAnno)),
+
     ok.
 
 hide_moduledoc(Conf) ->
@@ -149,18 +153,17 @@ slogan(Conf) ->
     ModuleName = ?get_name(),
     {ok, ModName} = compile_file(Conf, ModuleName),
     Doc = #{<<"en">> => <<"Returns ok.">>},
-    Slogan = [<<"main(Foo)">>],
     BarDoc = #{ <<"en">> => <<"foo()\nNot a slogan since foo =/= bar">> },
-    NoSlogan = [<<"no_slogan/1">>],
     NoSloganDoc = #{ <<"en">> => <<"Not a slogan\n\nTests slogans in multi-clause">>},
     {ok, {docs_v1, _,_, _, none, _,
           [{{function,spec_multiclause_slogan_ignored,1},_,[<<"spec_multiclause_slogan_ignored(X)">>],none,#{}},
            {{function, spec_no_doc_slogan, 1}, _, [<<"spec_no_doc_slogan(Y)">>], none, #{}},
            {{function, no_doc_slogan, 1}, _, [<<"no_doc_slogan(X)">>], none, #{}},
            {{function, spec_slogan, 1}, _, [<<"spec_slogan(X)">>], _, #{}},
-           {{function, no_slogan,1},_,NoSlogan, NoSloganDoc, #{}},
+           {{function, no_slogan,1},_,[<<"no_slogan/1">>], NoSloganDoc, #{}},
            {{function, bar,0},_,[<<"bar()">>], BarDoc, #{}},
-           {{function, main,1},_,Slogan, Doc, #{}}
+           {{function, main,2},_,[<<"main(Foo, Bar)">>], Doc, #{}},
+           {{function, main,1},_,[<<"main(Foo)">>], Doc, #{}}
           ]}
     } = code:get_doc(ModName),
     ok.
@@ -224,7 +227,9 @@ callback(Conf) ->
     FunctionDoc = #{<<"en">> => <<"all_ok()\n\nCalls all_ok/0">>},
     ChangeOrder = #{<<"en">> => <<"Test changing order">>},
     {ok, {docs_v1, _,_, _, none, _,
-          [{{callback,ann,1},_,[<<"ann/1">>],none,#{}},
+          [{{callback,multi,1},_,[<<"multi(Argument)">>],
+            #{ <<"en">> := <<"A multiclause callback with slogan docs">> },#{}},
+           {{callback,ann,1},_,[<<"ann/1">>],none,#{}},
            {{callback,param,1},_,[<<"param(X)">>],none,#{}},
            {{callback, change_order,0},_,[<<"change_order()">>], ChangeOrder,
             #{equiv := <<"ok()">>}},
