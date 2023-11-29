@@ -29,7 +29,7 @@
 
 -feature(maybe_expr, enable).
 
--export([main/2]).
+-export([main/3]).
 
 -import(lists, [foldl/3, all/2, map/2, filter/2, reverse/1, join/2]).
 
@@ -45,8 +45,8 @@ documentation format.
 - exported_types are a filter to document only the exported types
 - callbacks are always implicitly exported
 ".
--record(docs, {cwd                 :: unicode:chardata(),             % Cwd
-               module_name = undefined  :: unicode:chardata() | undefined,
+-record(docs, {cwd                 :: file:filename(),             % Cwd
+               filename            :: file:filename(),
 
                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                %%
@@ -163,10 +163,11 @@ documentation format.
 -doc "
 Transforms an Erlang abstract syntax form into EEP-48 documentation format.
 ".
--spec main(term(), term()) -> #docs_v1{} | badarg.
-main(Dirname, AST) ->
+-spec main(file:filename(), file:filename(), [erl_parse:abstract_form()]) ->
+          #docs_v1{}.
+main(Dirname, Filename, AST) ->
     try
-       State = new_state(Dirname),
+       State = new_state(Dirname, Filename),
        {ModuleDocAnno, ModuleDoc} = extract_moduledoc(AST),
        DocFormat = extract_docformat(AST),
        {State1, AST1} = extract_exported_types(AST, State),
@@ -239,9 +240,9 @@ create_module_doc(ModuleDoc) when not is_atom(ModuleDoc) ->
 create_module_doc(Lang, ModuleDoc) ->
     #{Lang => ModuleDoc}.
 
--spec new_state(Dirname :: unicode:chardata()) -> internal_docs().
-new_state(Dirname) ->
-    reset_state(#docs{cwd = Dirname}).
+-spec new_state(Dirname :: file:filename(), Filename :: file:filename()) -> internal_docs().
+new_state(Dirname, Filename) ->
+    reset_state(#docs{cwd = Dirname, filename = Filename}).
 
 -spec reset_state(State :: internal_docs()) -> internal_docs().
 reset_state(State) ->
@@ -297,7 +298,14 @@ update_doc(#docs{doc_status = DocStatus}=State, Doc0) ->
         none ->
             State2;
         {Doc, Anno} ->
-            State2#docs{doc = {string:trim(Doc), erl_anno:set_file(State#docs.module_name, Anno)}}
+            FileAnno =
+                case State#docs.filename of
+                    "" ->
+                        Anno;
+                    ModuleName ->
+                        erl_anno:set_file(ModuleName, Anno)
+                end,
+            State2#docs{doc = {string:trim(Doc), FileAnno}}
     end.
 
 %% Sets the doc status from `none` to `set`.
@@ -315,9 +323,9 @@ update_slogan(#docs{}=State, {FunName, Vars, Arity}=Slogan)
   when is_atom(FunName) andalso is_list(Vars) andalso is_number(Arity) ->
    State#docs{slogan = Slogan}.
 
--spec update_module(State :: internal_docs(), ModuleName :: unicode:chardata()) -> internal_docs().
-update_module(#docs{}=State, ModuleName) ->
-    State#docs{module_name = ModuleName}.
+-spec update_filename(State :: internal_docs(), ModuleName :: unicode:chardata()) -> internal_docs().
+update_filename(#docs{}=State, ModuleName) ->
+    State#docs{filename = ModuleName}.
 
 -spec update_export_funs(State :: internal_docs(), proplists:proplist()) -> internal_docs().
 update_export_funs(State, ExportedFuns) ->
@@ -362,8 +370,8 @@ purge_private_types(#docs{ast_types = AstTypes,
 
 extract_documentation0([{attribute,_ANNO,export,ExportedFuns} | T]=_AST, State) ->
     extract_documentation0(T, update_export_funs(State, ExportedFuns));
-extract_documentation0([{attribute, _Anno, file, {ModuleName, _A}} | T], State) ->
-    extract_documentation0(T, update_module(State, ModuleName));
+extract_documentation0([{attribute, _Anno, file, {Filename, _A}} | T], State) ->
+    extract_documentation0(T, update_filename(State, Filename));
 extract_documentation0([{attribute, _Anno, doc, _Meta0}| _]=AST, State) ->
     extract_documentation_from_doc(AST, State);
 extract_documentation0([{attribute, _Anno, spec, _}| _]=AST, State) ->
