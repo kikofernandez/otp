@@ -5,7 +5,7 @@
          singleton_docformat/1, singleton_meta/1, slogan/1,
          types_and_opaques/1, callback/1, hide_moduledoc2/1,
          private_types/1, export_all/1, equiv/1, spec/1, doc_with_file/1, doc_with_file_error/1,
-         all_string_formats/1]).
+         all_string_formats/1, docs_from_ast/1]).
 
 -include_lib("common_test/include/ct.hrl").
 -include_lib("kernel/include/eep48.hrl").
@@ -42,7 +42,8 @@ documentation_generation_tests() ->
      equiv,
      spec,
      doc_with_file_error,
-     all_string_formats
+     all_string_formats,
+     docs_from_ast
     ].
 
 singleton_moduledoc(Conf) ->
@@ -335,10 +336,76 @@ all_string_formats(Conf) ->
               ]}} = code:get_doc(ModName),
     ok.
 
+docs_from_ast(_Conf) ->
+    Code = """
+      -module(test).
+      -moduledoc "moduledoc".
+      -export([main/0]).
+      -doc "main".
+      main() -> ok.
+      """,
+
+    {ok, test, BeamCode} = compile:forms(scan_and_parse(Code),[beam_docs, debug_info]),
+    {ok, {test, [{documentation, Docs }]}} = beam_lib:chunks(BeamCode, [documentation]),
+
+    ?assertMatch(
+       #docs_v1{ module_doc = #{ <<"en">> := <<"moduledoc">> },
+                 anno = 2,
+                 docs = [{{function,main,0}, 4, _, #{ <<"en">> := <<"main">> }, _}]},
+       Docs),
+
+    check_no_doc_attributes(BeamCode),
+
+    {ok, test, BeamCodeWSource} = compile:forms(scan_and_parse(Code),[beam_docs, debug_info, {source, "test.erl"}]),
+    {ok, {test, [{documentation, DocsWSource }]}} = beam_lib:chunks(BeamCodeWSource, [documentation]),
+
+    ?assertMatch(
+       #docs_v1{ module_doc = #{ <<"en">> := <<"moduledoc">> },
+                 anno = 2,
+                 docs = [{{function,main,0}, [{file,"test.erl"},{location,4}],
+                          _, #{ <<"en">> := <<"main">> }, _}]},
+       DocsWSource),
+    check_no_doc_attributes(BeamCodeWSource),
+    ok.
+
+scan_and_parse(Code) ->
+    {ok, Toks, _} = erl_scan:string(Code),
+    parse(Toks).
+
+parse([]) -> [];
+parse(Toks) ->
+    {Form, [Dot | Rest]} = lists:splitwith(fun(E) -> element(1,E) =/= dot end, Toks),
+    {ok, F} = erl_parse:parse_form(Form ++ [Dot]),
+    [F | parse(Rest)].
+
 compile_file(Conf, ModuleName) ->
     compile_file(Conf, ModuleName, []).
 compile_file(Conf, ModuleName, ExtraOpts) ->
     ErlModName = ModuleName ++ ".erl",
     Filename = filename:join(proplists:get_value(data_dir, Conf), ErlModName),
     io:format("Compiling: ~ts~n",[Filename]),
-    compile:file(Filename, [beam_docs | ExtraOpts]).
+    case compile:file(Filename, [debug_info, beam_docs | ExtraOpts]) of
+        {ok, ModName} ->
+
+            check_no_doc_attributes(code:which(ModName)),
+
+            {ok, ModName};
+        Else ->
+            Else
+    end.
+
+
+%% Verify that all doc and moduledoc attributes are stripped from debug_info
+check_no_doc_attributes(Mod) ->
+    {ok, {_ModName,
+          [{debug_info,
+            {debug_info_v1,erl_abstract_code,
+             {AST, Opts}}}]}} = beam_lib:chunks(Mod, [debug_info]),
+    false = lists:search(
+              fun(E) ->
+                      element(1,E) == attribute
+                          andalso
+                            (element(3,E) == doc orelse element(3,E) == moduledoc)
+              end, AST),
+    true = lists:member(beam_docs, Opts),
+    ok.
