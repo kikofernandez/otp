@@ -4,6 +4,8 @@
 
 -export_type([name/1,unnamed/0, mmaybe/1, callback_mode_result/0]).
 
+-export([uses_public/0]).
+-export_type([public/0]).
 
 -doc "
 name(_)
@@ -110,3 +112,15 @@ map_fun() ->
 -spec ignore_type_from_hidden_fun() -> four().
 ignore_type_from_hidden_fun() ->
     ok.
+
+%% Type below should be a warning, since it is refered
+%% by a public function or type and the inner type is hidden.
+-doc false.
+-type hidden_type() :: integer().
+
+-type intermediate() :: hidden_type().
+-type public() :: intermediate().
+
+-spec uses_public() -> public().
+uses_public() ->
+    42.

@@ -29,7 +29,7 @@
 
 -feature(maybe_expr, enable).
 
--export([main/3]).
+-export([main/3, format_error/1]).
 
 -import(lists, [foldl/3, all/2, map/2, filter/2, reverse/1, join/2]).
 
@@ -59,27 +59,42 @@ documentation format.
 
                %% tracks exported type from multiple `-export_type([...])`
                exported_types     = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
+               type_defs          = #{}        :: #{{TypeName :: atom(), Arity :: non_neg_integer()} := [erl_anno:anno()]},
 
 
                % user defined types that need to be shown in the documentation. these are types that are not
                %% exported but that the documentation needs to show because exported functions referred to them.
                user_defined_types = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
 
-               types_from_exported_funs = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
+               types_from_exported_funs = #{} :: #{{TypeName :: atom(), Arity :: non_neg_integer()} := [erl_anno:anno()]},
 
-               %% on analysing the AST, and upon finding a spec of a exported function,
-               %% the types from the spec are added to the field below.
-               %% if the function to which the spec belongs to is hidden, we purge types from this field.
-               %% if the function to which the specs belong to are not hidden, they are added to user_defined_types.
+               %% on analysing the AST, and upon finding a spec of a exported
+               %% function, the types from the spec are added to the field
+               %% below. if the function to which the spec belongs to is hidden,
+               %% we purge types from this field. if the function to which the
+               %% specs belong to are not hidden, they are added to
+               %% user_defined_types. Essentially, `last_read_user_types` is a
+               %% queue that accumulates types until they can be promoted to
+               %% `user_defined_types` or purged (removed).
                %%
-               %% this field keeps track of these types until we reach the function definition, which
-               %% means that we already know if the function sets `-doc false.`. upon having this information,
-               %% we can discard the user defined types when the function uses `-doc false.` (hidden), since that means
-               %% that the function should not be displayed in the docs. if the function is not hidden,
-               %% we add the user defined types to the field `user_defined_types` as these can be (non-)exported
-               %% types. if the types are exported, the docs will show the type definition. if the types
-               %% are not exported, the type definition will be shown as not exported.
+               %% RATIONALE / DESIGN
+               %%
+               %% this field keeps track of these types until we reach the
+               %% function definition, which means that we already know if the
+               %% function sets `-doc false.`. upon having this information, we
+               %% can discard the user defined types when the function uses
+               %% `-doc false.` (hidden), since that means that the function
+               %% should not be displayed in the docs. if the function is not
+               %% hidden, we add the user defined types to the field
+               %% `user_defined_types` as these can be (non-)exported types. if
+               %% the types are exported, the docs will show the type
+               %% definition. if the types are not exported, the type definition
+               %% will be shown as not exported.
                last_read_user_types = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
+
+               %% hidden_types = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
+
+               type_dependency = digraph:new() :: digraph:graph(),
 
                % keeps track of `-compile(export_all)`
                export_all         = false :: boolean(),
@@ -173,11 +188,17 @@ main(Dirname, Filename, AST) ->
     Docs = extract_documentation(AST1, State1),
     DocV1 = #docs_v1{},
     Meta = extract_meta(AST, DocV1#docs_v1.metadata),
-    DocV1#docs_v1{ format = DocFormat,
-                   anno = ModuleDocAnno,
-                   metadata = Meta,
-                   module_doc = create_module_doc(ModuleDoc),
-                   docs = process_docs(Docs) }.
+    Result = DocV1#docs_v1{ format = DocFormat,
+                            anno = ModuleDocAnno,
+                            metadata = Meta,
+                            module_doc = create_module_doc(ModuleDoc),
+                            docs = process_docs(Docs) },
+   {ok, Result, Docs#docs.ast_warnings }.
+
+-spec format_error(term()) -> io_lib:chars().
+format_error({hidden_type_used_in_exported_fun, {Type, Arity}}) ->
+    io_lib:format("hidden type '~p/~p' used in exported function",
+                  [Type, Arity]).
 
 process_docs(#docs{ast_callbacks = AstCallbacks, ast_fns = AstFns, ast_types = AstTypes}) ->
     AstTypes ++ AstCallbacks ++ AstFns.
@@ -274,10 +295,6 @@ update_user_defined_types(#docs{doc_status = DocStatus,
                     last_read_user_types = sets:new()}
    end.
 
-
-set_last_read_user_types(#docs{}=State, Types) ->
-   State#docs{last_read_user_types = Types}.
-
 %% update_user_defined_types(#docs{}=State, Types) ->
 %%    State#docs{last_read_user_types = Types}.
 
@@ -348,14 +365,30 @@ extract_documentation(AST, State) ->
 warnings(AST, State) ->
    warn_hidden_types_used_in_public_fns(AST, State).
 
+%% hidden types with `-doc hidden.` or `-doc false.`, which are public (inside
+%% `export_type([])`), and used in public functions, they do not make sense. It
+%% is a type that is not documented (due to hidden property), visible in the
+%% docs (because it is in export_type), and reference / used by a public
+%% function cannot be used.
+%% A type that is hidden, private, and used in an exported function will be documented
+%% by the doc generation showing the internal type structure.
 warn_hidden_types_used_in_public_fns(AST, #docs{types_from_exported_funs = TypesFromExportedFuns,
-                                                ast_warnings = AstWarnings}=State) ->
-
-   %% new pass to the AST to avoid more complexity in the State
+                                                type_dependency = TypeDependency,
+                                                type_defs = TypeDefs}=State) ->
    HiddenTypes = extract_hidden_types(AST),
+   Types = maps:keys(TypesFromExportedFuns),
+   ReachableTypes = digraph_utils:reachable(Types, TypeDependency),
+   ReachableSet = sets:from_list(ReachableTypes),
+   Warnings = sets:intersection(HiddenTypes, ReachableSet),
+   WarningsWithAnno = sets:map(fun (Key) ->
+                                     create_warning({Key, maps:get(Key, TypeDefs)})
+                               end, Warnings),
+   State#docs{ast_warnings = sets:to_list(WarningsWithAnno)}.
 
-   Result = {hidden_types_in_public_fns, sets:intersection(HiddenTypes, TypesFromExportedFuns)},
-   State#docs{ast_warnings = sets:add_element(Result, AstWarnings)}.
+create_warning({Type, Anno}) ->
+   Location = erl_anno:location(Anno),
+   Warning = {hidden_type_used_in_exported_fun, Type},
+   {Location, beam_doc, Warning}.
 
 purge_private_types(#docs{ast_types = AstTypes,
                           user_defined_types = UserDefinedTypes}=State) ->
@@ -375,19 +408,11 @@ extract_documentation0([{attribute, _Anno, spec, _}| _]=AST, State) ->
 extract_documentation0([AST0 | _T]=AST,
                       #docs{meta = #{ equiv := {call,_,_Equiv,_Args} = Equiv} = Meta}=State)
     when is_tuple(AST0) andalso (tuple_size(AST0) > 2 orelse tuple_size(AST0) < 6) ->
-   %% AST0 matches here terminal attributes to fix the metadata before processing them.
-   %% terminal attribute, such as -type, function, -opaque, -callback.
-   %% This is because terminal items are the ones that produce the documentation, and
-   %% then move to another AST object.
     Meta1 = Meta#{ equiv := unicode:characters_to_binary(erl_pp:expr(Equiv)) },
     extract_documentation0(AST, update_meta(State, Meta1));
 extract_documentation0([AST0 | _T]=AST,
                       #docs{meta = #{ equiv := {Func,Arity}} = Meta}=State)
     when is_tuple(AST0) andalso (tuple_size(AST0) > 2 orelse tuple_size(AST0) < 6) ->
-   %% AST0 matches here terminal attributes to fix the metadata before processing them.
-   %% terminal attribute, such as -type, function, -opaque, -callback.
-   %% This is because terminal items are the ones that produce the documentation, and
-   %% then move to another AST object.
     Meta1 = Meta#{ equiv := unicode:characters_to_binary(io_lib:format("~p/~p",[Func,Arity])) },
     extract_documentation0(AST, update_meta(State, Meta1));
 extract_documentation0([{function, _Anno, _F, _A, _Body} | _]=AST, State) ->
@@ -405,34 +430,40 @@ extract_documentation0([], #docs{doc_status = none}=State) ->
     State.
 
 
-extract_documentation_spec([{attribute, _Anno, spec, Form}=AST0| T], State) ->
+extract_documentation_spec([{attribute, Anno, spec, Form}=AST0| T], State) ->
    State1 = extract_slogan_from_spec(AST0, State),
-   State2 = extract_spec_types(Form, State1),
+   State2 = extract_spec_types(Anno, Form, State1),
    extract_documentation0(T, State2).
 
 %% this is because public functions may use private types and these private
 %% types need to be included in the beam and documentation.
-extract_spec_types({{Name,Arity}, SpecTypes}, #docs{exported_functions = ExpFuns}=State) ->
+extract_spec_types(Anno, {{Name,Arity}, SpecTypes}, #docs{exported_functions = ExpFuns}=State) ->
    case sets:is_element({Name, Arity}, ExpFuns) orelse State#docs.export_all of
       true ->
-         add_user_types(SpecTypes, State);
+         %% io:format("(~p:~p) ~p~n", [?MODULE, ?LINE, {Name, Arity}]),
+         add_user_types(Anno, SpecTypes, State);
       false ->
          State
    end;
-extract_spec_types({{_Mod, Name, Arity}, Types}, State) ->
-   extract_spec_types({{Name, Arity}, Types}, State).
+extract_spec_types(Anno, {{_Mod, Name, Arity}, Types}, State) ->
+   extract_spec_types(Anno, {{Name, Arity}, Types}, State).
 
-add_user_types(SpecTypes, State) ->
-   Types = extract_user_types(SpecTypes, sets:new()),
+add_user_types(_Anno, SpecTypes, State) ->
+   Types = extract_user_types(SpecTypes),
    State1 = set_types_used_in_public_funs(State, Types),
    set_last_read_user_types(State1, Types).
 
 %% pre: only call this function to add types from external functions.
 set_types_used_in_public_funs(#docs{types_from_exported_funs = TypesFromExportedFuns}=State, Types) ->
-   Types0 = sets:union(TypesFromExportedFuns, Types),
+   Combiner = fun (_Key, Value1, Value2) -> Value1 ++ Value2 end,
+   Types0 = maps:merge_with(Combiner, TypesFromExportedFuns, Types),
    State#docs{types_from_exported_funs = Types0}.
 
+set_last_read_user_types(#docs{}=State, Types) ->
+   State#docs{last_read_user_types = Types}.
 
+extract_user_types(Args) ->
+   extract_user_types(Args, maps:new()).
 extract_user_types(Types, Acc) when is_list(Types) ->
   foldl(fun extract_user_types/2, Acc, Types);
 extract_user_types({ann_type, _, [_Name, Type]}, Acc) ->
@@ -449,10 +480,11 @@ extract_user_types({type, _, tuple, Args}, Acc) ->
    extract_user_types(Args, Acc);
 extract_user_types({type, _,union, Args}, Acc) ->
    extract_user_types(Args, Acc);
-extract_user_types({user_type, _, Name, Args}, Acc) ->
+extract_user_types({user_type, Anno, Name, Args}, Acc) ->
    %% append user type and continue iterating through lists in case of other
    %% user-defined types to be added
-   Acc1 = sets:add_element({Name, length(Args)}, Acc),
+   Fun = fun (Value) -> [Anno | Value] end,
+   Acc1 = maps:update_with({Name, length(Args)}, Fun, [Anno], Acc),
    extract_user_types(Args, Acc1);
 extract_user_types({type, _, bounded_fun, Args}, Acc) ->
    extract_user_types(Args, Acc);
@@ -506,26 +538,33 @@ extract_slogan_from_spec({attribute, _Anno, Tag, Form}, State) when Tag =:= spec
 %% NOTE: Terminal elements for the documentation, such as `-type`, `-opaque`, `-callback`,
 %%       and functions always need to reset the state when they finish, so that new
 %%       new AST items start with a clean slate.
-extract_documentation_from_type([{attribute, Anno, TypeOrOpaque, {TypeName, TypeDef, TypeArgs}}=_AST | T],
+extract_documentation_from_type([{attribute, Anno, TypeOrOpaque, {TypeName, _TypeDef, TypeArgs}=Types}=_AST | T],
                       #docs{exported_types=ExpTypes, meta=Meta}=State)
   when TypeOrOpaque =:= type; TypeOrOpaque =:= opaque ->
    Args = fun_to_varargs(TypeArgs),
-   State0 = add_user_types([TypeArgs, TypeDef], State),
-   case sets:is_element({TypeName, length(Args)}, ExpTypes) of
-      true ->
-         State1 = State0#docs{ meta = Meta#{exported := true}},
-         State2 = gen_doc_with_slogan({type, Anno, TypeName, length(Args), Args}, State1),
-         extract_documentation0(T, State2);
-      false ->
-         %% the reason is that a public function that returns a private type,
-         %% needs to show this private type in the documentation as a type that is
-         %% internal, but we need to show its structure.
-         %% another function in this module will deal with removing private types
-         %% that are not used in public functions.
-         State1 = State0#docs{ meta = Meta#{exported := false}},
-         State2 = gen_doc_with_slogan({type, Anno, TypeName, length(Args), Args}, State1),
-         extract_documentation0(T, State2)
-   end.
+   State0 = add_type_dependency(Anno, Types, State),
+   Type = {TypeName, length(Args)},
+   State1 = add_type_defs(Anno, Type, State0),
+
+   State2 = State1#docs{ meta = Meta#{exported := sets:is_element(Type, ExpTypes)}},
+   State3 = gen_doc_with_slogan({type, Anno, TypeName, length(Args), Args}, State2),
+   extract_documentation0(T, State3).
+
+add_type_defs(Anno, Type, #docs{type_defs = TypeDefs}=State) ->
+   State#docs{type_defs = TypeDefs#{Type => Anno}}.
+
+add_type_dependency(_Anno, {TypeName, TypeDef, TypeArgs}, #docs{type_dependency = TypeDependency}=State) ->
+   Types = extract_user_types([TypeArgs, TypeDef]),
+   State0 = set_last_read_user_types(State, Types),
+   #docs{last_read_user_types = LastReadUserTypes} = State0,
+   Type = {TypeName, length(TypeArgs)},
+   digraph:add_vertex(TypeDependency, Type),
+   UserTypes = sets:to_list(LastReadUserTypes),
+   [begin
+       digraph:add_vertex(TypeDependency, TypeAndArity),
+       digraph:add_edge(TypeDependency, Type, TypeAndArity)
+    end || TypeAndArity <- UserTypes],
+   State0.
 
 
 extract_documentation_from_doc([{attribute, _Anno, doc, Meta0}=_AST | T], State) when is_map(Meta0) ->
@@ -540,23 +579,29 @@ extract_documentation_from_doc([{attribute, Anno, doc, Doc}=_AST | T], State) wh
 extract_documentation_from_doc([{attribute, Anno, doc, Doc}=_AST | T], State) when is_binary(Doc) ->
    extract_documentation0(T, update_doc(State, {unicode:characters_to_list(Doc), Anno})).
 
+%%
+%% Extracts types with documentation attribute set to `hidden` or `false`.
+%%
+%% E.g.:
+%%
+%%    -doc hidden.
+%%    -type foo() :: integer().
+%%
 extract_hidden_types(AST) ->
-   extract_hidden_types(AST, {none, sets:new()}).
-extract_hidden_types([], {_, HiddenTypes}) ->
-   HiddenTypes;
-extract_hidden_types([{attribute, _Anno, doc, DocStatus} | T], {_TypeState, HiddenTypes}) when
+   CurrentStatus = none,
+   HiddenTypes = sets:new(),
+   {_, Result} = foldl(fun extract_hidden_types/2, {CurrentStatus, HiddenTypes}, AST),
+   Result.
+extract_hidden_types({attribute, _Anno, doc, DocStatus}, {_TypeState, HiddenTypes}) when
    DocStatus =:= hidden; DocStatus =:= false ->
-   extract_hidden_types(T, {hidden, HiddenTypes});
-extract_hidden_types([{attribute, _Anno, doc, _} | T], {TypeState, HiddenTypes}) ->
-   extract_hidden_types(T, {TypeState, HiddenTypes});
-extract_hidden_types([{attribute, _Anno, TypeOrOpaque, {Name, _Type, Args}} | T], {hidden, HiddenTypes})
+   {hidden, HiddenTypes};
+extract_hidden_types({attribute, _Anno, doc, _}, Acc) ->
+   Acc;
+extract_hidden_types({attribute, _Anno, TypeOrOpaque, {Name, _Type, Args}}, {hidden, HiddenTypes})
   when TypeOrOpaque =:= type; TypeOrOpaque =:= opaque ->
-   extract_hidden_types(T, {none, sets:add_element({Name, length(Args)}, HiddenTypes)});
-extract_hidden_types([{attribute, _Anno, TypeOrOpaque, _} | T], {none, HiddenTypes})
-  when TypeOrOpaque =:= type; TypeOrOpaque =:= opaque ->
-   extract_hidden_types(T, {none, HiddenTypes});
-extract_hidden_types([_ | T], {_, HiddenTypes}) ->
-   extract_hidden_types(T, {none, HiddenTypes}).
+   {none, sets:add_element({Name, length(Args)}, HiddenTypes)};
+extract_hidden_types(_, {_, HiddenTypes}) ->
+   {none, HiddenTypes}.
 
 
 %% NOTE: Terminal elements for the documentation, such as `-type`, `-opaque`, `-callback`,
@@ -592,8 +637,7 @@ extract_documentation_from_cb([{attribute, Anno, callback, {{CB, A}, [Fun]=Form}
    State1 = extract_slogan_from_spec(AST0, State),
 
    %% adds user types as part of possible types that need to be exported
-   State2 = add_user_types(Form, State1),
-
+   State2 = add_user_types(Anno, Form, State1),
 
    Args = fun_to_varargs(Fun),
    State3 = gen_doc_with_slogan({callback, Anno, CB, A, Args}, State2),
@@ -604,7 +648,7 @@ extract_documentation_from_cb([{attribute, Anno0, callback, {{CB, A}, Form}}=AST
    State1 = extract_slogan_from_spec(AST0, State),
 
    %% adds user types as part of possible types that need to be exported
-   State2 = add_user_types(Form, State1),
+   State2 = add_user_types(Anno0, Form, State1),
 
    {Doc1, Anno1} = case Doc0 of
                         none -> {none, Anno0};
