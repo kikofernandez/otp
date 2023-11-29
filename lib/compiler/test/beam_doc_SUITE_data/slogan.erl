@@ -4,6 +4,7 @@
          bar/0,
          no_slogan/1,
          spec_slogan/1,
+         spec_slogan/2,
          no_doc_slogan/1,
          spec_no_doc_slogan/1,
          spec_multiclause_slogan_ignored/1
@@ -40,6 +41,10 @@ no_slogan(_X) ->
 -spec spec_slogan(Y :: integer()) -> integer() | ok.
 -doc "Not a slogan".
 spec_slogan(_X) -> ok.
+
+-spec spec_slogan(Y :: integer(), Z :: integer()) -> integer() | ok.
+-doc "Not a slogan".
+spec_slogan(_X, _Y) -> _X + _Y.
 
 no_doc_slogan(X) -> X.
 

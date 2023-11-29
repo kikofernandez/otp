@@ -501,12 +501,13 @@ extract_slogan_from_spec({attribute, _Anno, Tag, Form}, State) when Tag =:= spec
 
       Vars = foldl(fun (_, false) -> false;
                        ({var, _, Var}, Vars) -> [Var | Vars];
+                       ({ann_type, _, [{var, _, Var} | _]}, Vars) -> [Var | Vars];
                        (_, _) -> false
                    end, [], Args),
 
       true ?= is_list(Vars),
       Arity ?= length(Vars),
-      update_slogan(State, {Name, Vars, Arity})
+      update_slogan(State, {Name, lists:reverse(Vars), Arity})
    else
       _ ->
          State
@@ -591,39 +592,13 @@ extract_documentation_from_funs([{function, Anno0, F, A, _Body}=_AST | T],
 
     State1 = case sets:is_element({F, A}, ExpFuns) orelse State#docs.export_all of
                true ->
-                  {Slogan1, DocsWithoutSlogan} =
-                     %% First we check if there is a doc prototype
-                     case extract_slogan(Doc1, F, A) of
-                        undefined -> {io_lib:format("~p/~p",[F,A]), Doc1};
-                        SloganDocs -> SloganDocs
-                     end,
-                  Slogan = pick_slogan(Slogan1, State, F, A),
+                  {Slogan, DocsWithoutSlogan} = extract_slogan(Doc1, State, F, A),
                   AttrBody = {function, F, A},
                   gen_doc(Anno1, AttrBody, Slogan, DocsWithoutSlogan, State);
                false ->
                   reset_state(State)
             end,
    extract_documentation0(T, State1).
-
-pick_slogan(Slogan, #docs{slogan = none}, _F, _A) ->
-   Slogan;
-pick_slogan(_Slogan, #docs{slogan = {FunName, Vars, A}}, FunName, A) ->
-   VarString = create_variables(Vars),
-   unicode:characters_to_list(io_lib:format("~p(~s)", [FunName, VarString]));
-pick_slogan(Slogan, _, _F, _A) ->
-   Slogan.
-
-create_variables([]) ->
-   "";
-create_variables([Var | Vars]) ->
-   CommaSeparatedVars = create_variables(Vars, []),
-   atom_to_list(Var) ++ CommaSeparatedVars.
-
-create_variables([], Acc) ->
-   reverse(Acc);
-create_variables([Var | Vars], Acc) ->
-   create_variables(Vars, atom_to_list(Var) ++ " ," ++ Acc).
-
 
 extract_documentation_from_cb([{attribute, Anno, callback, {{CB, A}, [Fun]=Form}}=AST0 | T], State) ->
    State1 = extract_slogan_from_spec(AST0, State),
@@ -648,14 +623,7 @@ extract_documentation_from_cb([{attribute, Anno0, callback, {{CB, A}, Form}}=AST
                         {Doc, Anno} -> {Doc, Anno}
                     end,
 
-   {Slogan1, DocsWithoutSlogan} =
-      %% First we check if there is a doc prototype
-      case extract_slogan(Doc1, CB, A) of
-         undefined -> {io_lib:format("~p/~p",[CB,A]), Doc1};
-         SloganDocs -> SloganDocs
-      end,
-   Slogan = pick_slogan(Slogan1, State2, CB, A),
-
+   {Slogan, DocsWithoutSlogan} = extract_slogan(Doc1, State2, CB, A),
 
    AttrBody = {callback, CB, A},
    State3 = gen_doc(Anno1, AttrBody, Slogan, DocsWithoutSlogan, State2),
@@ -684,21 +652,9 @@ gen_doc(Anno, {Attr, _F, _A}=AttrBody, Slogan, Docs, #docs{meta = Meta}=State) -
 %% Generates the documentation inferring the slogan from the documentation.
 gen_doc_with_slogan({Attr, _Anno0, F, A, Args}=AST, #docs{doc = Doc0, doc_status = DocStatus}=State) ->
     {Doc1, Anno1} = fetch_doc_and_anno(DocStatus, Doc0, AST),
-    {Slogan1, DocsWithoutSlogan} =
-        case extract_slogan(Doc1, F, A) of
-            undefined ->
-              case all(fun({var,_,N}) when N =/= '_' -> true; (_) -> false end, Args) of
-                 true ->
-                    {extract_slogan_from_args(F, Args), Doc1};
-                 false ->
-                    {io_lib:format("~p/~p",[F,A]), Doc1}
-              end;
-            SloganDocs ->
-                SloganDocs
-        end,
-   Slogan = pick_slogan(Slogan1, State, F, A),
-   AttrBody = {Attr, F, A},
-   gen_doc(Anno1, AttrBody, Slogan, DocsWithoutSlogan, State).
+    {Slogan, DocsWithoutSlogan} = extract_slogan(Doc1, State, F, A, Args),
+    AttrBody = {Attr, F, A},
+    gen_doc(Anno1, AttrBody, Slogan, DocsWithoutSlogan, State).
 
 fetch_doc_and_anno(DocStatus, Doc, {_Attr, Anno0, _F, _A, _Args}) ->
     case {DocStatus, Doc} of
@@ -719,17 +675,31 @@ fun_to_varargs({var,_,_} = Name) ->
 fun_to_varargs(Else) ->
     Else.
 
-extract_slogan(Doc, _F, _A) when Doc =:= none; Doc =:= hidden ->
-    undefined;
-extract_slogan(Doc, F, A) ->
+extract_slogan(Doc, State, F, A) ->
+    extract_slogan(Doc, State, F, A, [invalid]).
+extract_slogan(Doc, State, F, A, Args) ->
     maybe
+        false ?= Doc =:= none orelse Doc =:= hidden,
         [MaybeSlogan | Rest] = string:split(Doc, "\n"),
         {ok, Toks, _} ?= erl_scan:string(unicode:characters_to_list([MaybeSlogan,"."])),
-        {ok, [{call,_,{atom,_,F},Args}]} ?= erl_parse:parse_exprs(Toks),
-        A ?= length(Args),
+        {ok, [{call,_,{atom,_,F},SloganArgs}]} ?= erl_parse:parse_exprs(Toks),
+        A ?= length(SloganArgs),
         {MaybeSlogan, Rest}
     else
-        _ -> undefined
+        _ ->
+            Slogan =
+                case State#docs.slogan of
+                    none ->
+                        case all(fun({var,_,N}) when N =/= '_' -> true; (_) -> false end, Args)  of
+                            true ->
+                                extract_slogan_from_args(F, Args);
+                            false -> io_lib:format("~p/~p",[F,A])
+                        end;
+                    {F, Vars, A} ->
+                        VarString = join(", ",[atom_to_list(Var) || Var <- Vars]),
+                        unicode:characters_to_list(io_lib:format("~p(~s)", [F, VarString]))
+                end,
+            {Slogan, Doc}
     end.
 
 extract_slogan_from_args(F, Args) ->
