@@ -433,25 +433,14 @@ set_types_used_in_public_funs(#docs{types_from_exported_funs = TypesFromExported
    State#docs{types_from_exported_funs = Types0}.
 
 
-extract_user_types([], Acc) ->
-   Acc;
-extract_user_types([A | Args], Acc) ->
-   Acc1 = extract_user_types(A, Acc),
-   extract_user_types(Args, Acc1);
+extract_user_types(Types, Acc) when is_list(Types) ->
+  foldl(fun extract_user_types/2, Acc, Types);
 extract_user_types({ann_type, _, [_Name, Type]}, Acc) ->
    extract_user_types(Type, Acc);
-extract_user_types({type,_,nil,Args}, Acc) ->
-   extract_user_types(Args, Acc);
 extract_user_types({type, _, 'fun', Args}, Acc) ->
-   extract_user_types(Args, Acc);
-extract_user_types({type,_,range,Args}, Acc) ->
    extract_user_types(Args, Acc);
 extract_user_types({type, _, map, Args}, Acc) ->
    extract_user_types(Args, Acc);
-extract_user_types({op,_,_Op,T1,T2}, Acc) ->
-   extract_user_types([T1, T2], Acc);
-extract_user_types({op,_,_Op,T}, Acc) ->
-   extract_user_types(T, Acc);
 extract_user_types({type, _,record,[_Name | Args]}, Acc) ->
    extract_user_types(Args, Acc);
 extract_user_types({remote_type,_,[_ModuleName,_TypeName,Args]}, Acc) ->
@@ -478,11 +467,10 @@ extract_user_types({type, _, map_field_exact, Args}, Acc) ->
 extract_user_types({type,_,field_type,[_Name, Type]}, Acc) ->
    extract_user_types(Type, Acc);
 extract_user_types({type, _,_BuiltIn, Args}, Acc) when is_list(Args)->
-   %% Handles built-in types such as 'list'.
+   %% Handles built-in types such as 'list', 'nil' 'range'.
    extract_user_types(Args, Acc);
 extract_user_types(_Else, Acc) ->
     Acc.
-
 
 
 %% Accumulate list of variables. if some type is not simply a var,
