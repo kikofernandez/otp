@@ -227,9 +227,11 @@ callback(Conf) ->
     FunctionDoc = #{<<"en">> => <<"all_ok()\n\nCalls all_ok/0">>},
     ChangeOrder = #{<<"en">> => <<"Test changing order">>},
     {ok, {docs_v1, _,_, _, none, _,
-          [{{callback,multi,1},_,[<<"multi(Argument)">>],
+          [{{callback,bounded,1},_,[<<"bounded(X)">>],none,#{}},
+           {{callback,multi,1},_,[<<"multi(Argument)">>],
             #{ <<"en">> := <<"A multiclause callback with slogan docs">> },#{}},
-           {{callback,ann,1},_,[<<"ann/1">>],none,#{}},
+           {{callback,multi_no_slogan,1},_,[<<"multi_no_slogan/1">>],none,#{}},
+           {{callback,ann,1},_,[<<"ann(X)">>],none,#{}},
            {{callback,param,1},_,[<<"param(X)">>],none,#{}},
            {{callback, change_order,0},_,[<<"change_order()">>], ChangeOrder,
             #{equiv := <<"ok()">>}},
@@ -338,9 +340,13 @@ doc_with_file(Conf) ->
 
 doc_with_file_error(Conf) ->
     ModuleName = ?get_name(),
-    {error, Errors, []} = compile_file(Conf, ModuleName, [return]),
+    {error,
+     [{_,
+       [{{6,2},epp,{moduledoc,file,"doesnotexist"}},
+        {{8,2},epp,{doc,file,"doesnotexist"}},
+        {{11,2},epp,{doc,file,"doesnotexist"}}]}] = Errors, []} = compile_file(Conf, ModuleName),
     [[Mod:format_error(Error) || {_Loc, Mod, Error} <- Errs] || {_File, Errs} <- Errors],
-    error = compile_file(Conf, ModuleName, [report]),
+    {error, _, []} = compile_file(Conf, ModuleName, [report]),
     ok.
 
 all_string_formats(Conf) ->
@@ -406,12 +412,12 @@ compile_file(Conf, ModuleName, ExtraOpts) ->
     ErlModName = ModuleName ++ ".erl",
     Filename = filename:join(proplists:get_value(data_dir, Conf), ErlModName),
     io:format("Compiling: ~ts~n",[Filename]),
-    case compile:file(Filename, [debug_info, beam_docs | ExtraOpts]) of
-        {ok, ModName} ->
-
+    case compile:file(Filename, [return_errors, debug_info, beam_docs | ExtraOpts]) of
+        Res when element(1, Res) =:= ok ->
+            ModName = element(2, Res),
             check_no_doc_attributes(code:which(ModName)),
 
-            {ok, ModName};
+            Res;
         Else ->
             Else
     end.

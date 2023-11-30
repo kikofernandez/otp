@@ -19,9 +19,10 @@ Test changing order
 -callback change_order() -> Order :: boolean().
 
 -callback param(X) -> X.
+-callback ann(X :: integer()) -> Y :: integer().
 
--callback ann(X :: integer()) -> X :: integer();
-             (X :: atom()) -> X :: atom().
+-callback multi_no_slogan(X :: integer()) -> X :: integer();
+                         (X :: atom()) -> X :: atom().
 
 
 -doc "multi(Argument)
@@ -29,6 +30,8 @@ Test changing order
 A multiclause callback with slogan docs".
 -callback multi(X :: integer()) -> X :: integer();
                (X :: atom()) -> X :: atom().
+
+-callback bounded(X) -> integer() when X :: integer().
 
 -doc #{equiv => ok/0}.
 -doc "
