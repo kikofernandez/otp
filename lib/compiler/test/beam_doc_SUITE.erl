@@ -246,16 +246,33 @@ private_types(Conf) ->
     ModuleName = ?get_name(),
     {ok, ModName} = compile_file(Conf, ModuleName),
     Code = code:get_doc(ModName),
-    {ok, {docs_v1, _,_, _, none, _,
-          [{{type,private,0}, {26,2}, [<<"private()">>], hidden, #{exported := false}},
+    ?assertMatch(
+       {ok, {docs_v1, _,_, _, none, _,
+          [{{type,remote_type_t,1}, _, _, none, #{exported := false}},
+           {{type,tuple_t,0}, _, _, none, #{exported := false}},
+           {{type,record_t,0}, _, _, none, #{exported := false}},
+           {{type,map_value_2_t,0}, _, _, none, #{exported := false}},
+           {{type,map_key_2_t,0}, _, _, none, #{exported := false}},
+           {{type,map_value_t,0}, _, _, none, #{exported := false}},
+           {{type,map_key_t,0}, _, _, none, #{exported := false}},
+           {{type,fun_ret_2_t,0}, _, _, none, #{exported := false}},
+           {{type,fun_ret_t,0}, _, _, none, #{exported := false}},
+           {{type,fun_t,0}, _, _, none, #{exported := false}},
+           {{type,complex,1}, _, _, none, #{exported := true}},
+           {{type,bounded_ret_t,0}, _, _, none, #{exported := false}},
+           {{type,arg_t,0}, _, _, none, #{exported := false}},
+           {{type,bounded_arg_t,0}, _, _, none, #{exported := false}},
+           {{type,private,0}, {29,2}, [<<"private()">>], hidden, #{exported := false}},
            {{type,hidden_export_t,0},_,[<<"hidden_export_t()">>],hidden,#{exported := true}},
+           {{type,private_cb_t,0},_,_,none,#{exported := false}},
            {{type,public_t,0},_, [<<"public_t()">>], none,#{ exported := true}},
-
            {{type,private_t,0},_, [<<"private_t()">>], none,#{ exported := false}},
-           {{function,hidden_type_exposed,0},{29,1},[<<"hidden_type_exposed()">>],none,#{}},
+           {{callback,bar,1},_,_,none,#{}},
+           {{function,bounded,2},_,_,none,#{}},
+           {{function,hidden_type_exposed,0},{32,1},[<<"hidden_type_exposed()">>],none,#{}},
            {{function,hidden,0},_,[<<"hidden()">>],hidden,#{}},
            {{function,bar,0},_,[<<"bar()">>],none,#{}}
-           ]}} = Code,
+           ]}}, Code),
     ok.
 
 
