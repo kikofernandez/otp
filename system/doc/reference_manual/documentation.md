@@ -12,8 +12,12 @@ Documentation in Erlang is done through the `-moduledoc` and `-doc` [attributes]
     -doc "Adds two numbers together."
     add(One, Two) -> One + Two.
 
-The `-doc` attribute always precedes the function/type/callback it documents.
-The `-moduledoc` attribute has to be located before any other `-doc` attribute.
+The `-moduledoc` attribute has to be located before the first `-doc` attribute or
+function declaration. It documents the overall purpose of the module.
+
+The `-doc` attribute always precedes the [function][] or [attribute][attributes] it documents.
+The attributes that can be documented are [user-defined types][] (`-type` and `-opaque`) and
+[behaviour module attributes][] (`-callback`).
 
 By default the format used for documentation attributes is [Markdown][wikipedia]
 but that can be changed by setting [module documentation metadata](#moduledoc-metadata).
@@ -26,6 +30,9 @@ For details on what is allowed to be part of the `-moduledoc` and `-doc` attribu
 `-doc` attributes have been available since Erlang/OTP 27.
 
 [attributes]: system/reference_manual:modules#module-attributes
+[function]: system/reference_manual:functions
+[user-defined types]: system/reference_manual:typespec#type-declarations-of-user-defined-types
+[behaviour module attributes]: system/reference_manual:modules#behaviour-module-attribute
 [Earmark]: https://github.com/robertdober/earmark_parser
 [wikipedia]: https://en.wikipedia.org/wiki/Markdown
 [github]: https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
@@ -60,15 +67,17 @@ duplicate keys. Example:
 
 This will result in a metadata entry of `#{ since => "2.0", author => "Joe" }`.
 
-The keys in the metadata map can be any type, but it is recommended that only atoms
-are used.
+The keys and values in the metadata map can be any type, but it is recommended
+that only [atoms][] are used for keys and [strings][] for the values.
+
+[atoms]: data_types#atom
+[strings]: data_types#string
 
 ## External documentation files
 
-You do not have to have the documentation inline, if you want to you can also place
-it in a file somewhere else. If you do so, then you can use `-doc {file, "path/to/doc.md"}`
-to point to the documentation. The path used is relative to the file where the `-doc` attribute
-is located. For example:
+The `-moduledoc` and `-doc` can also be placed in external files. To do so use
+`-doc {file, "path/to/doc.md"}` to point to the documentation. The path used is
+relative to the file where the `-doc` attribute is located. For example:
 
     %% doc/add.md
     Adds two numbers together
@@ -83,7 +92,9 @@ and
 
 The module description should include details on how to use the API and examples
 of the different functions working together. Here is a good place to use images
-and other diagrams to better show the usage of the module.
+and other diagrams to better show the usage of the module. If you end up writing
+a lot of text in the `moduledoc`, it could be a good idea to break it out into
+an external page instead.
 
 The `moduledoc` should start with a short paragraph describing the module and then
 go into greater details. For example:
@@ -117,9 +128,9 @@ Example:
 
 [mime type]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
 
-## Documenting a function / type / opaque / callback
+## Documenting a function, user-defined type or callback
 
-You can document functions, type and callbacks using the `-doc` attribute.
+You can document functions, types and callbacks using the `-doc` attribute.
 Each entry should start with a short paragraph describing the function/type/opaque/callback
 and then go into greater detail in needed.
 
@@ -134,7 +145,7 @@ For example:
     We use a special number here so that we know
     that this number comes from this module.
     ".
-    -type number() :: {math, erlang:number()}.
+    -opaque number() :: {math, erlang:number()}.
     
     -doc "
     Adds two number together.
@@ -153,7 +164,7 @@ For example:
 
 ### Doc metadata
 
-There are three reserved metadata keys for `-moduledoc`:
+There are four reserved metadata keys for `-doc`:
 
 - `since` - Shows which version of the application the module was added.
 - `deprecated` - Shows a text in the documentation explaining that it is deprecated and what to use instead.
@@ -171,10 +182,6 @@ There are three reserved metadata keys for `-moduledoc`:
         add(One, Two) -> add(One, Two, []).
         add(One, Two, Options) -> ...
     
-    If no documentation exists, documentation will be generated with a text pointing
-    the user to `add/3`. In the second example there will be an addition check done
-    by the compiler that `One` and `Two` are variable names in the `-spec` of the
-    function.
 - `exported` - A [boolean/0][] signifying if the entry is `exported` or not. For any `-type`
     attribute this value is automatically set by the compiler to show if the type was exported
     or not.
@@ -183,14 +190,18 @@ There are three reserved metadata keys for `-moduledoc`:
 
 ### Doc slogans
 
-The doc slogan is a short text shown to describe the function when hovering.
-By default it is taken from the source code by looking at the names of the
-arguments:
+The doc slogan is a short text shown to describe the function and its arguments.
+By default it is taken by looking at the names of the arguments in the `-spec` or
+function. For example:
 
     add(One, Two) -> One + Two.
+    
+    -spec sub(One :: integer(), Two :: integer()) -> integer().
+    sub(X, Y) -> X - Y.
 
-will have a slogan of `add(One, Two)`. For types/opaques/callbacks,
-the implementation will look at the type/opaque/callback
+will have a slogan of `add(One, Two)` and `sub(One, Two)`.
+
+For types or callbacks, the implementation will look at the type or callback
 specification for what to use as slogan. For example:
 
     -type number(Value) :: {number, Value}.
@@ -220,12 +231,13 @@ declaration up until the `->`. For example:
     "
     add(A, B) -> A + B.
 
-Will create the slogan `add(One, Two)`. This works for functions, types, opaques
-and callbacks.
+Will create the slogan `add(One, Two)`. The slogan will be removed from the
+documentation string, so in the example above only the text `"Adds two numbers"`
+will be part of the documentation. This works for functions, types and callbacks.
 
 ## Links
 
-When writing documentation in Markdown links are automatically found in any
+When writing documentation in Markdown, links are automatically found in any
 inline code segment that looks like an MFA. For example:
 
     -doc "See `sub/2` for more details"
