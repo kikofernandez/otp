@@ -289,7 +289,7 @@ private_types(Conf) ->
            {{type,bounded_ret_t,0}, _, _, none, #{exported := false}},
            {{type,arg_t,0}, _, _, none, #{exported := false}},
            {{type,bounded_arg_t,0}, _, _, none, #{exported := false}},
-           {{type,private,0}, {29,2}, [<<"private()">>], hidden, #{exported := false}},
+           {{type,private,0}, {28,2}, [<<"private()">>], hidden, #{exported := false}},
            {{type,hidden_export_t,0},_,[<<"hidden_export_t()">>],hidden,#{exported := true}},
            {{type,private_cb_t,0},_,_,none,#{exported := false}},
            {{type,public_t,0},_, [<<"public_t()">>], none,#{ exported := true}},
@@ -377,27 +377,30 @@ deprecated(Conf) ->
 
 warn_missing_doc(Conf) ->
     ModuleName = ?get_name(),
-    {ok, ModName, [{File,Warnings}]} = compile_file(Conf, ModuleName,
-                                           [return_warnings, warn_missing_doc, report]),
+    {ok, ModName, [{File,Warnings}, {HrlFile, HrlWarnings}]} =
+        compile_file(Conf, ModuleName, [return_warnings, warn_missing_doc, report]),
 
     {ok, {docs_v1, _,_, _, none, _,
           [{{type,test,1},_,[<<"test(N)">>],none,_},
            {{type,test,0},_,[<<"test()">>],none,_},
            {{callback,test,0},_,[<<"test()">>],none,_},
-           {{function,test,2},_,[<<"test(N, M)">>],none,_},
            {{function,test,1},_,[<<"test(N)">>],none,_},
-           {{function,test,0},_,[<<"test()">>],none,_}]}} =
-        code:get_doc(ModName),
+           {{function,test,0},_,[<<"test()">>],none,_},
+           {{function,test,2},_,[<<"test(N, M)">>],none,_}]}
+    } = code:get_doc(ModName),
 
     ?assertEqual("warn_missing_doc.erl", filename:basename(File)),
-    ?assertEqual(7, length(Warnings)),
+    ?assertEqual(6, length(Warnings)),
     ?assertMatch({1, beam_doc, missing_moduledoc}, lists:nth(1, Warnings)),
     ?assertMatch({{6,2}, beam_doc, {missing_doc, {type,test,0}}}, lists:nth(2, Warnings)),
     ?assertMatch({{7,2}, beam_doc, {missing_doc, {type,test,1}}}, lists:nth(3, Warnings)),
     ?assertMatch({{9,2}, beam_doc, {missing_doc, {callback,test,0}}}, lists:nth(4, Warnings)),
-    ?assertMatch({{11,1}, beam_doc, {missing_doc, {function,test,0}}}, lists:nth(5, Warnings)),
-    ?assertMatch({{12,1}, beam_doc, {missing_doc, {function,test,1}}}, lists:nth(6, Warnings)),
-    ?assertMatch({{15,1}, beam_doc, {missing_doc, {function,test,2}}}, lists:nth(7, Warnings)),
+    ?assertMatch({{13,1}, beam_doc, {missing_doc, {function,test,0}}}, lists:nth(5, Warnings)),
+    ?assertMatch({{14,1}, beam_doc, {missing_doc, {function,test,1}}}, lists:nth(6, Warnings)),
+
+    ?assertEqual("warn_missing_doc.hrl", filename:basename(HrlFile)),
+    ?assertEqual(1, length(HrlWarnings)),
+    ?assertMatch({{2,1}, beam_doc, {missing_doc, {function,test,2}}}, lists:nth(1, HrlWarnings)),
 
     ok.
 
@@ -477,7 +480,7 @@ docs_from_ast(_Conf) ->
     ?assertMatch(
        #docs_v1{ module_doc = #{ <<"en">> := <<"moduledoc">> },
                  anno = 2,
-                 docs = [{{function,main,0}, [{file,"test.erl"},{location,4}],
+                 docs = [{{function,main,0}, 4,
                           _, #{ <<"en">> := <<"main">> }, _}]},
        DocsWSource),
     check_no_doc_attributes(BeamCodeWSource),

@@ -659,7 +659,7 @@ extract_documentation_from_funs([{function, Anno, F, A, [{clause, _, ClauseArgs,
 extract_documentation_from_funs([{function, Anno0, F, A, _Body}=_AST | T],
                       #docs{doc = Doc0, exported_functions=ExpFuns}=State) ->
     {Doc1, Anno1} = case Doc0 of
-                        none -> {none, Anno0};
+                        none -> {none, set_file_anno(Anno0, State)};
                         {Doc, Anno} -> {Doc, Anno}
                     end,
 
@@ -691,7 +691,7 @@ extract_documentation_from_cb([{attribute, Anno0, callback, {{CB, A}, Form}}=AST
    State2 = add_user_types(Anno0, Form, State1),
 
    {Doc1, Anno1} = case Doc0 of
-                        none -> {none, Anno0};
+                        none -> {none, set_file_anno(Anno0, State)};
                         {Doc, Anno} -> {Doc, Anno}
                     end,
 
@@ -775,16 +775,16 @@ info_string(String) when is_list(String) ->
     String.
 
 %% Generates the documentation inferring the slogan from the documentation.
-gen_doc_with_slogan({Attr, _Anno0, F, A, Args}=AST, #docs{doc = Doc0, doc_status = DocStatus}=State) ->
-    {Doc1, Anno1} = fetch_doc_and_anno(DocStatus, Doc0, AST),
+gen_doc_with_slogan({Attr, _Anno0, F, A, Args}=AST, State) ->
+    {Doc1, Anno1} = fetch_doc_and_anno(State, AST),
     {Slogan, DocsWithoutSlogan} = extract_slogan(Doc1, State, F, A, Args),
     AttrBody = {Attr, F, A},
     gen_doc(Anno1, AttrBody, Slogan, DocsWithoutSlogan, State).
 
-fetch_doc_and_anno(DocStatus, Doc, {_Attr, Anno0, _F, _A, _Args}) ->
+fetch_doc_and_anno(#docs{doc = Doc, doc_status = DocStatus}=State, {_Attr, Anno0, _F, _A, _Args}) ->
     case {DocStatus, Doc} of
         {{hidden, Anno}, _} -> {hidden, Anno};
-        {_, none} -> {none, Anno0};
+        {_, none} -> {none, set_file_anno(Anno0, State)};
         {_, {Doc1, Anno}} -> {Doc1, Anno}
     end.
 
