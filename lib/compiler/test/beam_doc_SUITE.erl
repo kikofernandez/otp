@@ -173,7 +173,7 @@ slogan(Conf) ->
 
 types_and_opaques(Conf) ->
     ModuleName = ?get_name(),
-    {ok, ModName} = compile_file(Conf, ModuleName),
+    {ok, ModName, Warnings} = compile_file(Conf, ModuleName, [return_warnings]),
     TypeDoc = #{<<"en">> => <<"Represents the name of a person.">>},
     GenericsDoc = #{<<"en">> => <<"Tests generics">>},
     OpaqueDoc = #{<<"en">> =>
@@ -187,13 +187,14 @@ types_and_opaques(Conf) ->
            Public, Intermediate, HiddenType, OtherPrivateType, MyPrivateType,
            MyMap, StateEnter, CallbackMode,CallbackResult, EncodingFunc, Three,
            Two, One, Hidden, HiddenFalse, MMaybe, Unnamed, Param,NatNumber, Name,
+           HiddenIncludedType,
            %% Functions
            UsesPublic, Ignore, MapFun, PrivateEncoding, Foo
           ]}} = code:get_doc(ModName),
 
-    {{type,public,0},{122,2},[<<"public()">>],none,#{exported := true}} = Public,
-    {{type,intermediate,0},{121,2},[<<"intermediate()">>],none,#{exported := false}} = Intermediate,
-    {{type,hidden_type,0},{119,2},[<<"hidden_type()">>],hidden,#{exported := false}} = HiddenType,
+    {{type,public,0},{124,2},[<<"public()">>],none,#{exported := true}} = Public,
+    {{type,intermediate,0},{123,2},[<<"intermediate()">>],none,#{exported := false}} = Intermediate,
+    {{type,hidden_type,0},{120,2},[<<"hidden_type()">>],hidden,#{exported := false}} = HiddenType,
     {{type,my_other_private_type,0},MyOtherPrivateTypeLine,
               [<<"my_other_private_type()">>],none,#{exported := false}} = OtherPrivateType,
     {{type,my_private_type,0},MyPrivateTypeLine,
@@ -211,26 +212,35 @@ types_and_opaques(Conf) ->
     {{type,hidden_false,0},_,[<<"hidden_false()">>],hidden,
      #{exported := true, authors := "Someone else"}} = HiddenFalse,
     {{type, mmaybe,1},_,[<<"mmaybe(X)">>], MaybeOpaqueDoc, MaybeMeta} = MMaybe,
-    {{type, unnamed,0},_,[<<"unnamed()">>], OpaqueDoc,
+    {{type, unnamed,0},{30,2},[<<"unnamed()">>], OpaqueDoc,
      #{equiv := <<"non_neg_integer()">>, exported := true}} = Unnamed,
     {{type, param,1},_,[<<"param(X)">>], GenericsDoc,
      #{equiv := <<"madeup()">>, exported := true}} = Param,
     {{type, natural_number,0},_,[<<"natural_number()">>], none, NaturalNumberMeta} = NatNumber,
     {{type, name,1},_,[<<"name(_)">>], TypeDoc, #{exported := true}} = Name,
+    {{type, hidden_included_type, 0}, _, _, hidden, #{exported := false }} = HiddenIncludedType,
 
-
-    {{function,uses_public,0},{125,1},[<<"uses_public()">>],none,#{}} = UsesPublic,
+    {{function,uses_public,0},{127,1},[<<"uses_public()">>],none,#{}} = UsesPublic,
     {{function,ignore_type_from_hidden_fun,0},_,[<<"ignore_type_from_hidden_fun()">>],hidden,#{}} = Ignore,
     {{function,map_fun,0},_,[<<"map_fun()">>],none,#{}} = MapFun,
     {{function,private_encoding_func,2},_,[<<"private_encoding_func/2">>],none,#{}} = PrivateEncoding,
     {{function,foo,0},_,[<<"foo()">>],none,#{}} = Foo,
 
-    ?assertEqual(104, erl_anno:line(MyOtherPrivateTypeLine)),
-    ?assertEqual(103, erl_anno:line(MyPrivateTypeLine)),
-    ?assertEqual(100, erl_anno:line(MyMapLine)),
-    ?assertEqual(97, erl_anno:line(StateEnterLine)),
-    ?assertEqual(96, erl_anno:line(CallbackModeLine)),
-    ?assertEqual(94, erl_anno:line(CallbackResultLine)),
+    ?assertEqual(106, erl_anno:line(MyOtherPrivateTypeLine)),
+    ?assertEqual(105, erl_anno:line(MyPrivateTypeLine)),
+    ?assertEqual(102, erl_anno:line(MyMapLine)),
+    ?assertEqual(99, erl_anno:line(StateEnterLine)),
+    ?assertEqual(98, erl_anno:line(CallbackModeLine)),
+    ?assertEqual(96, erl_anno:line(CallbackResultLine)),
+
+    [{File, Ws}, {HrlFile, HrlWs}] = Warnings,
+    ?assertEqual("types_and_opaques.erl", filename:basename(File)),
+    ?assertEqual({{120,2}, beam_doc,
+                  {hidden_type_used_in_exported_fun,{hidden_type,0}}}, lists:nth(4, Ws)),
+
+    ?assertEqual("types_and_opaques.hrl", filename:basename(HrlFile)),
+    ?assertEqual({{1,2}, beam_doc,
+                  {hidden_type_used_in_exported_fun,{hidden_included_type,0}}}, lists:nth(1, HrlWs)),
 
     ok.
 
@@ -489,7 +499,7 @@ compile_file(Conf, ModuleName, ExtraOpts) ->
     ErlModName = ModuleName ++ ".erl",
     Filename = filename:join(proplists:get_value(data_dir, Conf), ErlModName),
     io:format("Compiling: ~ts~n",[Filename]),
-    case compile:file(Filename, [return_errors, debug_info, beam_docs | ExtraOpts]) of
+    case compile:file(Filename, [report, return_errors, debug_info, beam_docs | ExtraOpts]) of
         Res when element(1, Res) =:= ok ->
             ModName = element(2, Res),
             check_no_doc_attributes(code:which(ModName)),
