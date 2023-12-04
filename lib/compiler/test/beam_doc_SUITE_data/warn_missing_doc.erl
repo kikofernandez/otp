@@ -8,8 +8,7 @@
 
 -callback test() -> ok.
 
+-include("warn_missing_doc.hrl").
+
 test() -> ok.
 test(N) -> N.
-
--doc #{ }.
-test(N,M) -> N + M.
