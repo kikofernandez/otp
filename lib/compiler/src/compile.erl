@@ -1597,9 +1597,9 @@ save_abstract_code(Code, St) ->
 
 
 %% Adds documentation attributes to extra_chunks (beam file)
-beam_docs(Code, #compile{dir = Dir, ifile = Filename,
+beam_docs(Code, #compile{dir = Dir, ifile = Filename, options = Options,
                          extra_chunks = ExtraChunks, warnings = Warnings0}=St) ->
-    {ok, Docs, Warnings} = beam_doc:main(Dir, Filename, Code),
+    {ok, Docs, Warnings} = beam_doc:main(Dir, Filename, Code, Options),
     NewWarnings = case Warnings of
                       [] ->
                           Warnings0;
