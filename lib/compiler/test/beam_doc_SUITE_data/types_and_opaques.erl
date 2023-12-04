@@ -7,6 +7,8 @@
 -export([uses_public/0]).
 -export_type([public/0]).
 
+-include("types_and_opaques.hrl").
+
 -doc "
 name(_)
 
@@ -118,7 +120,7 @@ ignore_type_from_hidden_fun() ->
 -doc false.
 -type hidden_type() :: integer().
 
--type intermediate() :: hidden_type().
+-type intermediate() :: hidden_type() | hidden_included_type().
 -type public() :: intermediate().
 
 -spec uses_public() -> public().

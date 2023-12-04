@@ -47,6 +47,7 @@ documentation format.
 ".
 -record(docs, {cwd                 :: file:filename(),             % Cwd
                filename            :: file:filename(),
+               curr_filename       :: file:filename(),
                opts                :: [opt()],
 
                module              :: module(),
@@ -136,7 +137,7 @@ documentation format.
                %% -doc hidden.
                %%
                %% Because of this, we use two fields to keep track of documentation.
-               doc_status = none :: none  | hidden | set,
+               doc_status = none :: none  | {hidden, erl_anno:anno()} | set,
                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                %%
                %% END
@@ -178,7 +179,10 @@ documentation format.
 -type internal_docs() :: #docs{}.
 -type opt() :: {warn_missing_doc, boolean()}.
 -type kfa() :: {Kind :: function | type | callback, Name :: atom(), Arity :: arity()}.
--type warning() :: {erl_anno:anno(), beam_doc, {missing_doc, kfa()}}.
+-type warning() :: {erl_anno:anno(), beam_doc, {missing_doc, kfa()}} |
+                   {erl_anno:anno(), beam_doc, missing_moduledoc} |
+                   {erl_anno:anno(), beam_doc, {hidden_type_used_in_exported_fun,
+                                                {atom(), arity()}}}.
 
 -define(DEFAULT_MODULE_DOC_LOC, 1).
 -define(DEFAULT_FORMAT, <<"text/markdown">>).
@@ -187,7 +191,7 @@ documentation format.
 Transforms an Erlang abstract syntax form into EEP-48 documentation format.
 ".
 -spec main(file:filename(), file:filename(), [erl_parse:abstract_form()], [opt()]) ->
-          #docs_v1{}.
+          {ok, #docs_v1{}, [{file:filename(),[warning()]}]}.
 main(Dirname, Filename, AST, Opts) ->
     State = new_state(Dirname, Filename, Opts),
     {ModuleDocAnno, ModuleDoc} = extract_moduledoc(AST),
@@ -205,7 +209,7 @@ main(Dirname, Filename, AST, Opts) ->
     ModuleDocWarning =
         case proplists:get_value(warn_missing_doc, Opts, false) of
             true when ModuleDoc =:= none ->
-                [{?DEFAULT_MODULE_DOC_LOC, beam_doc, missing_moduledoc}];
+                [{Filename,[{?DEFAULT_MODULE_DOC_LOC, beam_doc, missing_moduledoc}]}];
             _false ->
                 []
         end,
@@ -293,7 +297,8 @@ create_module_doc(Lang, ModuleDoc) ->
 -spec new_state(Dirname :: file:filename(), Filename :: file:filename(),
                 Opts :: [opt()]) -> internal_docs().
 new_state(Dirname, Filename, Opts) ->
-    reset_state(#docs{cwd = Dirname, filename = Filename, opts = Opts}).
+    reset_state(#docs{cwd = Dirname, filename = Filename,
+                      curr_filename = Filename, opts = Opts}).
 
 -spec reset_state(State :: internal_docs()) -> internal_docs().
 reset_state(State) ->
@@ -322,7 +327,7 @@ update_user_defined_types(#docs{doc_status = DocStatus,
                                 user_defined_types = UserDefinedTypes,
                                 last_read_user_types = LastAddedTypes}=State) ->
    case DocStatus of
-      hidden ->
+      {hidden, _Anno} ->
          State#docs{last_read_user_types = sets:new()};
       _ ->
          State#docs{user_defined_types = sets:union(UserDefinedTypes, LastAddedTypes),
@@ -345,16 +350,18 @@ update_doc(#docs{doc_status = DocStatus}=State, Doc0) ->
         none ->
             State2;
         {Doc, Anno} ->
-            FileAnno =
-                case State#docs.filename of
-                    "" ->
-                        Anno;
-                    ModuleName ->
-                        erl_anno:set_file(ModuleName, Anno)
-                end,
-            State2#docs{doc = {string:trim(Doc), FileAnno}}
+            State2#docs{doc = {string:trim(Doc), set_file_anno(Anno, State)}}
     end.
 
+set_file_anno(Anno, State) ->
+        case {State#docs.curr_filename, erl_anno:file(Anno)} of
+            {ModuleName, undefined} when ModuleName =/= "",
+                                         ModuleName =/= State#docs.filename ->
+                erl_anno:set_file(ModuleName, Anno);
+            _ ->
+                Anno
+        end.
+    
 %% Sets the doc status from `none` to `set`.
 %% Leave unchanged if the status was already set to something.
 set_doc_status(none) ->
@@ -372,7 +379,7 @@ update_slogan(#docs{}=State, {FunName, Vars, Arity}=Slogan)
 
 -spec update_filename(State :: internal_docs(), ModuleName :: unicode:chardata()) -> internal_docs().
 update_filename(#docs{}=State, ModuleName) ->
-    State#docs{filename = ModuleName}.
+    State#docs{curr_filename = ModuleName}.
 
 -spec update_export_funs(State :: internal_docs(), proplists:proplist()) -> internal_docs().
 update_export_funs(State, ExportedFuns) ->
@@ -415,14 +422,14 @@ warn_hidden_types_used_in_public_fns(AST, #docs{types_from_exported_funs = Types
    ReachableSet = sets:from_list(ReachableTypes),
    Warnings = sets:intersection(HiddenTypes, ReachableSet),
    WarningsWithAnno = sets:map(fun (Key) ->
-                                     create_warning({Key, maps:get(Key, TypeDefs)})
+                                     create_warning({Key, maps:get(Key, TypeDefs)}, State)
                                end, Warnings),
    State#docs{warnings = State#docs.warnings ++ sets:to_list(WarningsWithAnno) }.
 
-create_warning({Type, Anno}) ->
+create_warning({Type, Anno}, State) ->
    Location = erl_anno:location(Anno),
    Warning = {hidden_type_used_in_exported_fun, Type},
-   {Location, beam_doc, Warning}.
+   {erl_anno_file(Anno, State), [{Location, beam_doc, Warning}]}.
 
 purge_private_types(#docs{ast_types = AstTypes,
                           user_defined_types = UserDefinedTypes}=State) ->
@@ -578,13 +585,12 @@ extract_documentation_from_type([{attribute, Anno, TypeOrOpaque, {TypeName, _Typ
    Args = fun_to_varargs(TypeArgs),
    State0 = add_type_dependency(Anno, Types, State),
    Type = {TypeName, length(Args)},
-   State1 = add_type_defs(Anno, Type, State0),
-
-   State2 = State1#docs{ meta = Meta#{exported := sets:is_element(Type, ExpTypes)}},
-   State3 = gen_doc_with_slogan({type, Anno, TypeName, length(Args), Args}, State2),
+   State1 = State0#docs{ meta = Meta#{exported := sets:is_element(Type, ExpTypes)}},
+   State2 = gen_doc_with_slogan({type, Anno, TypeName, length(Args), Args}, State1),
+   State3 = add_type_defs(Type, State2),
    extract_documentation0(T, State3).
 
-add_type_defs(Anno, Type, #docs{type_defs = TypeDefs}=State) ->
+add_type_defs(Type, #docs{type_defs = TypeDefs, ast_types = [{_KFA, Anno, _Slogan, _Doc, _Meta} | _]}=State) ->
    State#docs{type_defs = TypeDefs#{Type => Anno}}.
 
 add_type_dependency(_Anno, {TypeName, TypeDef, TypeArgs}, #docs{type_dependency = TypeDependency}=State) ->
@@ -604,9 +610,9 @@ add_type_dependency(_Anno, {TypeName, TypeDef, TypeArgs}, #docs{type_dependency 
 extract_documentation_from_doc([{attribute, _Anno, doc, Meta0}=_AST | T], State) when is_map(Meta0) ->
     State1 = update_meta(State, Meta0),
     extract_documentation0(T, update_doc(State1, none));
-extract_documentation_from_doc([{attribute, _Anno, doc, DocStatus}=_AST | T], State)
+extract_documentation_from_doc([{attribute, Anno, doc, DocStatus}=_AST | T], State)
   when DocStatus =:= hidden; DocStatus =:= false ->
-    State1 = update_docstatus(State, hidden),
+    State1 = update_docstatus(State, {hidden, set_file_anno(Anno, State)}),
     extract_documentation0(T, State1);
 extract_documentation_from_doc([{attribute, Anno, doc, Doc}=_AST | T], State) when is_list(Doc)  ->
    extract_documentation0(T, update_doc(State, {Doc, Anno}));
@@ -715,9 +721,19 @@ gen_doc(Anno, {Attr, _F, _A}=AttrBody, Slogan, Docs, #docs{meta = Meta}=State) -
 warn_missing_docs({KFA, Anno, _, Doc, _}, State) ->
     case proplists:get_value(warn_missing_doc, State#docs.opts, false) of
         true when Doc =:= none ->
-            State#docs{ warnings = [{Anno, beam_doc, {missing_doc, KFA}} | State#docs.warnings ]};
+            Filename = erl_anno_file(Anno, State),
+            State#docs{ warnings =
+                            [{Filename,
+                              [{erl_anno:location(Anno), beam_doc, {missing_doc, KFA}}]} | State#docs.warnings ] };
         _false ->
             State
+    end.
+
+erl_anno_file(Anno, State) ->
+    case erl_anno:file(Anno) of
+        undefined ->
+            State#docs.filename;
+        FN -> FN
     end.
 
 maybe_add_deprecation(_KNA, #{ deprecated := Deprecated } = Meta, _State) ->
@@ -767,7 +783,7 @@ gen_doc_with_slogan({Attr, _Anno0, F, A, Args}=AST, #docs{doc = Doc0, doc_status
 
 fetch_doc_and_anno(DocStatus, Doc, {_Attr, Anno0, _F, _A, _Args}) ->
     case {DocStatus, Doc} of
-        {hidden, _} -> {hidden, Anno0};
+        {{hidden, Anno}, _} -> {hidden, Anno};
         {_, none} -> {none, Anno0};
         {_, {Doc1, Anno}} -> {Doc1, Anno}
     end.
