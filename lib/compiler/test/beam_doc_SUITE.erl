@@ -4,7 +4,8 @@
          docmodule_with_doc_attributes/1, hide_moduledoc/1, docformat/1,
          singleton_docformat/1, singleton_meta/1, slogan/1,
          types_and_opaques/1, callback/1, hide_moduledoc2/1,
-         private_types/1, export_all/1, equiv/1, spec/1, doc_with_file/1, doc_with_file_error/1,
+         private_types/1, export_all/1, equiv/1, spec/1, deprecated/1,
+         doc_with_file/1, doc_with_file_error/1,
          all_string_formats/1, docs_from_ast/1]).
 
 -include_lib("common_test/include/ct.hrl").
@@ -41,6 +42,7 @@ documentation_generation_tests() ->
      export_all,
      equiv,
      spec,
+     deprecated,
      doc_with_file_error,
      all_string_formats,
      docs_from_ast
@@ -324,6 +326,42 @@ spec(Conf) ->
            {{callback,me,1},_,[<<"me/1">>],none,#{}},
            {{function,baz,1},_,[<<"baz(X)">>],none,#{}},
            {{function,foo,1},_,[<<"foo(X)">>],none,#{}}]}} = code:get_doc(ModName),
+    ok.
+
+deprecated(Conf) ->
+    ModuleName = ?get_name(),
+    {ok, ModName} = compile_file(Conf, ModuleName),
+    {ok, {docs_v1, _,_, _, none, _,
+          [{{type,test,1},_,[<<"test(N)">>],none,#{deprecated := <<"the type deprecated:test(_) is deprecated; Deprecation reason">>}},
+           {{type,test,0},_,[<<"test()">>],none,#{deprecated := <<"the type deprecated:test() is deprecated; see the documentation for details">>}},
+           {{callback,test,0},_,[<<"test()">>],none,#{deprecated := <<"Meta reason">>}},
+           {{function,test,2},_,[<<"test(N, M)">>],none,#{deprecated := <<"Meta reason">>}},
+           {{function,test,1},_,[<<"test(N)">>],none,#{deprecated := <<"deprecated:test/1 is deprecated; Deprecation reason">>}},
+           {{function,test,0},_,[<<"test()">>],none,#{deprecated := <<"deprecated:test/0 is deprecated; see the documentation for details">>}}]}} =
+        code:get_doc(ModName),
+
+    {ok, ModName} = compile_file(Conf, ModuleName, [{d,'TEST_WILDCARD'},
+                                                    {d, 'REASON', next_major_release}]),
+    {ok, {docs_v1, _,_, _, none, _,
+          [{{type,test,1},_,[<<"test(N)">>],none,#{deprecated := <<"the type deprecated:test(_) is deprecated; see the documentation for details">>}},
+           {{type,test,0},_,[<<"test()">>],none,#{deprecated := <<"the type deprecated:test() is deprecated; see the documentation for details">>}},
+           {{callback,test,0},_,[<<"test()">>],none,#{deprecated := <<"Meta reason">>}},
+           {{function,test,2},_,[<<"test(N, M)">>],none,#{deprecated := <<"Meta reason">>}},
+           {{function,test,1},_,[<<"test(N)">>],none,#{deprecated := <<"deprecated:test/1 is deprecated; will be removed in the next major release. See the documentation for details">>}},
+           {{function,test,0},_,[<<"test()">>],none,#{deprecated := <<"deprecated:test/0 is deprecated; see the documentation for details">>}}]}} =
+        code:get_doc(ModName),
+
+    {ok, ModName} = compile_file(Conf, ModuleName, [{d,'ALL_WILDCARD'},
+                                                    {d,'REASON',next_version},
+                                                    {d,'TREASON',eventually}]),
+    {ok, {docs_v1, _,_, _, none, _,
+          [{{type,test,1},_,[<<"test(N)">>],none,#{deprecated := <<"the type deprecated:test(_) is deprecated; will be removed in a future release. See the documentation for details">>}},
+           {{type,test,0},_,[<<"test()">>],none,#{deprecated := <<"the type deprecated:test() is deprecated; see the documentation for details">>}},
+           {{callback,test,0},_,[<<"test()">>],none,#{deprecated := <<"Meta reason">>}},
+           {{function,test,2},_,[<<"test(N, M)">>],none,#{deprecated := <<"Meta reason">>}},
+           {{function,test,1},_,[<<"test(N)">>],none,#{deprecated := <<"deprecated:test/1 is deprecated; will be removed in the next version. See the documentation for details">>}},
+           {{function,test,0},_,[<<"test()">>],none,#{deprecated := <<"deprecated:test/0 is deprecated; see the documentation for details">>}}]}} =
+        code:get_doc(ModName),
     ok.
 
 doc_with_file(Conf) ->

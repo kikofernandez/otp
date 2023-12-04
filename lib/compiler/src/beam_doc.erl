@@ -48,6 +48,9 @@ documentation format.
 -record(docs, {cwd                 :: file:filename(),             % Cwd
                filename            :: file:filename(),
 
+               module              :: module(),
+               deprecated = #{}    :: map(),
+
                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                %%
                %% EXPORT TRACKING
@@ -214,10 +217,22 @@ extract_exported_types(AST, State) ->
    {State1, reverse(AST1)}.
 extract_exported_types([], State, NewAST) ->
    {State, NewAST};
+extract_exported_types([{attribute,_ANNO,module, Module} | T], State, NewAST) ->
+    extract_exported_types(T, State#docs{ module = Module }, NewAST);
 extract_exported_types([{attribute,_ANNO,export_type,ExportedTypes} | T], State, NewAST) ->
    extract_exported_types(T, update_export_types(State, ExportedTypes), NewAST);
 extract_exported_types([{attribute,_ANNO,compile, export_all} | T], State, NewAST) ->
    extract_exported_types(T, update_export_all(State, true), NewAST);
+extract_exported_types([{attribute, Anno, deprecated, {F, A}} | T], State, NewAST) ->
+    extract_exported_types([{attribute, Anno, deprecated, {F, A, undefined}} | T], State, NewAST);
+extract_exported_types([{attribute, _, deprecated, {F, A, Reason}} | T], State, NewAST) ->
+    Deprecations = (State#docs.deprecated)#{ {function, F, A} => Reason },
+    extract_exported_types(T, State#docs{ deprecated = Deprecations }, NewAST);
+extract_exported_types([{attribute, Anno, deprecated_type, {F, A}} | T], State, NewAST) ->
+    extract_exported_types([{attribute, Anno, deprecated_type, {F, A, undefined}} | T], State, NewAST);
+extract_exported_types([{attribute, _, deprecated_type, {F, A, Reason}} | T], State, NewAST) ->
+    Deprecations = (State#docs.deprecated)#{ {type, F, A} => Reason },
+    extract_exported_types(T, State#docs{ deprecated = Deprecations }, NewAST);
 extract_exported_types([Other | AST], State, NewAST) ->
    extract_exported_types(AST, State, [Other | NewAST]).
 
@@ -670,16 +685,51 @@ extract_documentation_from_cb([{attribute, Anno0, callback, {{CB, A}, Form}}=AST
       Docs      :: none | hidden | unicode:chardata(),
       State     :: internal_docs(),
       Response  :: internal_docs().
-gen_doc(Anno, {Attr, _F, _A}=AttrBody, Slogan, DocWithoutSlogan, #docs{meta = Meta}=State)
-  when DocWithoutSlogan =:= none; DocWithoutSlogan =:= hidden ->
-   Result = {AttrBody, Anno, [unicode:characters_to_binary(Slogan)], DocWithoutSlogan, Meta},
-   State1 = update_user_defined_types(State),
-   reset_state(update_ast(Attr, State1, Result));
+gen_doc(Anno, AttrBody, Slogan, Docs, State) when not is_atom(Docs), not is_map(Docs) ->
+    gen_doc(Anno, AttrBody, Slogan, #{ <<"en">> => unicode:characters_to_binary(string:trim(Docs)) }, State);
 gen_doc(Anno, {Attr, _F, _A}=AttrBody, Slogan, Docs, #docs{meta = Meta}=State) ->
-   Result = {AttrBody, Anno, [unicode:characters_to_binary(Slogan)],
-             #{ <<"en">> => unicode:characters_to_binary(string:trim(Docs)) }, Meta},
+   Result = {AttrBody, Anno, [unicode:characters_to_binary(Slogan)], Docs,
+             maybe_add_deprecation(AttrBody, Meta, State)},
    State1 = update_user_defined_types(State),
    reset_state(update_ast(Attr, State1, Result)).
+
+maybe_add_deprecation(_KNA, #{ deprecated := Deprecated } = Meta, _State) ->
+    Meta#{ deprecated := unicode:characters_to_binary(Deprecated) };
+maybe_add_deprecation({Kind, Name, Arity}, Meta, #docs{ module = Module,
+                                                        deprecated = Deprecations }) ->
+    maybe
+        error ?= maps:find({Kind, Name, Arity}, Deprecations),
+        error ?= maps:find({Kind, Name, '_'}, Deprecations),
+        error ?= maps:find({Kind, '_', Arity}, Deprecations),
+        error ?= maps:find({Kind, '_', '_'}, Deprecations),
+        Meta
+    else
+        {ok, Value} ->
+            Text =
+                if Kind =:= function ->
+                        erl_lint:format_error({deprecated, {Module,Name,Arity},
+                                               info_string(Value)});
+                   Kind =:= type ->
+                        erl_lint:format_error({deprecated_type, {Module,Name,Arity},
+                                               info_string(Value)})
+                end,
+            Meta#{ deprecated => unicode:characters_to_binary(Text) }
+    end.
+
+%% Copies from lib/stdlib/scripts/update_deprecations
+info_string(undefined) ->
+    "see the documentation for details";
+info_string(next_version) ->
+    "will be removed in the next version. "
+        "See the documentation for details";
+info_string(next_major_release) ->
+    "will be removed in the next major release. "
+        "See the documentation for details";
+info_string(eventually) ->
+    "will be removed in a future release. "
+        "See the documentation for details";
+info_string(String) when is_list(String) ->
+    String.
 
 %% Generates the documentation inferring the slogan from the documentation.
 gen_doc_with_slogan({Attr, _Anno0, F, A, Args}=AST, #docs{doc = Doc0, doc_status = DocStatus}=State) ->
