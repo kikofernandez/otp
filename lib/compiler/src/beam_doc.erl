@@ -29,7 +29,7 @@
 
 -feature(maybe_expr, enable).
 
--export([main/3, format_error/1]).
+-export([main/4, format_error/1]).
 
 -import(lists, [foldl/3, all/2, map/2, filter/2, reverse/1, join/2]).
 
@@ -47,6 +47,7 @@ documentation format.
 ".
 -record(docs, {cwd                 :: file:filename(),             % Cwd
                filename            :: file:filename(),
+               opts                :: [opt()],
 
                module              :: module(),
                deprecated = #{}    :: map(),
@@ -165,8 +166,9 @@ documentation format.
                ast_fns = [] :: list(),
                ast_types = [] :: list(),
                ast_callbacks = [] :: list(),
-               ast_warnings = sets:new() :: sets:set()
-               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+               warnings = [] :: [warning()]
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                %%
                %% END
                %%
@@ -174,6 +176,9 @@ documentation format.
               }).
 
 -type internal_docs() :: #docs{}.
+-type opt() :: {warn_missing_doc, boolean()}.
+-type kfa() :: {Kind :: function | type | callback, Name :: atom(), Arity :: arity()}.
+-type warning() :: {erl_anno:anno(), beam_doc, {missing_doc, kfa()}}.
 
 -define(DEFAULT_MODULE_DOC_LOC, 1).
 -define(DEFAULT_FORMAT, <<"text/markdown">>).
@@ -181,10 +186,10 @@ documentation format.
 -doc "
 Transforms an Erlang abstract syntax form into EEP-48 documentation format.
 ".
--spec main(file:filename(), file:filename(), [erl_parse:abstract_form()]) ->
+-spec main(file:filename(), file:filename(), [erl_parse:abstract_form()], [opt()]) ->
           #docs_v1{}.
-main(Dirname, Filename, AST) ->
-    State = new_state(Dirname, Filename),
+main(Dirname, Filename, AST, Opts) ->
+    State = new_state(Dirname, Filename, Opts),
     {ModuleDocAnno, ModuleDoc} = extract_moduledoc(AST),
     DocFormat = extract_docformat(AST),
     {State1, AST1} = extract_exported_types(AST, State),
@@ -196,12 +201,25 @@ main(Dirname, Filename, AST) ->
                             metadata = Meta,
                             module_doc = create_module_doc(ModuleDoc),
                             docs = process_docs(Docs) },
-   {ok, Result, Docs#docs.ast_warnings }.
+
+    ModuleDocWarning =
+        case proplists:get_value(warn_missing_doc, Opts, false) of
+            true when ModuleDoc =:= none ->
+                [{?DEFAULT_MODULE_DOC_LOC, beam_doc, missing_moduledoc}];
+            _false ->
+                []
+        end,
+
+   {ok, Result, ModuleDocWarning ++ Docs#docs.warnings }.
 
 -spec format_error(term()) -> io_lib:chars().
 format_error({hidden_type_used_in_exported_fun, {Type, Arity}}) ->
     io_lib:format("hidden type '~p/~p' used in exported function",
-                  [Type, Arity]).
+                  [Type, Arity]);
+format_error({missing_doc, {Kind, Name, Arity}}) ->
+    io_lib:format("missing -doc for ~w ~tw/~w", [Kind, Name, Arity]);
+format_error(missing_moduledoc) ->
+    io_lib:format("missing -moduledoc", []).
 
 process_docs(#docs{ast_callbacks = AstCallbacks, ast_fns = AstFns, ast_types = AstTypes}) ->
     AstTypes ++ AstCallbacks ++ AstFns.
@@ -272,9 +290,10 @@ create_module_doc(ModuleDoc) when not is_atom(ModuleDoc) ->
 create_module_doc(Lang, ModuleDoc) ->
     #{Lang => ModuleDoc}.
 
--spec new_state(Dirname :: file:filename(), Filename :: file:filename()) -> internal_docs().
-new_state(Dirname, Filename) ->
-    reset_state(#docs{cwd = Dirname, filename = Filename}).
+-spec new_state(Dirname :: file:filename(), Filename :: file:filename(),
+                Opts :: [opt()]) -> internal_docs().
+new_state(Dirname, Filename, Opts) ->
+    reset_state(#docs{cwd = Dirname, filename = Filename, opts = Opts}).
 
 -spec reset_state(State :: internal_docs()) -> internal_docs().
 reset_state(State) ->
@@ -398,7 +417,7 @@ warn_hidden_types_used_in_public_fns(AST, #docs{types_from_exported_funs = Types
    WarningsWithAnno = sets:map(fun (Key) ->
                                      create_warning({Key, maps:get(Key, TypeDefs)})
                                end, Warnings),
-   State#docs{ast_warnings = sets:to_list(WarningsWithAnno)}.
+   State#docs{warnings = State#docs.warnings ++ sets:to_list(WarningsWithAnno) }.
 
 create_warning({Type, Anno}) ->
    Location = erl_anno:location(Anno),
@@ -691,7 +710,15 @@ gen_doc(Anno, {Attr, _F, _A}=AttrBody, Slogan, Docs, #docs{meta = Meta}=State) -
    Result = {AttrBody, Anno, [unicode:characters_to_binary(Slogan)], Docs,
              maybe_add_deprecation(AttrBody, Meta, State)},
    State1 = update_user_defined_types(State),
-   reset_state(update_ast(Attr, State1, Result)).
+   reset_state(update_ast(Attr, warn_missing_docs(Result, State1), Result)).
+
+warn_missing_docs({KFA, Anno, _, Doc, _}, State) ->
+    case proplists:get_value(warn_missing_doc, State#docs.opts, false) of
+        true when Doc =:= none ->
+            State#docs{ warnings = [{Anno, beam_doc, {missing_doc, KFA}} | State#docs.warnings ]};
+        _false ->
+            State
+    end.
 
 maybe_add_deprecation(_KNA, #{ deprecated := Deprecated } = Meta, _State) ->
     Meta#{ deprecated := unicode:characters_to_binary(Deprecated) };

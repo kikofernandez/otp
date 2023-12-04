@@ -4,7 +4,7 @@
          docmodule_with_doc_attributes/1, hide_moduledoc/1, docformat/1,
          singleton_docformat/1, singleton_meta/1, slogan/1,
          types_and_opaques/1, callback/1, hide_moduledoc2/1,
-         private_types/1, export_all/1, equiv/1, spec/1, deprecated/1,
+         private_types/1, export_all/1, equiv/1, spec/1, deprecated/1, warn_missing_doc/1,
          doc_with_file/1, doc_with_file_error/1,
          all_string_formats/1, docs_from_ast/1]).
 
@@ -43,6 +43,7 @@ documentation_generation_tests() ->
      equiv,
      spec,
      deprecated,
+     warn_missing_doc,
      doc_with_file_error,
      all_string_formats,
      docs_from_ast
@@ -362,6 +363,32 @@ deprecated(Conf) ->
            {{function,test,1},_,[<<"test(N)">>],none,#{deprecated := <<"deprecated:test/1 is deprecated; will be removed in the next version. See the documentation for details">>}},
            {{function,test,0},_,[<<"test()">>],none,#{deprecated := <<"deprecated:test/0 is deprecated; see the documentation for details">>}}]}} =
         code:get_doc(ModName),
+    ok.
+
+warn_missing_doc(Conf) ->
+    ModuleName = ?get_name(),
+    {ok, ModName, [{File,Warnings}]} = compile_file(Conf, ModuleName,
+                                           [return_warnings, warn_missing_doc, report]),
+
+    {ok, {docs_v1, _,_, _, none, _,
+          [{{type,test,1},_,[<<"test(N)">>],none,_},
+           {{type,test,0},_,[<<"test()">>],none,_},
+           {{callback,test,0},_,[<<"test()">>],none,_},
+           {{function,test,2},_,[<<"test(N, M)">>],none,_},
+           {{function,test,1},_,[<<"test(N)">>],none,_},
+           {{function,test,0},_,[<<"test()">>],none,_}]}} =
+        code:get_doc(ModName),
+
+    ?assertEqual("warn_missing_doc.erl", filename:basename(File)),
+    ?assertEqual(7, length(Warnings)),
+    ?assertMatch({1, beam_doc, missing_moduledoc}, lists:nth(1, Warnings)),
+    ?assertMatch({{6,2}, beam_doc, {missing_doc, {type,test,0}}}, lists:nth(2, Warnings)),
+    ?assertMatch({{7,2}, beam_doc, {missing_doc, {type,test,1}}}, lists:nth(3, Warnings)),
+    ?assertMatch({{9,2}, beam_doc, {missing_doc, {callback,test,0}}}, lists:nth(4, Warnings)),
+    ?assertMatch({{11,1}, beam_doc, {missing_doc, {function,test,0}}}, lists:nth(5, Warnings)),
+    ?assertMatch({{12,1}, beam_doc, {missing_doc, {function,test,1}}}, lists:nth(6, Warnings)),
+    ?assertMatch({{15,1}, beam_doc, {missing_doc, {function,test,2}}}, lists:nth(7, Warnings)),
+
     ok.
 
 doc_with_file(Conf) ->
