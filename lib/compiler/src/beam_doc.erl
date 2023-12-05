@@ -599,7 +599,7 @@ add_type_dependency(_Anno, {TypeName, TypeDef, TypeArgs}, #docs{type_dependency 
    #docs{last_read_user_types = LastReadUserTypes} = State0,
    Type = {TypeName, length(TypeArgs)},
    digraph:add_vertex(TypeDependency, Type),
-   UserTypes = maps:to_list(LastReadUserTypes),
+   UserTypes = maps:keys(LastReadUserTypes),
    _ = [begin
             digraph:add_vertex(TypeDependency, TypeAndArity),
             digraph:add_edge(TypeDependency, Type, TypeAndArity)
