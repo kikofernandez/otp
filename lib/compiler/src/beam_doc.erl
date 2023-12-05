@@ -64,7 +64,7 @@ documentation format.
 
                %% tracks exported type from multiple `-export_type([...])`
                exported_types     = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
-               type_defs          = #{}        :: #{{TypeName :: atom(), Arity :: non_neg_integer()} := [erl_anno:anno()]},
+               type_defs          = #{}        :: #{{TypeName :: atom(), Arity :: non_neg_integer()} := erl_anno:anno()},
 
 
                % user defined types that need to be shown in the documentation. these are types that are not
@@ -95,7 +95,7 @@ documentation format.
                %% the types are exported, the docs will show the type
                %% definition. if the types are not exported, the type definition
                %% will be shown as not exported.
-               last_read_user_types = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
+               last_read_user_types = #{},
 
                %% hidden_types = sets:new() :: sets:set({TypeName :: atom(), Arity :: non_neg_integer()}),
 
@@ -168,7 +168,7 @@ documentation format.
                ast_types = [] :: list(),
                ast_callbacks = [] :: list(),
 
-               warnings = [] :: [warning()]
+               warnings = [] :: warnings()
                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                %%
                %% END
@@ -179,10 +179,10 @@ documentation format.
 -type internal_docs() :: #docs{}.
 -type opt() :: {warn_missing_doc, boolean()}.
 -type kfa() :: {Kind :: function | type | callback, Name :: atom(), Arity :: arity()}.
--type warning() :: {erl_anno:anno(), beam_doc, {missing_doc, kfa()}} |
-                   {erl_anno:anno(), beam_doc, missing_moduledoc} |
-                   {erl_anno:anno(), beam_doc, {hidden_type_used_in_exported_fun,
-                                                {atom(), arity()}}}.
+-type warnings() :: [{file:filename(),
+                      [{erl_anno:location(), beam_doc, warning()}]}].
+-type warning() :: {missing_doc, kfa()} | missing_moduledoc |
+                   {hidden_type_used_in_exported_fun, {atom(), arity()}}.
 
 -define(DEFAULT_MODULE_DOC_LOC, 1).
 -define(DEFAULT_FORMAT, <<"text/markdown">>).
@@ -191,7 +191,7 @@ documentation format.
 Transforms an Erlang abstract syntax form into EEP-48 documentation format.
 ".
 -spec main(file:filename(), file:filename(), [erl_parse:abstract_form()], [opt()]) ->
-          {ok, #docs_v1{}, [{file:filename(),[warning()]}]}.
+          {ok, #docs_v1{}, [{file:filename(),warnings()}]}.
 main(Dirname, Filename, AST, Opts) ->
     State = new_state(Dirname, Filename, Opts),
     {ModuleDocAnno, ModuleDoc} = extract_moduledoc(AST),
@@ -216,7 +216,7 @@ main(Dirname, Filename, AST, Opts) ->
 
    {ok, Result, ModuleDocWarning ++ Docs#docs.warnings }.
 
--spec format_error(term()) -> io_lib:chars().
+-spec format_error(warning()) -> io_lib:chars().
 format_error({hidden_type_used_in_exported_fun, {Type, Arity}}) ->
     io_lib:format("hidden type '~p/~p' used in exported function",
                   [Type, Arity]);
@@ -261,7 +261,8 @@ extract_exported_types([Other | AST], State, NewAST) ->
 %% extract_hidden_types()
 
 
--spec extract_moduledoc(AST :: [tuple()]) -> ModuleDoc :: {erl_anno:anno(), binary() | none | hidden}.
+-spec extract_moduledoc(AST :: [erl_parse:abstract_form()]) ->
+          ModuleDoc :: {erl_anno:anno(), binary() | none | hidden}.
 extract_moduledoc([]) ->
     {?DEFAULT_MODULE_DOC_LOC, none};
 extract_moduledoc([{attribute, ModuleDocAnno, moduledoc, false}| _AST]) ->
@@ -284,7 +285,7 @@ extract_docformat([{attribute, _ModuleDocAnno, moduledoc, MetaFormat} | Ls]) whe
 extract_docformat([_ | Ls]) ->
     extract_docformat(Ls).
 
--spec create_module_doc(ModuleDoc :: binary()) -> map().
+-spec create_module_doc(ModuleDoc :: binary() | none | hidden) -> map().
 create_module_doc(ModuleDoc) when is_atom(ModuleDoc) ->
     ModuleDoc;
 create_module_doc(ModuleDoc) when not is_atom(ModuleDoc) ->
@@ -305,7 +306,6 @@ reset_state(State) ->
     State#docs{doc = none,
                doc_status = none,
                meta = #{exported => false},
-               last_read_user_types = sets:new(),
                slogan = none}.
 
 update_docstatus(State, V) ->
@@ -328,10 +328,10 @@ update_user_defined_types(#docs{doc_status = DocStatus,
                                 last_read_user_types = LastAddedTypes}=State) ->
    case DocStatus of
       {hidden, _Anno} ->
-         State#docs{last_read_user_types = sets:new()};
+         State#docs{last_read_user_types = #{}};
       _ ->
          State#docs{user_defined_types = sets:union(UserDefinedTypes, LastAddedTypes),
-                    last_read_user_types = sets:new()}
+                    last_read_user_types = #{}}
    end.
 
 %% update_user_defined_types(#docs{}=State, Types) ->
@@ -599,11 +599,11 @@ add_type_dependency(_Anno, {TypeName, TypeDef, TypeArgs}, #docs{type_dependency 
    #docs{last_read_user_types = LastReadUserTypes} = State0,
    Type = {TypeName, length(TypeArgs)},
    digraph:add_vertex(TypeDependency, Type),
-   UserTypes = sets:to_list(LastReadUserTypes),
-   [begin
-       digraph:add_vertex(TypeDependency, TypeAndArity),
-       digraph:add_edge(TypeDependency, Type, TypeAndArity)
-    end || TypeAndArity <- UserTypes],
+   UserTypes = maps:to_list(LastReadUserTypes),
+   _ = [begin
+            digraph:add_vertex(TypeDependency, TypeAndArity),
+            digraph:add_edge(TypeDependency, Type, TypeAndArity)
+        end || TypeAndArity <- UserTypes],
    State0.
 
 
@@ -707,7 +707,7 @@ extract_documentation_from_cb([{attribute, Anno0, callback, {{CB, A}, Form}}=AST
       Anno      :: erl_anno:anno(),
       AttrBody  :: {function | type | callback, term(), integer()},
       Slogan    :: unicode:chardata(),
-      Docs      :: none | hidden | unicode:chardata(),
+      Docs      :: none | hidden | unicode:chardata() | #{ <<_:16>> => unicode:chardata() },
       State     :: internal_docs(),
       Response  :: internal_docs().
 gen_doc(Anno, AttrBody, Slogan, Docs, State) when not is_atom(Docs), not is_map(Docs) ->
@@ -722,9 +722,8 @@ warn_missing_docs({KFA, Anno, _, Doc, _}, State) ->
     case proplists:get_value(warn_missing_doc, State#docs.opts, false) of
         true when Doc =:= none ->
             Filename = erl_anno_file(Anno, State),
-            State#docs{ warnings =
-                            [{Filename,
-                              [{erl_anno:location(Anno), beam_doc, {missing_doc, KFA}}]} | State#docs.warnings ] };
+            Warning = {Filename, [{erl_anno:location(Anno), beam_doc, {missing_doc, KFA}}]},
+            State#docs{ warnings = [Warning | State#docs.warnings] };
         _false ->
             State
     end.
