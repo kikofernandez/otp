@@ -146,12 +146,13 @@
 	      exception at runtime).</p>
           </item>
 
-          <tag><c>beam_docs</c></tag>
+          <tag><c>beam_docs</c><marker id="beam_docs"/></tag>
           <item>
             <p>Tell the compiler to extract <seeguide marker="system/reference_manual:documentation">documentation</seeguide> from
               <seeguide marker="system/reference_manual:modules#documentation-attributes"><c>-doc</c> attributes</seeguide>
               and place them in the <seetype marker="stdlib:beam_lib#chunkid"><c>Docs</c> chunk</seetype> according to <seeguide marker="kernel:eep48_chapter">EEP-48</seeguide>.
             </p>
+            <p>This option can be combined with <seeerl marker="#warn_missing_doc"><c>warn_missing_doc</c></seeerl></p>.
           </item>
 
           <tag><c>binary</c></tag>
@@ -881,6 +882,15 @@ module.beam: module.erl \
                 a module that may load NIFs, as the compiler may inline NIF
                 fallbacks by accident. Use this option to turn off this kind of
                 warnings.</p>
+          </item>
+
+          <tag><c>warn_missing_doc</c><marker id="warn_missing_doc"/></tag>
+          <item>
+              <p>By default, warnings are not emitted when <c>-doc</c>
+                attribute for an exported function is not given. Use this
+                option to turn on this kind of warning.</p>
+              <p>This option only has effect if <seeerl marker="#beam_docs"><c>beam_docs</c></seeerl>
+                also is enabled.</p>
           </item>
 
           <tag><c>warn_missing_spec</c></tag>

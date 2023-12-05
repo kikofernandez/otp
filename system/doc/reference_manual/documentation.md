@@ -166,8 +166,10 @@ For example:
 
 There are four reserved metadata keys for `-doc`:
 
-- `since` - Shows which version of the application the module was added.
-- `deprecated` - Shows a text in the documentation explaining that it is deprecated and what to use instead.
+- `since => unicode:chardata()` - Shows which version of the application the module was added.
+- `deprecated => unicode:chardata()` - Shows a text in the documentation explaining that it is
+    deprecated and what to use instead. The compiler will automatically insert this key if there
+    is a `-deprecated` attribute marking a function as deprecated.
 - `equiv` - Notes that this function is equivalent to another function in this module.
     You can use either `Func/Arity` or `Func(Args)` to describe the equivalence. For example:
 
@@ -182,7 +184,7 @@ There are four reserved metadata keys for `-doc`:
         add(One, Two) -> add(One, Two, []).
         add(One, Two, Options) -> ...
     
-- `exported` - A [boolean/0][] signifying if the entry is `exported` or not. For any `-type`
+- `exported => boolean()` - A [boolean/0][] signifying if the entry is `exported` or not. For any `-type`
     attribute this value is automatically set by the compiler to show if the type was exported
     or not.
 
@@ -345,7 +347,7 @@ is ignored and will generate a warning. You should use comments to document such
 ## Compiling and getting documentation
 
 The Erlang compiler has support for compiling the documentation into [EEP-48][EEP-48]
-documentation chunks by passing the `beam_docs` flag to [compile:file/1][], or
+documentation chunks by passing the [beam_docs][] flag to [compile:file/1][], or
 `+beam_docs` to [erlc][].
 
 The documentation can then be retrieved using [code:get_doc/1][], or viewed using the
@@ -365,6 +367,7 @@ shell built-in command [h()][c:h/1]. For example:
 
 [EEP-48]: kernel:eep48_chapter
 [compile:file/1]: seemfa/compiler:compile#file/1
+[beam_docs]: seeerl/compiler:compile#beam_docs
 [erlc]: seecom/erts:erlc
 [code:get_doc/1]: seemfa/kernel:code#get_doc/1
 
