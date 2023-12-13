@@ -510,7 +510,7 @@ docs_from_ast(_Conf) ->
       main() -> ok.
       """,
 
-    {ok, test, BeamCode} = compile:forms(scan_and_parse(Code),[beam_docs, debug_info]),
+    {ok, test, BeamCode} = compile:forms(scan_and_parse(Code),[debug_info]),
     {ok, {test, [{documentation, Docs }]}} = beam_lib:chunks(BeamCode, [documentation]),
 
     ?assertMatch(
