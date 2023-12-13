@@ -366,10 +366,6 @@ track_documentation({attribute, Anno, doc, Doc}, State) when is_binary(Doc) ->
 track_documentation(_, State) ->
    State.
 
-upsert_documentation_from_terminal_item({attribute, _Anno, spec, {{Name,Arity}, _SpecTypes}}, State) ->
-   upsert_documentation(function, Name, Arity, State);
-upsert_documentation_from_terminal_item({attribute, Anno, spec, {{_Mod, Name,Arity}, SpecTypes}}, State) ->
-   upsert_documentation_from_terminal_item({attribute, Anno, spec, {{Name,Arity}, SpecTypes}}, State);
 upsert_documentation_from_terminal_item({function, _Anno, F, Arity, _}, State) ->
    upsert_documentation(function, F, Arity, State);
 upsert_documentation_from_terminal_item({attribute, _Anno, TypeOrOpaque, {TypeName, _TypeDef, TypeArgs}},State)

@@ -484,7 +484,7 @@ spec_switch_order(Conf) ->
   {{function,not_false,0}, {53,1}, [<<"not_false()">>], none,#{}} = NotFalse,
   {{function,other,0},{37,2},[<<"other()">>],hidden,#{}} = Other,
   {{function,bar,1},{31,2},[<<"bar(X)">>],hidden,#{}} = Bar,
-  {{function,foo,1}, {5, 2}, [<<"foo(X)">>], hidden, #{}} = Foo.
+  {{function,foo,1}, {23, 2}, [<<"foo(Var)">>], #{ <<"en">> := <<"Foo does X">> }, #{}} = Foo.
 
 skip_doc(Conf) ->
   ModuleName =?get_name(),
