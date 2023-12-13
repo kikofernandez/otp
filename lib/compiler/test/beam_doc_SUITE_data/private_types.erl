@@ -39,13 +39,13 @@ hidden_type_exposed() -> 1.
                    C :: bounded_ret_t().
 bounded(A, B) -> A + B.
 
--record(r,{ f }).
+-record(r,{ a :: record_a_t(), f :: record_f_t(), rec :: #r{} }). %% We have a recusive type to make sure we handle that
 -type complex(A) ::
         [fun((fun_t()) -> fun_ret_t()) |
          fun((...) -> fun_ret_2_t()) |
          #{ map_key_t() := map_value_t(),
             map_key_2_t() => map_value_2_t() } |
-         #r{ f :: record_t() } |
+         #r{ f :: record_inline_t() } |
          {tuple_t()} |
          maps:iterator_order(remote_type_t(A)) |
          [] | 1 .. 2
@@ -58,6 +58,8 @@ bounded(A, B) -> A + B.
 -type map_value_t() :: integer().
 -type map_key_2_t() :: integer().
 -type map_value_2_t() :: integer().
--type record_t() :: integer().
+-type record_inline_t() :: integer().
+-type record_a_t() :: integer().
+-type record_f_t() :: integer(). %% Should not be included as #r{ f } overrides it
 -type tuple_t() :: integer().
 -type remote_type_t(A) :: A.

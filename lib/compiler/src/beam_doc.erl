@@ -32,7 +32,7 @@
 
 -export([main/4, format_error/1]).
 
--import(lists, [foldl/3, all/2, map/2, filter/2, reverse/1, join/2]).
+-import(lists, [foldl/3, all/2, map/2, filter/2, reverse/1, join/2, filtermap/2, uniq/2]).
 
 -include_lib("kernel/include/eep48.hrl").
 
@@ -88,6 +88,9 @@
 
                %% tracks the reachable type graph, i.e., type dependencies
                type_dependency = digraph:new() :: digraph:graph(),
+
+               %% track any records found so that we can track
+               records = #{} :: #{ atom() => term() },
 
                % keeps track of `-compile(export_all)`
                export_all         = false :: boolean(),
@@ -270,6 +273,7 @@ preprocessing(AST, State) ->
                                      fun extract_module_meta/2, %done
                                      fun extract_exported_funs/2, %done
                                      fun extract_file/2, %done
+                                     fun extract_record/2,
                                      fun extract_hidden_types0/2, %done
                                      fun extract_type_defs0/2,    %done
                                      fun extract_type_dependencies/2],
@@ -358,7 +362,7 @@ track_documentation({attribute, _Anno, doc, Meta0}, State) when is_map(Meta0) ->
    update_doc(State1, none);
 track_documentation({attribute, Anno, doc, DocStatus}, State)
   when DocStatus =:= hidden; DocStatus =:= false ->
-    update_docstatus(State, {hidden, set_file_anno(Anno, State)});
+   update_docstatus(State, {hidden, set_file_anno(Anno, State)});
 track_documentation({attribute, Anno, doc, Doc}, State) when is_list(Doc)  ->
    update_doc(State, {Doc, Anno});
 track_documentation({attribute, Anno, doc, Doc}, State) when is_binary(Doc) ->
@@ -458,6 +462,16 @@ extract_file({attribute, _Anno, file, {Filename, _A}}, State) ->
 extract_file(_, State) ->
    State.
 
+extract_record({attribute, Anno, record, {Name, Fields}}, State) ->
+    TypeFields = filtermap(
+                   fun({typed_record_field, RecordField, Type}) ->
+                           {true, {type, Anno, field_type, [element(3, RecordField), Type]}};
+                      (_) ->
+                           false
+                   end, Fields),
+    State#docs{ records = (State#docs.records)#{ Name => TypeFields } };
+extract_record(_, State) ->
+   State.
 
 %%
 %% Extracts types with documentation attribute set to `hidden` or `false`.
@@ -502,9 +516,10 @@ extract_type_defs0(_, State) ->
 %% connects with vertices from Args and Args, creating a reachable
 %% type graph.
 %%
-extract_type_dependencies({attribute, _Anno, TypeOrOpaque, {TypeName, TypeDef, TypeArgs}}, #docs{type_dependency = TypeDependency}=State)
+extract_type_dependencies({attribute, _Anno, TypeOrOpaque, {TypeName, TypeDef, TypeArgs}},
+                          #docs{type_dependency = TypeDependency}=State)
   when TypeOrOpaque =:= type; TypeOrOpaque =:= opaque ->
-   Types = extract_user_types([TypeArgs, TypeDef]),
+   Types = extract_user_types([TypeArgs, TypeDef], State),
    Type = {TypeName, length(TypeArgs)},
    digraph:add_vertex(TypeDependency, Type),
    _ = [begin
@@ -765,7 +780,7 @@ extract_documentation_spec({attribute, Anno, spec, {{_Mod, Name,Arity}, SpecType
    extract_documentation_spec({attribute, Anno, spec, {{Name,Arity}, SpecTypes}}, State).
 
 add_user_types(_Anno, SpecTypes, State) ->
-   Types = extract_user_types(SpecTypes),
+   Types = extract_user_types(SpecTypes, State),
    State1 = set_types_used_in_public_funs(State, Types),
    set_last_read_user_types(State1, Types).
 
@@ -778,48 +793,51 @@ set_types_used_in_public_funs(#docs{types_from_exported_funs = TypesFromExported
 set_last_read_user_types(#docs{}=State, Types) ->
    State#docs{last_read_user_types = Types}.
 
-extract_user_types(Args) ->
-   extract_user_types(Args, maps:new()).
+extract_user_types(Args, #docs{ records = Records }) ->
+    {Types, _Records} = extract_user_types(Args, {maps:new(), Records}),
+    Types;
 extract_user_types(Types, Acc) when is_list(Types) ->
-  foldl(fun extract_user_types/2, Acc, Types);
+    foldl(fun extract_user_types/2, Acc, Types);
 extract_user_types({ann_type, _, [_Name, Type]}, Acc) ->
-   extract_user_types(Type, Acc);
+    extract_user_types(Type, Acc);
 extract_user_types({type, _, 'fun', Args}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
 extract_user_types({type, _, map, Args}, Acc) ->
-   extract_user_types(Args, Acc);
-extract_user_types({type, _,record,[_Name | Args]}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
+extract_user_types({type, _,record,[{atom, _, Name} | Args]}, {Acc, Records}) ->
+    NewArgs = uniq(fun({type, _, field_type, [{atom, _, FieldName} | _]}) ->
+                           FieldName
+                   end, Args ++ maps:get(Name, Records, [])),
+    extract_user_types(NewArgs, {Acc, maps:remove(Name, Records)});
 extract_user_types({remote_type,_,[_ModuleName,_TypeName,Args]}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
 extract_user_types({type, _, tuple, Args}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
 extract_user_types({type, _,union, Args}, Acc) ->
-   extract_user_types(Args, Acc);
-extract_user_types({user_type, Anno, Name, Args}, Acc) ->
-   %% append user type and continue iterating through lists in case of other
-   %% user-defined types to be added
-   Fun = fun (Value) -> [Anno | Value] end,
-   Acc1 = maps:update_with({Name, length(Args)}, Fun, [Anno], Acc),
-   extract_user_types(Args, Acc1);
+    extract_user_types(Args, Acc);
+extract_user_types({user_type, Anno, Name, Args}, {Acc, Records}) ->
+    %% append user type and continue iterating through lists in case of other
+    %% user-defined types to be added
+    Fun = fun (Value) -> [Anno | Value] end,
+    Acc1 = maps:update_with({Name, length(Args)}, Fun, [Anno], Acc),
+    extract_user_types(Args, {Acc1, Records});
 extract_user_types({type, _, bounded_fun, Args}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
 extract_user_types({type,_,product,Args}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
 extract_user_types({type,_,constraint,[{atom,_,is_subtype},Args]}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
 extract_user_types({type, _, map_field_assoc, Args}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
 extract_user_types({type, _, map_field_exact, Args}, Acc) ->
-   extract_user_types(Args, Acc);
+    extract_user_types(Args, Acc);
 extract_user_types({type,_,field_type,[_Name, Type]}, Acc) ->
-   extract_user_types(Type, Acc);
+    extract_user_types(Type, Acc);
 extract_user_types({type, _,_BuiltIn, Args}, Acc) when is_list(Args)->
-   %% Handles built-in types such as 'list', 'nil' 'range'.
-   extract_user_types(Args, Acc);
+    %% Handles built-in types such as 'list', 'nil' 'range'.
+    extract_user_types(Args, Acc);
 extract_user_types(_Else, Acc) ->
     Acc.
-
 
 extract_documentation_from_type({attribute, Anno, TypeOrOpaque, {TypeName, _TypeDef, TypeArgs}=Types},
                       #docs{docs = Docs, exported_types=ExpTypes}=State)
@@ -843,7 +861,7 @@ add_type_defs(Type, #docs{type_defs = TypeDefs, ast_types = [{_KFA, Anno, _Sloga
 
 
 add_last_read_user_type(_Anno, {_TypeName, TypeDef, TypeArgs}, State) ->
-   Types = extract_user_types([TypeArgs, TypeDef]),
+   Types = extract_user_types([TypeArgs, TypeDef], State),
    set_last_read_user_types(State, Types).
 
 %% NOTE: Terminal elements for the documentation, such as `-type`, `-opaque`, `-callback`,
