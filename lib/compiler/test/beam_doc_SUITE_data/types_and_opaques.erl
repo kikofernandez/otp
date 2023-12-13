@@ -119,8 +119,12 @@ ignore_type_from_hidden_fun() ->
 %% by a public function or type and the inner type is hidden.
 -doc false.
 -type hidden_type() :: integer().
+%% Test suppression of hidden type warning.
+-doc false.
+-type hidden_nowarn_type() :: integer().
+-compile({nowarn_hidden_doc, [hidden_nowarn_type/0]}).
 
--type intermediate() :: hidden_type() | hidden_included_type().
+-type intermediate() :: hidden_type() | hidden_included_type() | hidden_nowarn_type().
 -type public() :: intermediate().
 
 -spec uses_public() -> public().

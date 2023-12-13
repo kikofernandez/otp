@@ -32,7 +32,8 @@
 
 -export([main/4, format_error/1]).
 
--import(lists, [foldl/3, all/2, map/2, filter/2, reverse/1, join/2, filtermap/2, uniq/2]).
+-import(lists, [foldl/3, all/2, map/2, filter/2, reverse/1, join/2, filtermap/2,
+                uniq/2, member/2, flatten/1]).
 
 -include_lib("kernel/include/eep48.hrl").
 
@@ -219,7 +220,7 @@
               }).
 
 -type internal_docs() :: #docs{}.
--type opt() :: {warn_missing_doc, boolean()}.
+-type opt() :: warn_missing_doc | nowarn_hidden_doc | {nowarn_hidden_doc, {atom(), arity()}}.
 -type kfa() :: {Kind :: function | type | callback, Name :: atom(), Arity :: arity()}.
 -type warnings() :: [{file:filename(),
                       [{erl_anno:location(), beam_doc, warning()}]}].
@@ -232,7 +233,8 @@ Transforms an Erlang abstract syntax form into EEP-48 documentation format.
 ".
 -spec main(file:filename(), file:filename(), [erl_parse:abstract_form()], [opt()]) ->
           {ok, #docs_v1{}, [{file:filename(),warnings()}]}.
-main(Dirname, Filename, AST, Opts) ->
+main(Dirname, Filename, AST, CmdLineOpts) ->
+    Opts = extract_opts(AST, CmdLineOpts),
     State0 = new_state(Dirname, Filename, Opts),
     State1 = preprocessing(AST, State0),
     Docs = extract_documentation(AST, State1),
@@ -244,6 +246,10 @@ main(Dirname, Filename, AST, Opts) ->
                             module_doc = ModuleDoc,
                             docs = process_docs(Docs) },
    {ok, Result, Docs#docs.warnings }.
+
+extract_opts(AST, CmdLineOpts) ->
+    CompileOpts = lists:flatten([C || {attribute,_,compile,C} <- AST]),
+    CompileOpts ++ CmdLineOpts.
 
 -spec format_error(warning()) -> io_lib:chars().
 format_error({hidden_type_used_in_exported_fun, {Type, Arity}}) ->
@@ -688,14 +694,25 @@ warn_missing_docs(State) ->
    foldl(fun warn_missing_docs/2, State, DocNodes).
 
 warn_hidden_callback(State) ->
-   L = maps:to_list(State#docs.docs),
-   foldl(fun ({{callback, Name, Arity},{{hidden, Anno}, _, _}}, State0) ->
-               Warning = {hidden_callback, {Name, Arity}},
-               W = create_warning(Anno, Warning, State0),
-               State0#docs{ warnings = [W | State0#docs.warnings] };
-             (_, State0) ->
-               State0
-         end, State, L).
+    L = maps:to_list(State#docs.docs),
+    NoWarn = flatten(proplists:get_all_values(nowarn_hidden_doc, State#docs.opts)),
+    case member(true, NoWarn) of
+        false ->
+            foldl(fun ({{callback, Name, Arity},{{hidden, Anno}, _, _}}, State0) ->
+                          case member({Name, Arity}, NoWarn) of
+                              false ->
+                                  Warning = {hidden_callback, {Name, Arity}},
+                                  W = create_warning(Anno, Warning, State0),
+                                  State0#docs{ warnings = [W | State0#docs.warnings] };
+                              true ->
+                                  State0
+                          end;
+                      (_, State0) ->
+                          State0
+                  end, State, L);
+        true ->
+            State
+    end.
 
 %% hidden types with `-doc hidden.` or `-doc false.`, which are public (inside
 %% `export_type([])`), and used in public functions, they do not make sense. It
@@ -707,17 +724,24 @@ warn_hidden_callback(State) ->
 warn_hidden_types_used_in_public_fns(#docs{types_from_exported_funs = TypesFromExportedFuns,
                                            type_dependency = TypeDependency,
                                            type_defs = TypeDefs}=State) ->
-   HiddenTypes = State#docs.hidden_types,
-   Types = maps:keys(TypesFromExportedFuns),
-   ReachableTypes = digraph_utils:reachable(Types, TypeDependency),
-   ReachableSet = sets:from_list(ReachableTypes),
-   Warnings = sets:intersection(HiddenTypes, ReachableSet),
-   WarningsWithAnno = sets:map(fun (Key) ->
-                                     Anno = maps:get(Key, TypeDefs),
-                                     Warn = {hidden_type_used_in_exported_fun, Key},
-                                     create_warning(Anno, Warn, State)
-                               end, Warnings),
-   State#docs{warnings = State#docs.warnings ++ sets:to_list(WarningsWithAnno) }.
+    NoWarn = flatten(proplists:get_all_values(nowarn_hidden_doc, State#docs.opts)),
+    case member(true, NoWarn) of
+        false ->
+            HiddenTypes = State#docs.hidden_types,
+            Types = maps:keys(TypesFromExportedFuns),
+            ReachableTypes = digraph_utils:reachable(Types, TypeDependency),
+            ReachableSet = sets:from_list(ReachableTypes),
+            Warnings = sets:intersection(HiddenTypes, ReachableSet),
+            FilteredWarnings = sets:filter(fun(Key) -> not member(Key, NoWarn) end, Warnings),
+            WarningsWithAnno = sets:map(fun (Key) ->
+                                                Anno = maps:get(Key, TypeDefs),
+                                                Warn = {hidden_type_used_in_exported_fun, Key},
+                                                create_warning(Anno, Warn, State)
+                                        end, FilteredWarnings),
+            State#docs{warnings = State#docs.warnings ++ sets:to_list(WarningsWithAnno) };
+        true ->
+            State
+    end.
 
 create_warning(Anno, Warning, State) ->
    Filename = erl_anno_file(Anno, State),

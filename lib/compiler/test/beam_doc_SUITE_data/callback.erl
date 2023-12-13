@@ -36,6 +36,10 @@ A multiclause callback with slogan docs".
 -doc hidden.
 -callback warn() -> ok.
 
+-doc hidden.
+-compile({nowarn_hidden_doc, nowarn/1}).
+-callback nowarn(Arg :: atom()) -> ok.
+
 
 -doc #{equiv => ok/0}.
 -doc "

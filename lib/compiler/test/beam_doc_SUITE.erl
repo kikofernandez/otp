@@ -191,7 +191,7 @@ types_and_opaques(Conf) ->
 
     {ok, {docs_v1, _,_, _, none, _,
           [%% Type Definitions
-           Public, Intermediate, HiddenType, OtherPrivateType, MyPrivateType,
+           Public, Intermediate, HiddenNoWarnType, HiddenType, OtherPrivateType, MyPrivateType,
            MyMap, StateEnter, CallbackMode,CallbackResult, EncodingFunc, Three,
            Two, One, Hidden, HiddenFalse, MMaybe, Unnamed, Param,NatNumber, Name,
            HiddenIncludedType,
@@ -199,8 +199,9 @@ types_and_opaques(Conf) ->
            UsesPublic, Ignore, MapFun, PrivateEncoding, Foo
           ]}} = code:get_doc(ModName),
 
-    {{type,public,0},{124,2},[<<"public()">>],none,#{exported := true}} = Public,
-    {{type,intermediate,0},{123,2},[<<"intermediate()">>],none,#{exported := false}} = Intermediate,
+    {{type,public,0},{128,2},[<<"public()">>],none,#{exported := true}} = Public,
+    {{type,intermediate,0},{127,2},[<<"intermediate()">>],none,#{exported := false}} = Intermediate,
+    {{type,hidden_nowarn_type,0},{123,2},[<<"hidden_nowarn_type()">>],hidden,#{exported := false}} = HiddenNoWarnType,
     {{type,hidden_type,0},{120,2},[<<"hidden_type()">>],hidden,#{exported := false}} = HiddenType,
     {{type,my_other_private_type,0},MyOtherPrivateTypeLine,
               [<<"my_other_private_type()">>],none,#{exported := false}} = OtherPrivateType,
@@ -227,7 +228,7 @@ types_and_opaques(Conf) ->
     {{type, name,1},_,[<<"name(_)">>], TypeDoc, #{exported := true}} = Name,
     {{type, hidden_included_type, 0}, _, _, hidden, #{exported := false }} = HiddenIncludedType,
 
-    {{function,uses_public,0},{127,1},[<<"uses_public()">>],none,#{}} = UsesPublic,
+    {{function,uses_public,0},{131,1},[<<"uses_public()">>],none,#{}} = UsesPublic,
     {{function,ignore_type_from_hidden_fun,0},_,[<<"ignore_type_from_hidden_fun()">>],hidden,#{}} = Ignore,
     {{function,map_fun,0},_,[<<"map_fun()">>],none,#{}} = MapFun,
     {{function,private_encoding_func,2},_,[<<"private_encoding_func(Data, Options)">>],none,#{}} = PrivateEncoding,
@@ -249,6 +250,9 @@ types_and_opaques(Conf) ->
     ?assertEqual({{1,2}, beam_doc,
                   {hidden_type_used_in_exported_fun,{hidden_included_type,0}}}, lists:nth(1, HrlWs)),
 
+    {ok, ModName, [_]} =
+        default_compile_file(Conf, ModuleName, [return_warnings, nowarn_hidden_doc, nowarn_unused_type]),
+
     ok.
 
 callback(Conf) ->
@@ -260,7 +264,8 @@ callback(Conf) ->
     FunctionDoc = #{<<"en">> => <<"all_ok()\n\nCalls all_ok/0">>},
     ChangeOrder = #{<<"en">> => <<"Test changing order">>},
     {ok, {docs_v1, _,_, _, none, _,
-          [{{callback,warn,0},{36,2},[<<"warn()">>],hidden,#{}},
+          [{{callback,nowarn,1},{39,2},[<<"nowarn(Arg)">>],hidden,#{}},
+           {{callback,warn,0},{36,2},[<<"warn()">>],hidden,#{}},
            {{callback,bounded,1},_,[<<"bounded(X)">>],none,#{}},
            {{callback,multi,1},_,[<<"multi(Argument)">>],
             #{ <<"en">> := <<"A multiclause callback with slogan docs">> },#{}},
@@ -281,6 +286,9 @@ callback(Conf) ->
     io:format("Warnings: ~p~n", [Warnings]),
     ?assertEqual(1, length(Warnings)),
     ?assertMatch({{36,2},beam_doc,{hidden_callback,{warn,0}}}, lists:nth(1, Warnings)),
+
+    {ok, ModName, []} =
+        default_compile_file(Conf, ModuleName, [return_warnings, report, nowarn_hidden_doc]),
 
     ok.
 
