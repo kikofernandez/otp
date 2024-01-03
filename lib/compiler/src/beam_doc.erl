@@ -32,6 +32,8 @@
 
 -export([main/4, format_error/1]).
 
+-export([markdown_to_shelldoc/1, process_md/1]).
+
 -import(lists, [foldl/3, all/2, map/2, filter/2, reverse/1, join/2, filtermap/2,
                 uniq/2, member/2, flatten/1]).
 
@@ -246,6 +248,149 @@ main(Dirname, Filename, AST, CmdLineOpts) ->
                             module_doc = ModuleDoc,
                             docs = process_docs(Docs) },
    {ok, Result, Docs#docs.warnings }.
+
+-spec markdown_to_shelldoc(#docs_v1{}) -> #docs_v1{}.
+markdown_to_shelldoc(#docs_v1{format = Format}=Docs) ->
+    DefaultFormat = binary_to_list(?DEFAULT_FORMAT),
+    case Format of
+        _ when Format =:= ?DEFAULT_FORMAT orelse Format =:= DefaultFormat ->
+            io:format("(~p:~p) ~p~n~n", [?MODULE, ?LINE, Docs]),
+            %% Docs1 = process(#docs_v1.module_doc, #docs_v1.docs),
+            ModuleDoc = Docs#docs_v1.module_doc,
+            Doc = Docs#docs_v1.docs,
+            Docs#docs_v1{format = ?NATIVE_FORMAT,
+                         module_doc = process_moduledoc(ModuleDoc),
+                         docs = process_doc_attr(Doc)};
+        _  ->
+            Docs
+    end.
+
+-spec process_moduledoc(Doc :: binary() | none | hidden) -> shell_docs:chunk_elements().
+process_moduledoc(Doc) when Doc =:= none orelse Doc =:= hidden ->
+    Doc;
+process_moduledoc(Doc) when is_map(Doc) ->
+    maps:map(fun (_K, V) -> process_md(V) end, Doc).
+
+process_doc_attr(Doc) ->
+    lists:map(fun process_doc/1, Doc).
+
+-type doc() :: { { Attribute :: function | type | callback,
+                   FunName :: atom(),
+                   Arity :: non_neg_integer()},
+                 Anno :: erl_anno:anno(),
+                 Signature :: [binary()],
+                 Doc :: #{ binary() := binary() | term()} | none | hidden,
+                 Metadata :: map()
+               }.
+
+-spec process_doc(doc()) -> doc().
+process_doc({Attributes, Anno, Signature, Doc, Metadata}) ->
+    Docs = maps:map(fun (_K, V) -> process_md(V) end, Doc),
+    {Attributes, Anno, Signature, Docs, Metadata}.
+
+-spec process_md(Doc0 :: binary()) -> Doc1 :: binary().
+process_md(Doc) when is_binary(Doc) ->
+    %% process common documentation
+    Lines = binary:split(Doc, [<<"\r\n">>, <<"\n">>], [trim_all, global]),
+    process_md(Lines, []).
+
+-spec process_md(Markdown, HtmlErlang) -> HtmlErlang when
+      Markdown :: [binary()],
+      HtmlErlang :: shell_docs:chunk_elements().
+process_md([], Block) ->
+    Block;
+process_md([<<"# ", Heading/binary>> | Rest], Block) ->
+    HeadingLevel = 1,
+    Block ++ process_heading(HeadingLevel, Heading, Rest);
+process_md([<<"## ", Heading/binary>> | Rest], Block) ->
+    HeadingLevel = 2,
+    Block ++ process_heading(HeadingLevel, Heading, Rest);
+process_md([<<"### ", Heading/binary>> | Rest], Block) ->
+    HeadingLevel = 3,
+    Block ++ process_heading(HeadingLevel, Heading, Rest);
+process_md([<<"#### ", Heading/binary>> | Rest], Block) ->
+    HeadingLevel = 4,
+    Block ++ process_heading(HeadingLevel, Heading, Rest);
+process_md([<<"##### ", Heading/binary>> | Rest], Block) ->
+    HeadingLevel = 5,
+    Block ++ process_heading(HeadingLevel, Heading, Rest);
+process_md([<<"###### ", Heading/binary>> | Rest], Block) ->
+    HeadingLevel = 6,
+    Block ++ process_heading(HeadingLevel, Heading, Rest);
+process_md([<<">", Line/binary>> | Rest], Block) ->
+    Block ++ process_quote(Rest, [Line]);
+process_md([<<"   >", Line/binary>> | Rest], Block) ->
+    Block ++ process_quote(Rest, [Line]);
+process_md(Rest, Block) ->
+    Block ++ Rest.
+
+-type chunk_element_attrs() :: [shell_docs:chunk_element_attr()].
+
+-type quote() :: {pre, chunk_element_attrs(), [{code,[], shell_docs:chunk_elements()}]}.
+-type header() :: {h1 | h2 | h3 | h4 | h5 | h6, chunk_element_attrs(), shell_docs:chunk_elements()}.
+
+
+-spec process_heading(Level, Heading, Rest) -> HtmlErlang when
+      Level         :: 1..6,
+      Heading       :: binary(),
+      Rest          :: binary(),
+      HtmlErlang    :: shell_docs:chunk_elements().
+process_heading(Level, Header, Rest) ->
+    [create_header(Level, Header) | process_md(Rest, [])].
+
+-spec create_header(Level, Header) -> header() when
+      Level  :: 1..6,
+      Header :: binary().
+create_header(Level, Heading) ->
+    HeadingLevel = integer_to_list(Level),
+    HeadingLevelAtom = list_to_existing_atom("h" ++ HeadingLevel),
+    {HeadingLevelAtom, [], Heading}.
+
+-spec process_quote(Line, PrevLines) -> HtmlErlang when
+      Line       :: [binary()],  %% Represents current parsing line.
+      PrevLines  :: [binary()],  %% Represent unprocessed lines.
+      HtmlErlang :: [quote()].
+process_quote([], PrevLines) ->
+    [create_quote(PrevLines)];
+process_quote([<<">>", Line/binary>> | Rest], PrevLines) ->
+    [create_quote(PrevLines), create_quote([]) | process_quote(Rest, [Line])];
+process_quote([<<">", Line/binary>> | Rest], PrevLines) ->
+    process_quote(Rest, [Line | PrevLines]);
+process_quote(Rest, PrevLines) ->
+    [create_quote(PrevLines)] ++ process_md(Rest, []).
+
+-spec create_quote(Lines) -> Quote when
+      Lines :: [binary()],
+      Quote :: quote().
+create_quote([]) ->
+    quote(<<"\n">>);
+create_quote([Last | _]=Lines) ->
+    ProcessedLines =
+        lists:foldl(fun (Line, Acc) ->
+                            Line1 = trim_and_add_new_line(Last, Line),
+                            process_md(Line1, []) ++ Acc
+                    end, [], Lines),
+    quote(ProcessedLines).
+
+-spec quote(shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
+quote(X) ->
+    {pre,[], [{code,[], X}]}.
+
+trim_and_add_new_line(Last, Line) when Last =:= Line ->
+    Line1 = trim(Line),
+    case Last =:= Line of
+        true -> Line1;
+        false -> Line1 ++ <<"\n">>
+    end.
+
+
+
+-spec trim(binary()) -> [binary()].
+trim(Line) ->
+    binary:split(Line, [<<"\r\n">>, <<"\n">>, <<" ">>], [trim_all]).
+
+
+
 
 extract_opts(AST, CmdLineOpts) ->
     CompileOpts = lists:flatten([C || {attribute,_,compile,C} <- AST]),
