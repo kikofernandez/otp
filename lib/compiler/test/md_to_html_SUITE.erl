@@ -6,6 +6,7 @@
 -export([h1_test/1, h2_test/1, h3_test/1, h4_test/1, h5_test/1, h6_test/1]).
 -export([single_line_quote_test/1, ignore_three_spaces_before_quote/1,
          multiple_line_quote_test/1, paragraph_in_between_test/1]).
+-export([paragraph_after_heading_test/1, quote_before_and_after_paragraph_test/1]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -17,14 +18,16 @@ all() ->
     [{group, different_format_generator},
      {group, module_generator},
      {group, header_generator},
-     {group, quote_generator}
+     {group, quote_generator},
+     {group, paragraph_generator}
     ].
 
 groups() ->
     [{different_format_generator, [parallel], different_format_conversion_tests()},
      {module_generator, [sequence], moduledoc_tests()},
      {header_generator, [parallel], header_tests()},
-     {quote_generator, [parallel], quote_tests()}
+     {quote_generator, [parallel], quote_tests()},
+     {paragraph_generator, [parallel], paragraph_tests()}
     ].
 
 init_per_group(_, Config) ->
@@ -57,6 +60,11 @@ quote_tests() ->
       ignore_three_spaces_before_quote,
       multiple_line_quote_test,
       paragraph_in_between_test
+    ].
+
+paragraph_tests() ->
+    [ paragraph_after_heading_test,
+      quote_before_and_after_paragraph_test
     ].
 
 convert_erlang_html(_Conf) ->
@@ -249,9 +257,56 @@ multiple_line_quote_test(_Conf) ->
     {{function, foo, 0}, [], [], Expected, #{}} = E1,
     ok.
 
-
 paragraph_in_between_test(_Conf) ->
-    {failed, error}.
+    Doc = #{<<"en">> => <<"# Header 1\nThis is text\n> A quote\n## Header 2\nBody content">>},
+    Functions = [{{function, foo, 0}, [], [], Doc, #{}}],
+    Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
+
+    HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ?NATIVE_FORMAT = extract_format(HtmlDocs),
+    Expected = #{<<"en">> =>
+                     [ header(1, <<"Header 1">>),
+                       p(<<"This is text">>),
+                       quote(<<"A quote">>),
+                       header(2, <<"Header 2">>),
+                       p(<<"Body content">>)]},
+    Expected = extract_moduledoc(HtmlDocs),
+    [ E1 ] = extract_doc(HtmlDocs),
+    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    ok.
+
+paragraph_after_heading_test(_Conf) ->
+    Doc = #{<<"en">> => <<"# Header 1\nThis is text\n\nBody content">>},
+    Functions = [{{function, foo, 0}, [], [], Doc, #{}}],
+    Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
+
+    HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ?NATIVE_FORMAT = extract_format(HtmlDocs),
+    Expected = #{<<"en">> =>
+                     [ header(1, <<"Header 1">>),
+                       p(<<"This is text">>),
+                       p(<<"Body content">>)]},
+    Expected = extract_moduledoc(HtmlDocs),
+    [ E1 ] = extract_doc(HtmlDocs),
+    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    ok.
+
+quote_before_and_after_paragraph_test(_Conf) ->
+    Doc = #{<<"en">> => <<"> Quote 1\nThis is text\n> Quote 2\nBody content">>},
+    Functions = [{{function, foo, 0}, [], [], Doc, #{}}],
+    Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
+
+    HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ?NATIVE_FORMAT = extract_format(HtmlDocs),
+    Expected = #{<<"en">> =>
+                     [ quote(<<"Quote 1">>),
+                       p(<<"This is text">>),
+                       quote(<<"Quote 2">>),
+                       p(<<"Body content">>)]},
+    Expected = extract_moduledoc(HtmlDocs),
+    [ E1 ] = extract_doc(HtmlDocs),
+    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    ok.
 
 header(Level, Text) when is_integer(Level), is_binary(Text) ->
     HeadingLevel = integer_to_list(Level),
@@ -261,6 +316,8 @@ header(Level, Text) when is_integer(Level), is_binary(Text) ->
 quote(X) ->
     {pre,[],[{code,[],[X]}]}.
 
+p(X) ->
+    {p, [], [X]}.
 
 -spec create_eep48(Language, Mime, ModuleDoc, Metadata, Docs) -> #docs_v1{} when
       Language  :: atom(),

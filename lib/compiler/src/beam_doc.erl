@@ -321,12 +321,13 @@ process_md([<<">", Line/binary>> | Rest], Block) ->
     Block ++ process_quote([<<">", Line/binary>> | Rest], []);
 process_md([<<"   >", Line/binary>> | Rest], Block) ->
     Block ++ process_quote([<<">", Line/binary>> | Rest], []);
-process_md(Rest, Block) ->
-    Block ++ [{p, [], Rest}].
+process_md([P | Rest], Block) ->
+    Block ++ process_paragraph(Rest, [P]).
 
 -type chunk_element_attrs() :: [shell_docs:chunk_element_attr()].
 
 -type quote() :: {pre, chunk_element_attrs(), [{code,[], shell_docs:chunk_elements()}]}.
+-type p() :: {p, chunk_element_attrs(), shell_docs:chunk_elements()}.
 -type header() :: {h1 | h2 | h3 | h4 | h5 | h6, chunk_element_attrs(), shell_docs:chunk_elements()}.
 
 
@@ -349,7 +350,7 @@ create_header(Level, Heading) ->
 -spec process_quote(Line, PrevLines) -> HtmlErlang when
       Line       :: [binary()],  %% Represents current parsing line.
       PrevLines  :: [binary()],  %% Represent unprocessed lines.
-      HtmlErlang :: [quote()].
+      HtmlErlang :: shell_docs:chunk_elements().
 process_quote([], PrevLines) ->
     [create_quote(PrevLines)];
 process_quote([<<">>", Line/binary>> | Rest], PrevLines) ->
@@ -360,6 +361,15 @@ process_quote([<<">", Line/binary>> | Rest], PrevLines) ->
     process_quote(Rest, [Line1 | PrevLines]);
 process_quote(Rest, PrevLines) ->
     [create_quote(PrevLines)] ++ process_md(Rest, []).
+
+-spec process_paragraph(Continuation, P) -> HtmlErlang when
+      Continuation :: [binary()],
+      P            :: [binary()],
+      HtmlErlang   :: [shell_docs:chunk_elements()].
+process_paragraph([], Block) ->
+    [create_paragraph(Block)];
+process_paragraph([_|_]=Rest, Block) ->
+    process_paragraph([], Block) ++ process_md(Rest, []).
 
 -spec create_quote(Lines) -> Quote when
       Lines :: [binary()],
@@ -375,9 +385,21 @@ create_quote([Last | _]=Lines) ->
                     end, <<>>, Lines),
     quote(ProcessedLines).
 
+-spec create_paragraph(Lines) -> P when
+      Lines :: [binary()],
+      P :: p().
+create_paragraph([]) ->
+    p(<<"\n">>);
+create_paragraph([Line]) ->
+    p(Line).
+
 -spec quote(shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
 quote(X) ->
     {pre,[], [{code,[], [X]}]}.
+
+
+p(X) ->
+    {p, [], [X]}.
 
 trim_and_add_new_line(Last, Line) ->
     Line1 = trim(Line),
@@ -396,8 +418,6 @@ trim_leading_space(Rest) when is_binary(Rest) ->
 trim(Line) ->
     %% The split should not produce
     list_to_binary(binary:split(Line, [<<"\r\n">>, <<"\n">>], [trim_all])).
-
-
 
 
 extract_opts(AST, CmdLineOpts) ->
