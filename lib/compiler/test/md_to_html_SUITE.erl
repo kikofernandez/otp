@@ -60,16 +60,17 @@ quote_tests() ->
     ].
 
 convert_erlang_html(_Conf) ->
-    Doc = #{<<"en">> => [{p, [], <<"Test">>}]},
-    Functions = [{{function, foo, 0}, [], [], Doc}],
+    Doc = #{<<"en">> => [{p, [], [<<"Test">>]}]},
+    Functions = [{{function, foo, 0}, [], [], Doc, #{}}],
 
-    Docs = create_eep48(erlang, <<"erlang+html">>, none, #{},Functions),
+    Docs = create_eep48(erlang, ?ERLANG_HTML, none, #{}, Functions),
     Docs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(Docs),
     ok.
 
 convert_unknown_format(_Conf) ->
     Doc = #{<<"en">> => <<"<text>Here</text>">>},
-    Functions = [{{function, foo, 0}, [], [], Doc}],
+    Functions = [{{function, foo, 0}, [], [], Doc, #{}}],
 
     Docs = create_eep48(erlang, <<"xml">>, Doc, #{},Functions),
     Docs = beam_doc:markdown_to_shelldoc(Docs),
@@ -78,12 +79,14 @@ convert_unknown_format(_Conf) ->
 non_existing_moduledoc(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, none, #{}, []),
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
     ok.
 
 hidden_moduledoc(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, hidden, #{}, []),
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
     ok.
 
@@ -92,9 +95,11 @@ existing_moduledoc(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, []),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
     #{<<"en">> := HtmlModDoc} = extract_moduledoc(HtmlDocs),
-    [{h1, [], <<"Here">>}] = HtmlModDoc,
+    [{h1, [], [<<"Here">>]}] = HtmlModDoc,
     ok.
 
 h1_test(_Conf) ->
@@ -103,9 +108,10 @@ h1_test(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
 
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
-    Expected = #{<<"en">> => [{h1, [], <<"Here">>}]},
+    Expected = #{<<"en">> => [{h1, [], [<<"Here">>]}]},
     Expected = extract_moduledoc(HtmlDocs),
     [{{function, foo, 0}, [], [], Expected, #{}}] = extract_doc(HtmlDocs),
     ok.
@@ -116,8 +122,10 @@ h2_test(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
-    Expected = #{<<"en">> => [{h1, [], <<"Here">>}, {h2, [], <<"Header 2">>}]},
+    Expected = #{<<"en">> => [{h1, [], [<<"Here">>]}, {h2, [], [<<"Header 2">>]}]},
     Expected = extract_moduledoc(HtmlDocs),
     [{{function, foo, 0}, [], [], Expected, #{}}] = extract_doc(HtmlDocs),
     ok.
@@ -128,8 +136,10 @@ h3_test(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
-    Expected = #{<<"en">> => [{h1, [], <<"Here">>}, {h3, [], <<"Header 3">>}]},
+    Expected = #{<<"en">> => [{h1, [], [<<"Here">>]}, {h3, [], [<<"Header 3">>]}]},
     Expected = extract_moduledoc(HtmlDocs),
     [{{function, foo, 0}, [], [], Expected, #{}}] = extract_doc(HtmlDocs),
     ok.
@@ -140,8 +150,10 @@ h4_test(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
-    Expected = #{<<"en">> => [{h3, [], <<"Here">>}, {h4, [], <<"Header 4">>}]},
+    Expected = #{<<"en">> => [{h3, [], [<<"Here">>]}, {h4, [], [<<"Header 4">>]}]},
     Expected = extract_moduledoc(HtmlDocs),
     [{{function, foo, 0}, [], [], Expected, #{}}] = extract_doc(HtmlDocs),
     ok.
@@ -154,11 +166,13 @@ h5_test(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
-    ExpectedH3 = #{<<"en">> => [ {h3, [], <<"Here">>},
-                                 {h4, [], <<"Header 4">>},
-                                 {h5, [], <<"H5">>}]},
-    ExpectedH5 = #{<<"en">> => [ {h5, [], <<"H5">>} ]},
+    ExpectedH3 = #{<<"en">> => [ {h3, [], [<<"Here">>]},
+                                 {h4, [], [<<"Header 4">>]},
+                                 {h5, [], [<<"H5">>]}]},
+    ExpectedH5 = #{<<"en">> => [ {h5, [], [<<"H5">>]} ]},
     ExpectedH3 = extract_moduledoc(HtmlDocs),
     [ E1, E2 ] = extract_doc(HtmlDocs),
     {{function, foo, 0}, [], [], ExpectedH3, #{}} = E1,
@@ -173,12 +187,14 @@ h6_test(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
-    ExpectedH3 = #{<<"en">> => [ {h3, [], <<"Here">>},
-                                 {h4, [], <<"Header 4">>},
-                                 {h5, [], <<"H5">>}]},
-    ExpectedH6 = #{<<"en">> => [ {h6, [], <<"H6">>},
-                                 {h2, [], <<"H2">>} ]},
+    ExpectedH3 = #{<<"en">> => [ {h3, [], [<<"Here">>]},
+                                 {h4, [], [<<"Header 4">>]},
+                                 {h5, [], [<<"H5">>]}]},
+    ExpectedH6 = #{<<"en">> => [ {h6, [], [<<"H6">>]},
+                                 {h2, [], [<<"H2">>]} ]},
     ExpectedH3 = extract_moduledoc(HtmlDocs),
     [ E1, E2 ] = extract_doc(HtmlDocs),
     {{function, foo, 0}, [], [], ExpectedH3, #{}} = E1,
@@ -192,11 +208,14 @@ single_line_quote_test(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
     Expected = #{<<"en">> =>
                      [ header(1, <<"Here">>),
                        quote(<<"This is a quote">>)]},
-    Expected = extract_moduledoc(HtmlDocs),
+    ModuleDoc = extract_moduledoc(HtmlDocs),
+    Expected = ModuleDoc,
     [ E1 ] = extract_doc(HtmlDocs),
     {{function, foo, 0}, [], [], Expected, #{}} = E1,
     ok.
@@ -207,22 +226,37 @@ ignore_three_spaces_before_quote(_Conf) ->
     Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
 
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+
     ?NATIVE_FORMAT = extract_format(HtmlDocs),
-    Expected = #{<<"en">> => [quote(header(1, <<"Here">>))]},
+    Expected = #{<<"en">> => [quote(<<"# Here">>)]},
     Expected = extract_moduledoc(HtmlDocs),
     [ E1 ] = extract_doc(HtmlDocs),
     {{function, foo, 0}, [], [], Expected, #{}} = E1,
     ok.
 
 multiple_line_quote_test(_Conf) ->
-    {failed, error}.
+    Doc = #{<<"en">> => <<"> # Here\n> This is a quote">>},
+    Functions = [{{function, foo, 0}, [], [], Doc, #{}}],
+    Docs = create_eep48(erlang, <<"text/markdown">>, Doc, #{}, Functions),
+
+    HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ?NATIVE_FORMAT = extract_format(HtmlDocs),
+    Expected = #{<<"en">> =>
+                     [ quote(<<"# Here\nThis is a quote">>)]},
+    Expected = extract_moduledoc(HtmlDocs),
+    [ E1 ] = extract_doc(HtmlDocs),
+    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    ok.
+
+
 paragraph_in_between_test(_Conf) ->
     {failed, error}.
 
 header(Level, Text) when is_integer(Level), is_binary(Text) ->
     HeadingLevel = integer_to_list(Level),
     HeadingLevelAtom = list_to_existing_atom("h" ++ HeadingLevel),
-    {HeadingLevelAtom, [], Text}.
+    {HeadingLevelAtom, [], [Text]}.
 
 quote(X) ->
     {pre,[],[{code,[],[X]}]}.

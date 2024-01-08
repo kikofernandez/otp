@@ -318,11 +318,11 @@ process_md([<<"###### ", Heading/binary>> | Rest], Block) ->
     HeadingLevel = 6,
     Block ++ process_heading(HeadingLevel, Heading, Rest);
 process_md([<<">", Line/binary>> | Rest], Block) ->
-    Block ++ process_quote(Rest, [Line]);
+    Block ++ process_quote([<<">", Line/binary>> | Rest], []);
 process_md([<<"   >", Line/binary>> | Rest], Block) ->
-    Block ++ process_quote(Rest, [Line]);
+    Block ++ process_quote([<<">", Line/binary>> | Rest], []);
 process_md(Rest, Block) ->
-    Block ++ Rest.
+    Block ++ [{p, [], Rest}].
 
 -type chunk_element_attrs() :: [shell_docs:chunk_element_attr()].
 
@@ -344,7 +344,7 @@ process_heading(Level, Header, Rest) ->
 create_header(Level, Heading) ->
     HeadingLevel = integer_to_list(Level),
     HeadingLevelAtom = list_to_existing_atom("h" ++ HeadingLevel),
-    {HeadingLevelAtom, [], Heading}.
+    {HeadingLevelAtom, [], [Heading]}.
 
 -spec process_quote(Line, PrevLines) -> HtmlErlang when
       Line       :: [binary()],  %% Represents current parsing line.
@@ -353,9 +353,11 @@ create_header(Level, Heading) ->
 process_quote([], PrevLines) ->
     [create_quote(PrevLines)];
 process_quote([<<">>", Line/binary>> | Rest], PrevLines) ->
-    [create_quote(PrevLines), create_quote([]) | process_quote(Rest, [Line])];
+    Line1 = trim_leading_space(Line),
+    [create_quote(PrevLines), create_quote([]) | process_quote(Rest, [Line1])];
 process_quote([<<">", Line/binary>> | Rest], PrevLines) ->
-    process_quote(Rest, [Line | PrevLines]);
+    Line1 = trim_leading_space(Line),
+    process_quote(Rest, [Line1 | PrevLines]);
 process_quote(Rest, PrevLines) ->
     [create_quote(PrevLines)] ++ process_md(Rest, []).
 
@@ -368,26 +370,32 @@ create_quote([Last | _]=Lines) ->
     ProcessedLines =
         lists:foldl(fun (Line, Acc) ->
                             Line1 = trim_and_add_new_line(Last, Line),
-                            process_md(Line1, []) ++ Acc
-                    end, [], Lines),
+                            <<Line1/binary, Acc/binary>>
+                            %% process_md(Line1, []) ++ Acc
+                    end, <<>>, Lines),
     quote(ProcessedLines).
 
 -spec quote(shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
 quote(X) ->
-    {pre,[], [{code,[], X}]}.
+    {pre,[], [{code,[], [X]}]}.
 
-trim_and_add_new_line(Last, Line) when Last =:= Line ->
+trim_and_add_new_line(Last, Line) ->
     Line1 = trim(Line),
     case Last =:= Line of
         true -> Line1;
-        false -> Line1 ++ <<"\n">>
+        false -> <<Line1/binary, "\n">>
     end.
 
+trim_leading_space(<<" ", Rest/binary>>) ->
+    trim_leading_space(Rest);
+trim_leading_space(Rest) when is_binary(Rest) ->
+    Rest.
 
 
--spec trim(binary()) -> [binary()].
+-spec trim(binary()) -> binary().
 trim(Line) ->
-    binary:split(Line, [<<"\r\n">>, <<"\n">>, <<" ">>], [trim_all]).
+    %% The split should not produce
+    list_to_binary(binary:split(Line, [<<"\r\n">>, <<"\n">>], [trim_all])).
 
 
 
