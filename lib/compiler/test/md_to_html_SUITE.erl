@@ -7,6 +7,8 @@
 -export([single_line_quote_test/1, ignore_three_spaces_before_quote/1,
          multiple_line_quote_test/1, paragraph_in_between_test/1]).
 -export([paragraph_after_heading_test/1, quote_before_and_after_paragraph_test/1]).
+-export([single_line_code_test/1, multiple_line_code_test/1, paragraph_between_code_test/1]).
+%% -export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -14,12 +16,17 @@
 -include_lib("kernel/include/eep48.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
+
+-define(EXPECTED_FUN(Expected), {{function, foo, 0}, [], [], Expected, #{}}).
+
 all() ->
     [{group, different_format_generator},
      {group, module_generator},
      {group, header_generator},
      {group, quote_generator},
-     {group, paragraph_generator}
+     {group, paragraph_generator},
+     {group, code_generator}
+     %% {group, comment_generator}
     ].
 
 groups() ->
@@ -27,7 +34,9 @@ groups() ->
      {module_generator, [sequence], moduledoc_tests()},
      {header_generator, [parallel], header_tests()},
      {quote_generator, [parallel], quote_tests()},
-     {paragraph_generator, [parallel], paragraph_tests()}
+     {paragraph_generator, [parallel], paragraph_tests()},
+     {code_generator, [parallel], code_tests()}
+     %% {comment_generator, [parallel], comment_tests()}
     ].
 
 init_per_group(_, Config) ->
@@ -38,13 +47,15 @@ end_per_group(_, _Config) ->
 
 
 different_format_conversion_tests() ->
-    [convert_erlang_html,
-     convert_unknown_format].
+    [ convert_erlang_html,
+      convert_unknown_format
+    ].
 
 moduledoc_tests() ->
-    [non_existing_moduledoc,
-     hidden_moduledoc,
-     existing_moduledoc].
+    [ non_existing_moduledoc,
+      hidden_moduledoc,
+      existing_moduledoc
+    ].
 
 header_tests() ->
     [ h1_test,
@@ -67,6 +78,19 @@ paragraph_tests() ->
       quote_before_and_after_paragraph_test
     ].
 
+code_tests() ->
+    [ single_line_code_test,
+      multiple_line_code_test,
+      paragraph_between_code_test
+    ].
+
+%% comment_tests() ->
+%%     [
+%%      begin_comment_test,
+%%      after_paragraph_comment,
+%%      forget_closing_comment
+%%     ].
+
 convert_erlang_html(_Conf) ->
     Doc = #{<<"en">> => [{p, [], [<<"Test">>]}]},
     Functions = [{{function, foo, 0}, [], [], Doc, #{}}],
@@ -78,7 +102,7 @@ convert_erlang_html(_Conf) ->
 
 convert_unknown_format(_Conf) ->
     Doc = #{<<"en">> => <<"<text>Here</text>">>},
-    Functions = [{{function, foo, 0}, [], [], Doc, #{}}],
+    Functions = create_fun(Doc),
 
     Docs = create_eep48(erlang, <<"xml">>, Doc, #{},Functions),
     Docs = beam_doc:markdown_to_shelldoc(Docs),
@@ -98,7 +122,8 @@ existing_moduledoc(_Conf) ->
     Docs = create_eep48_doc(<<"# Here">>),
     HtmlDocs = compile(Docs),
     #{<<"en">> := HtmlModDoc} = extract_moduledoc(HtmlDocs),
-    [{h1, [], [<<"Here">>]}] = HtmlModDoc,
+    H1 = header(1, <<"Here">>),
+    [H1] = HtmlModDoc,
     ok.
 
 h1_test(_Conf) ->
@@ -107,7 +132,7 @@ h1_test(_Conf) ->
 
     Expected = #{<<"en">> => [header(1, <<"Here">>)]},
     Expected = extract_moduledoc(HtmlDocs),
-    [{{function, foo, 0}, [], [], Expected, #{}}] = extract_doc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 h2_test(_Conf) ->
@@ -116,7 +141,7 @@ h2_test(_Conf) ->
 
     Expected = #{<<"en">> => [{h1, [], [<<"Here">>]}, {h2, [], [<<"Header 2">>]}]},
     Expected = extract_moduledoc(HtmlDocs),
-    [{{function, foo, 0}, [], [], Expected, #{}}] = extract_doc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 h3_test(_Conf) ->
@@ -125,7 +150,7 @@ h3_test(_Conf) ->
 
     Expected = #{<<"en">> => [{h1, [], [<<"Here">>]}, {h3, [], [<<"Header 3">>]}]},
     Expected = extract_moduledoc(HtmlDocs),
-    [{{function, foo, 0}, [], [], Expected, #{}}] = extract_doc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 h4_test(_Conf) ->
@@ -134,7 +159,7 @@ h4_test(_Conf) ->
 
     Expected = #{<<"en">> => [{h3, [], [<<"Here">>]}, {h4, [], [<<"Header 4">>]}]},
     Expected = extract_moduledoc(HtmlDocs),
-    [{{function, foo, 0}, [], [], Expected, #{}}] = extract_doc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 h5_test(_Conf) ->
@@ -179,49 +204,41 @@ single_line_quote_test(_Conf) ->
     Docs = create_eep48_doc(<<"# Here\n> This is a quote">>),
     HtmlDocs = compile(Docs),
 
-    Expected = #{<<"en">> =>
-                     [ header(1, <<"Here">>),
-                       quote(<<"This is a quote">>)]},
-    ModuleDoc = extract_moduledoc(HtmlDocs),
-    Expected = ModuleDoc,
-    [ E1 ] = extract_doc(HtmlDocs),
-    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    Expected = expected([ header(1, <<"Here">>),
+                          quote(<<"This is a quote">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 ignore_three_spaces_before_quote(_Conf) ->
     Docs = create_eep48_doc(<<"   > # Here">>),
     HtmlDocs = compile(Docs),
 
-    Expected = #{<<"en">> => [quote(<<"# Here">>)]},
+    Expected = expected(quote(<<"# Here">>)),
     Expected = extract_moduledoc(HtmlDocs),
-    [ E1 ] = extract_doc(HtmlDocs),
-    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 multiple_line_quote_test(_Conf) ->
     Docs = create_eep48_doc(<<"> # Here\n> This is a quote">>),
     HtmlDocs = compile(Docs),
 
-    Expected = #{<<"en">> =>
-                     [ quote(<<"# Here\nThis is a quote">>)]},
+    Expected = expected(quote(<<"# Here\nThis is a quote">>)),
     Expected = extract_moduledoc(HtmlDocs),
-    [ E1 ] = extract_doc(HtmlDocs),
-    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 paragraph_in_between_test(_Conf) ->
     Docs = create_eep48_doc(<<"# Header 1\nThis is text\n> A quote\n## Header 2\nBody content">>),
     HtmlDocs = compile(Docs),
 
-    Expected = #{<<"en">> =>
-                     [ header(1, <<"Header 1">>),
-                       p(<<"This is text">>),
-                       quote(<<"A quote">>),
-                       header(2, <<"Header 2">>),
-                       p(<<"Body content">>)]},
+    Expected = expected([ header(1, <<"Header 1">>),
+                          p(<<"This is text">>),
+                          quote(<<"A quote">>),
+                          header(2, <<"Header 2">>),
+                          p(<<"Body content">>)]),
     Expected = extract_moduledoc(HtmlDocs),
-    [ E1 ] = extract_doc(HtmlDocs),
-    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 paragraph_after_heading_test(_Conf) ->
@@ -231,25 +248,69 @@ paragraph_after_heading_test(_Conf) ->
     Expected = #{<<"en">> =>
                      [ header(1, <<"Header 1">>),
                        p(<<"This is text">>),
+                       br(),
                        p(<<"Body content">>)]},
     Expected = extract_moduledoc(HtmlDocs),
-    [ E1 ] = extract_doc(HtmlDocs),
-    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 quote_before_and_after_paragraph_test(_Conf) ->
     Docs = create_eep48_doc(<<"> Quote 1\nThis is text\n> Quote 2\nBody content">>),
     HtmlDocs = compile(Docs),
 
-    Expected = #{<<"en">> =>
-                     [ quote(<<"Quote 1">>),
-                       p(<<"This is text">>),
-                       quote(<<"Quote 2">>),
-                       p(<<"Body content">>)]},
+    Expected = expected([ quote(<<"Quote 1">>),
+                          p(<<"This is text">>),
+                          quote(<<"Quote 2">>),
+                          p(<<"Body content">>)]),
     Expected = extract_moduledoc(HtmlDocs),
-    [ E1 ] = extract_doc(HtmlDocs),
-    {{function, foo, 0}, [], [], Expected, #{}} = E1,
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
+
+single_line_code_test(_Conf) ->
+    Docs = create_eep48_doc(<<"# Here\n    This is code">>),
+    HtmlDocs = compile(Docs),
+
+    Expected = expected([ header(1, <<"Here">>),
+                          code(<<"This is code">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+multiple_line_code_test(_Conf) ->
+    Docs = create_eep48_doc(<<"    # Here\n    This is code\n        Nested Line">>),
+    HtmlDocs = compile(Docs),
+
+    Expected = expected(code(<<"# Here\nThis is code\n    Nested Line">>)),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+paragraph_between_code_test(_Conf) ->
+    Docs = create_eep48_doc(<<"This is a paragraph\n",
+                              "\n",
+                              "    # Here\n",
+                              "    This is code\n",
+                              "        Nested Line\n",
+                              "Another paragraph">>),
+    HtmlDocs = compile(Docs),
+
+    Expected = expected([ p(<<"This is a paragraph">>),
+                          br(),
+                          code(<<"# Here\nThis is code\n    Nested Line">>),
+                          p(<<"Another paragraph">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+
+%% begin_comment_test(_Conf) ->
+%%     {failed, error}.
+
+%% after_paragraph_comment(_Conf) ->
+%%     {failed, error}.
+
+%% forget_closing_comment(_Conf) ->
+%%     {failed, error}.
 
 header(Level, Text) when is_integer(Level), is_binary(Text) ->
     HeadingLevel = integer_to_list(Level),
@@ -259,8 +320,14 @@ header(Level, Text) when is_integer(Level), is_binary(Text) ->
 quote(X) ->
     {pre,[],[{code,[],[X]}]}.
 
+code(X) ->
+    {pre,[],[{code,[],[X]}]}.
+
 p(X) ->
     {p, [], [X]}.
+
+br() ->
+    {br, [], []}.
 
 -spec create_eep48(Language, Mime, ModuleDoc, Metadata, Docs) -> #docs_v1{} when
       Language  :: atom(),
@@ -300,14 +367,16 @@ create_eep48_doc(Doc) when is_binary(Doc) ->
 
 create_eep48_doc(Doc, Format) when is_binary(Doc) ->
     Docs = #{<<"en">> => Doc},
-    Functions = [{{function, foo, 0}, [], [], Docs, #{}}],
-    create_eep48(erlang, Format, Docs, #{}, Functions).
+    create_eep48(erlang, Format, Docs, #{}, create_fun(Docs)).
 
-%% expected(X) when is_list(X)->
-%%     #{<<"en">> => X};
-%% expected(X) when is_tuple(X) ->
-%%     expected([X]).
+create_fun(Docs) ->
+    [{{function, foo, 0}, [], [], Docs, #{}}].
 
+
+expected(X) when is_list(X)->
+    #{<<"en">> => X};
+expected(X) when is_tuple(X) ->
+    expected([X]).
 
 compile(Docs) ->
     HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),

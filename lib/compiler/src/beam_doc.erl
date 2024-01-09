@@ -254,7 +254,6 @@ markdown_to_shelldoc(#docs_v1{format = Format}=Docs) ->
     DefaultFormat = binary_to_list(?DEFAULT_FORMAT),
     case Format of
         _ when Format =:= ?DEFAULT_FORMAT orelse Format =:= DefaultFormat ->
-            io:format("(~p:~p) ~p~n~n", [?MODULE, ?LINE, Docs]),
             %% Docs1 = process(#docs_v1.module_doc, #docs_v1.docs),
             ModuleDoc = Docs#docs_v1.module_doc,
             Doc = Docs#docs_v1.docs,
@@ -291,7 +290,8 @@ process_doc({Attributes, Anno, Signature, Doc, Metadata}) ->
 -spec process_md(Doc0 :: binary()) -> Doc1 :: binary().
 process_md(Doc) when is_binary(Doc) ->
     %% process common documentation
-    Lines = binary:split(Doc, [<<"\r\n">>, <<"\n">>], [trim_all, global]),
+    Lines = binary:split(Doc, [<<"\r\n">>, <<"\n">>], [global]),
+
     process_md(Lines, []).
 
 -spec process_md(Markdown, HtmlErlang) -> HtmlErlang when
@@ -321,13 +321,18 @@ process_md([<<">", Line/binary>> | Rest], Block) ->
     Block ++ process_quote([<<">", Line/binary>> | Rest], []);
 process_md([<<"   >", Line/binary>> | Rest], Block) ->
     Block ++ process_quote([<<">", Line/binary>> | Rest], []);
+process_md([<<"    ", Line/binary>> | Rest], Block) ->
+    Block ++ process_code([<<"    ", Line/binary>> | Rest], []);
+process_md([<<"">> | Rest], Block) ->
+    Block ++ process_br(Rest);
 process_md([P | Rest], Block) ->
     Block ++ process_paragraph(Rest, [P]).
 
 -type chunk_element_attrs() :: [shell_docs:chunk_element_attr()].
-
 -type quote() :: {pre, chunk_element_attrs(), [{code,[], shell_docs:chunk_elements()}]}.
+-type code() :: {pre, chunk_element_attrs(), [{code,[], shell_docs:chunk_elements()}]}.
 -type p() :: {p, chunk_element_attrs(), shell_docs:chunk_elements()}.
+-type br() :: {p, chunk_element_attrs(), shell_docs:chunk_elements()}.
 -type header() :: {h1 | h2 | h3 | h4 | h5 | h6, chunk_element_attrs(), shell_docs:chunk_elements()}.
 
 
@@ -360,7 +365,7 @@ process_quote([<<">", Line/binary>> | Rest], PrevLines) ->
     Line1 = trim_leading_space(Line),
     process_quote(Rest, [Line1 | PrevLines]);
 process_quote(Rest, PrevLines) ->
-    [create_quote(PrevLines)] ++ process_md(Rest, []).
+    [create_quote(PrevLines) | process_md(Rest, [])].
 
 -spec process_paragraph(Continuation, P) -> HtmlErlang when
       Continuation :: [binary()],
@@ -370,6 +375,25 @@ process_paragraph([], Block) ->
     [create_paragraph(Block)];
 process_paragraph([_|_]=Rest, Block) ->
     process_paragraph([], Block) ++ process_md(Rest, []).
+
+-spec process_code(Line, PrevLines) -> HtmlErlang when
+      Line       :: [binary()],  %% Represents current parsing line.
+      PrevLines  :: [binary()],  %% Represent unprocessed lines.
+      HtmlErlang :: shell_docs:chunk_elements().
+process_code([], Block) ->
+    [create_code(Block)];
+process_code([<<"    ", Line/binary>> | Rest], Block) ->
+    %% process blank line followed by code
+    process_code(Rest, [Line | Block]);
+process_code([<<"", "    ", Line/binary>> | Rest], Block) ->
+    process_code(Rest, [Line, <<"">> | Block]);
+process_code(Rest, Block) ->
+    process_code([], Block) ++ process_md(Rest, []).
+
+-spec process_br(Text :: [binary()]) -> shell_docs:chunk_elements().
+process_br(Rest) ->
+    [br() | process_md(Rest, [])].
+
 
 -spec create_quote(Lines) -> Quote when
       Lines :: [binary()],
@@ -381,7 +405,6 @@ create_quote([Last | _]=Lines) ->
         lists:foldl(fun (Line, Acc) ->
                             Line1 = trim_and_add_new_line(Last, Line),
                             <<Line1/binary, Acc/binary>>
-                            %% process_md(Line1, []) ++ Acc
                     end, <<>>, Lines),
     quote(ProcessedLines).
 
@@ -393,13 +416,21 @@ create_paragraph([]) ->
 create_paragraph([Line]) ->
     p(Line).
 
--spec quote(shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
+-spec create_code(Lines :: [binary()]) -> code().
+create_code(X) ->
+    create_quote(X).
+
+-spec quote(Quote :: binary()) -> quote().
 quote(X) ->
     {pre,[], [{code,[], [X]}]}.
 
-
+-spec p(Text :: binary()) -> p().
 p(X) ->
     {p, [], [X]}.
+
+-spec br() -> br().
+br() ->
+    {br, [], []}.
 
 trim_and_add_new_line(Last, Line) ->
     Line1 = trim(Line),
