@@ -328,7 +328,7 @@ process_md([<<"">> | Rest], Block) ->
 process_md([<<"<!--", Line/binary>> | Rest], Block) ->
     Block ++ process_md(process_comment([Line | Rest]), []);
 process_md([P | Rest], Block) ->
-    Block ++ process_paragraph(Rest, [P]).
+    Block ++ [process_paragraph(P) | process_md(Rest, [])].
 
 -type chunk_element_attrs() :: [shell_docs:chunk_element_attr()].
 -type quote() :: {pre, chunk_element_attrs(), [{code,[], shell_docs:chunk_elements()}]}.
@@ -369,14 +369,12 @@ process_quote([<<">", Line/binary>> | Rest], PrevLines) ->
 process_quote(Rest, PrevLines) ->
     [create_quote(PrevLines) | process_md(Rest, [])].
 
--spec process_paragraph(Continuation, P) -> HtmlErlang when
-      Continuation :: [binary()],
+-spec process_paragraph(P) -> HtmlErlang when
       P            :: [binary()],
-      HtmlErlang   :: [shell_docs:chunk_elements()].
-process_paragraph([], Block) ->
-    [create_paragraph(Block)];
-process_paragraph([_|_]=Rest, Block) ->
-    process_paragraph([], Block) ++ process_md(Rest, []).
+      HtmlErlang   :: p().
+process_paragraph(Block) ->
+    create_paragraph(Block).
+
 
 -spec process_code(Line, PrevLines) -> HtmlErlang when
       Line       :: [binary()],  %% Represents current parsing line.
@@ -431,12 +429,10 @@ create_quote([Last | _]=Lines) ->
                     end, <<>>, Lines),
     quote(ProcessedLines).
 
--spec create_paragraph(Lines) -> P when
-      Lines :: [binary()],
+-spec create_paragraph(Line) -> P when
+      Line :: binary(),
       P :: p().
-create_paragraph([]) ->
-    p(<<"\n">>);
-create_paragraph([Line]) ->
+create_paragraph(Line) ->
     p(Line).
 
 -spec create_code(Lines :: [binary()]) -> code().

@@ -10,6 +10,7 @@
 -export([single_line_code_test/1, multiple_line_code_test/1, paragraph_between_code_test/1]).
 -export([start_with_br_test/1, multiple_br_followed_by_paragraph_test/1, ending_br_test/1]).
 -export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1 ]).
+-export([heading_test/1, paragraph_test/1]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -28,7 +29,8 @@ all() ->
      {group, paragraph_generator},
      {group, code_generator},
      {group, br_generator},
-     {group, comment_generator}
+     {group, comment_generator},
+     {group, em_generator}
     ].
 
 groups() ->
@@ -39,7 +41,8 @@ groups() ->
      {paragraph_generator, [parallel], paragraph_tests()},
      {code_generator, [parallel], code_tests()},
      {br_generator, [parallel], br_tests()},
-     {comment_generator, [parallel], comment_tests()}
+     {comment_generator, [parallel], comment_tests()},
+     {em_generator, [parallel], em_tests()}
     ].
 
 init_per_group(_, Config) ->
@@ -94,10 +97,14 @@ br_tests() ->
     ].
 
 comment_tests() ->
-    [
-     begin_comment_test,
-     after_paragraph_comment,
-     forget_closing_comment
+    [ begin_comment_test,
+      after_paragraph_comment,
+      forget_closing_comment
+    ].
+
+em_tests() ->
+    [ heading_test,
+      paragraph_test
     ].
 
 convert_erlang_html(_Conf) ->
@@ -361,7 +368,21 @@ forget_closing_comment(_Conf) ->
     {'EXIT', {missing_close_comment, _}} = catch compile(Docs),
     ok.
 
-header(Level, Text) when is_integer(Level), is_binary(Text) ->
+heading_test(_Conf) ->
+    Docs = create_eep48_doc(<<"# **H1**\n## H2\n### **H3**">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ header(1, em(<<"H1">>)),
+                          header(2, <<"H2">>),
+                          header(3, em(<<"H3">>))
+                        ]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+paragraph_test(_Conf) ->
+    {failed, not_implemented}.
+
+header(Level, Text) when is_integer(Level) ->
     HeadingLevel = integer_to_list(Level),
     HeadingLevelAtom = list_to_existing_atom("h" ++ HeadingLevel),
     {HeadingLevelAtom, [], [Text]}.
@@ -375,8 +396,13 @@ code(X) ->
 p(X) ->
     {p, [], [X]}.
 
+em(X) ->
+    {em, [], [X]}.
+
 br() ->
     {br, [], []}.
+
+
 
 -spec create_eep48(Language, Mime, ModuleDoc, Metadata, Docs) -> #docs_v1{} when
       Language  :: atom(),
