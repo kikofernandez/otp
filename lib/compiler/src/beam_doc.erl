@@ -325,6 +325,8 @@ process_md([<<"    ", Line/binary>> | Rest], Block) ->
     Block ++ process_code([<<"    ", Line/binary>> | Rest], []);
 process_md([<<"">> | Rest], Block) ->
     Block ++ process_br(Rest);
+process_md([<<"<!--", Line/binary>> | Rest], Block) ->
+    Block ++ process_md(process_comment([Line | Rest]), []);
 process_md([P | Rest], Block) ->
     Block ++ process_paragraph(Rest, [P]).
 
@@ -394,6 +396,27 @@ process_code(Rest, Block) ->
 process_br(Rest) ->
     [br() | process_md(Rest, [])].
 
+-spec process_comment(Line :: [binary()]) -> [binary()].
+%% process_comment(Line) when is_binary(Line) ->
+%%     [_Comment, Rest] = binary:split(Line, <<"-->">>),
+%%     Rest;
+process_comment([]) ->
+    [];
+process_comment([Line | Rest]) ->
+    case binary:split(Line, <<"-->">>) of
+        [_] ->
+            % Line is just comment, process next line
+            case process_comment(Rest) of
+                [] ->
+                    %% closing comment not found
+                    error(missing_close_comment);
+                Result ->
+                    Result
+            end;
+        [_Comment, Text] ->
+            % Skip comment, return text plus continuation line
+            [Text | Rest]
+    end.
 
 -spec create_quote(Lines) -> Quote when
       Lines :: [binary()],

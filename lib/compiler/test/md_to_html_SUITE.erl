@@ -9,7 +9,7 @@
 -export([paragraph_after_heading_test/1, quote_before_and_after_paragraph_test/1]).
 -export([single_line_code_test/1, multiple_line_code_test/1, paragraph_between_code_test/1]).
 -export([start_with_br_test/1, multiple_br_followed_by_paragraph_test/1, ending_br_test/1]).
-%% -export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1]).
+-export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1 ]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -27,8 +27,8 @@ all() ->
      {group, quote_generator},
      {group, paragraph_generator},
      {group, code_generator},
-     {group, br_generator}
-     %% {group, comment_generator}
+     {group, br_generator},
+     {group, comment_generator}
     ].
 
 groups() ->
@@ -38,8 +38,8 @@ groups() ->
      {quote_generator, [parallel], quote_tests()},
      {paragraph_generator, [parallel], paragraph_tests()},
      {code_generator, [parallel], code_tests()},
-     {br_generator, [parallel], br_tests()}
-     %% {comment_generator, [parallel], comment_tests()}
+     {br_generator, [parallel], br_tests()},
+     {comment_generator, [parallel], comment_tests()}
     ].
 
 init_per_group(_, Config) ->
@@ -93,12 +93,12 @@ br_tests() ->
       ending_br_test
     ].
 
-%% comment_tests() ->
-%%     [
-%%      begin_comment_test,
-%%      after_paragraph_comment,
-%%      forget_closing_comment
-%%     ].
+comment_tests() ->
+    [
+     begin_comment_test,
+     after_paragraph_comment,
+     forget_closing_comment
+    ].
 
 convert_erlang_html(_Conf) ->
     Doc = #{<<"en">> => [{p, [], [<<"Test">>]}]},
@@ -340,16 +340,26 @@ ending_br_test(_Conf) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
+begin_comment_test(_Conf) ->
+    Docs = create_eep48_doc(<<"<!-- Ignore -->Test">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p(<<"Test">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
 
+after_paragraph_comment(_Conf) ->
+    Docs = create_eep48_doc(<<"Test\n<!-- Ignore -->Test">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p(<<"Test">>), p(<<"Test">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
 
-%% begin_comment_test(_Conf) ->
-%%     {failed, error}.
-
-%% after_paragraph_comment(_Conf) ->
-%%     {failed, error}.
-
-%% forget_closing_comment(_Conf) ->
-%%     {failed, error}.
+forget_closing_comment(_Conf) ->
+    Docs = create_eep48_doc(<<"Test\n<!-- Ignore Test">>),
+    {'EXIT', {missing_close_comment, _}} = catch compile(Docs),
+    ok.
 
 header(Level, Text) when is_integer(Level), is_binary(Text) ->
     HeadingLevel = integer_to_list(Level),
