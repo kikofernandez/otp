@@ -8,6 +8,7 @@
          multiple_line_quote_test/1, paragraph_in_between_test/1]).
 -export([paragraph_after_heading_test/1, quote_before_and_after_paragraph_test/1]).
 -export([single_line_code_test/1, multiple_line_code_test/1, paragraph_between_code_test/1]).
+-export([start_with_br_test/1, multiple_br_followed_by_paragraph_test/1, ending_br_test/1]).
 %% -export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
@@ -25,7 +26,8 @@ all() ->
      {group, header_generator},
      {group, quote_generator},
      {group, paragraph_generator},
-     {group, code_generator}
+     {group, code_generator},
+     {group, br_generator}
      %% {group, comment_generator}
     ].
 
@@ -35,7 +37,8 @@ groups() ->
      {header_generator, [parallel], header_tests()},
      {quote_generator, [parallel], quote_tests()},
      {paragraph_generator, [parallel], paragraph_tests()},
-     {code_generator, [parallel], code_tests()}
+     {code_generator, [parallel], code_tests()},
+     {br_generator, [parallel], br_tests()}
      %% {comment_generator, [parallel], comment_tests()}
     ].
 
@@ -82,6 +85,12 @@ code_tests() ->
     [ single_line_code_test,
       multiple_line_code_test,
       paragraph_between_code_test
+    ].
+
+br_tests() ->
+    [ start_with_br_test,
+      multiple_br_followed_by_paragraph_test,
+      ending_br_test
     ].
 
 %% comment_tests() ->
@@ -301,6 +310,36 @@ paragraph_between_code_test(_Conf) ->
     Expected = extract_moduledoc(HtmlDocs),
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
+
+start_with_br_test(_Conf) ->
+    Docs = create_eep48_doc(<<"\n\nAnother paragraph">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ br(),
+                          br(),
+                          p(<<"Another paragraph">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+multiple_br_followed_by_paragraph_test(_Conf) ->
+    Docs = create_eep48_doc(<<"\nAnother paragraph\n\nAnother paragraph">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ br(),
+                          p(<<"Another paragraph">>),
+                          br(),
+                          p(<<"Another paragraph">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+ending_br_test(_Conf) ->
+    Docs = create_eep48_doc(<<"Test\n">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p(<<"Test">>), br() ]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
 
 
 %% begin_comment_test(_Conf) ->
