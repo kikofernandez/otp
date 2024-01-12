@@ -409,18 +409,14 @@ format_inline(Block) when is_tuple(Block) ->
 process_inline({Tag, [], Ls}) when is_list(Ls) ->
     FormattedLines = lists:foldr(fun (L, Acc) -> process_inline(L) ++ Acc end, [], Ls),
     [{Tag, [], FormattedLines}];
-process_inline(<<"*", "*", Rest/binary>>) ->
-    process_inline(Rest, [<<"*">>, <<"*">>]);
-process_inline(<<"_", "_", Rest/binary>>) ->
-    process_inline(Rest, [<<"_">>, <<"_">>]);
-process_inline(<<"*", Rest/binary>>) ->
-    process_inline(Rest, [<<"*">>]);
-process_inline(<<"_", Rest/binary>>) ->
-    process_inline(Rest, [<<"_">>]);
-process_inline(<<"`", Rest/binary>>) ->
-    process_inline(Rest, [<<"`">>]);
-process_inline(<<Char, Rest/binary>>) ->
-    process_inline(Rest, [], [], [<<Char>>]).
+process_inline(<<Mark, Mark, Rest/binary>>)
+  when Mark =:= $*; Mark =:= $_; Mark =:= $` ->
+    process_inline(Rest, [<<Mark>>, <<Mark>>]);
+process_inline(<<Mark, Rest/binary>>)
+  when Mark =:= $*; Mark =:= $_; Mark =:= $` ->
+    process_inline(Rest, [<<Mark>>]);
+process_inline(Bin) when is_binary(Bin)->
+    process_inline(Bin, []).
 
 -spec process_inline(Line :: binary(), Format :: [binary()]) -> shell_docs:chunk_elements().
 process_inline(Rest, Format) ->
@@ -436,15 +432,27 @@ process_inline(Rest, Format) ->
 process_inline(<<Format, Format, Rest/binary>>, [<<Format>>, <<Format>> | Fs], Buffer, Acc) ->
     InlineFormat = format([<<Format>>, <<Format>>], Buffer),
     process_inline(Rest, Fs, [], [InlineFormat | Acc]);
+process_inline(<<Format, Format, Rest/binary>>, Fs, Buffer, Acc)
+  when Format =:= $*; Format =:= $_; Format =:= $` ->
+    process_inline(Rest, [<<Format>>, <<Format>> | Fs], [], concat_inline(Buffer, Acc));
+
 process_inline(<<Format, Rest/binary>>, [<<Format>> | Fs], Buffer, Acc) ->
     InlineFormat = format([<<Format>>], Buffer),
     process_inline(Rest, Fs, [], [InlineFormat | Acc]);
+process_inline(<<Format, Rest/binary>>, Fs, Buffer, Acc)
+  when Format =:= $*; Format =:= $_; Format =:= $` ->
+    process_inline(Rest, [<<Format>> | Fs], [], concat_inline(Buffer, Acc));
+
 process_inline(<<Char, Rest/binary>>, Format, Buffer, Acc) ->
-    Buffer1 = concat_binaries(<<Char>>,  Buffer),
+    Buffer1 = concat_inline([<<Char>>],  Buffer),
     process_inline(Rest, Format, Buffer1, Acc);
 process_inline(<<>>, _Format, Buffer, Acc) ->
     %% TODO: How to deal with no closing of Format symbol?
     %% TODO: What if Format == [] and Buffer is not empty?
+    reverse(concat_inline(Buffer, Acc)).
+
+-spec concat_inline(shell_docs:chunk_elements(), shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
+concat_inline(Buffer, Acc) ->
     concat_binaries(Buffer, Acc).
 
 concat_binaries(Inline, []) when is_list(Inline) ->

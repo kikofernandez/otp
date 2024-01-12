@@ -11,7 +11,7 @@
 -export([single_line_code_test/1, multiple_line_code_test/1, paragraph_between_code_test/1]).
 -export([start_with_br_test/1, multiple_br_followed_by_paragraph_test/1, ending_br_test/1]).
 -export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1 ]).
--export([format_heading_test/1, format_paragraph_test/1, unmatched_format/1]).
+-export([format_heading_test/1, format_paragraph_test/1, format_multiple_inline/1, unmatched_format/1]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -32,7 +32,7 @@ all() ->
      {group, code_generator},
      {group, br_generator},
      {group, comment_generator},
-     {group, em_generator}
+     {group, format_generator}
     ].
 
 groups() ->
@@ -45,7 +45,7 @@ groups() ->
      {code_generator, [parallel], code_tests()},
      {br_generator, [parallel], br_tests()},
      {comment_generator, [parallel], comment_tests()},
-     {em_generator, [parallel], em_tests()}
+     {format_generator, [parallel], format_tests()}
     ].
 
 init_per_group(_, Config) ->
@@ -111,9 +111,10 @@ comment_tests() ->
       forget_closing_comment
     ].
 
-em_tests() ->
+format_tests() ->
     [ format_heading_test,
       format_paragraph_test,
+      format_multiple_inline,
       unmatched_format
     ].
 
@@ -398,19 +399,42 @@ forget_closing_comment(_Conf) ->
     ok.
 
 format_heading_test(_Conf) ->
-    Docs = create_eep48_doc(<<"# **H1**\n## _H2_\n### **H3**">>),
+    Docs = create_eep48_doc(<<"# **H1**\n## _H2_\n### `H3`">>),
     HtmlDocs = compile(Docs),
     Expected = expected([ header(1, em(<<"H1">>)),
                           header(2, it(<<"H2">>)),
-                          header(3, em(<<"H3">>))
-                          %% header(3, inline_code(<<"code">>))
+                          header(3, inline_code(<<"H3">>))
                         ]),
     Expected = extract_moduledoc(HtmlDocs),
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
 format_paragraph_test(_Conf) ->
-    {failed, not_implemented}.
+    Docs = create_eep48_doc(<<"**H1** *HH* _H2_ __H3__ `code`">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p([ em(<<"H1">>),
+                              <<" ">>,
+                              it(<<"HH">>),
+                              <<" ">>,
+                              it(<<"H2">>),
+                              <<" ">>,
+                              em(<<"H3">>),
+                              <<" ">>,
+                              inline_code(<<"code">>)
+                            ])
+                        ]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+format_multiple_inline(_Conf) ->
+    Docs = create_eep48_doc(<<"**H1 *HH***">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p([ em([<<"H1 ">>, it(<<"HH">>)])]) ]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
 
 unmatched_format(_Conf) ->
     %% Docs = create_eep48_doc(<<"**Bold *Italics***">>),
@@ -434,19 +458,20 @@ code(X) ->
 inline_code(X) ->
     {code,[],[X]}.
 
-p(X) ->
-    {p, [], [X]}.
+p(X) when is_list(X) ->
+    {p, [], X};
+p(X) when is_tuple(X); is_binary(X) ->
+    p([X]).
 
-em(X) when is_list(X)->
+em(X) when is_list(X) ->
     {em, [], X};
-em(X) when is_binary(X)->
-    {em, [], [X]}.
+em(X) when is_binary(X); is_tuple(X) ->
+    em([X]).
 
-it(X) when is_list(X)->
+it(X) when is_list(X) ->
     {i, [], X};
-it(X) when is_binary(X)->
-    {i, [], [X]}.
-
+it(X) when is_binary(X); is_tuple(X) ->
+    it([X]).
 
 br() ->
     {br, [], []}.
