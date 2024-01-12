@@ -3,6 +3,7 @@
 -export([all/0, groups/0, init_per_group/2, end_per_group/2]).
 -export([convert_erlang_html/1, convert_unknown_format/1]).
 -export([non_existing_moduledoc/1,hidden_moduledoc/1,existing_moduledoc/1]).
+-export([non_existing_doc/1, hidden_doc/1, existing_doc/1]).
 -export([h1_test/1, h2_test/1, h3_test/1, h4_test/1, h5_test/1, h6_test/1]).
 -export([single_line_quote_test/1, ignore_three_spaces_before_quote/1,
          multiple_line_quote_test/1, paragraph_in_between_test/1]).
@@ -10,7 +11,7 @@
 -export([single_line_code_test/1, multiple_line_code_test/1, paragraph_between_code_test/1]).
 -export([start_with_br_test/1, multiple_br_followed_by_paragraph_test/1, ending_br_test/1]).
 -export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1 ]).
--export([heading_test/1, paragraph_test/1]).
+-export([format_heading_test/1, format_paragraph_test/1, unmatched_format/1]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -24,6 +25,7 @@
 all() ->
     [{group, different_format_generator},
      {group, module_generator},
+     {group, doc_generator},
      {group, header_generator},
      {group, quote_generator},
      {group, paragraph_generator},
@@ -36,6 +38,7 @@ all() ->
 groups() ->
     [{different_format_generator, [parallel], different_format_conversion_tests()},
      {module_generator, [sequence], moduledoc_tests()},
+     {doc_generator, [parallel], doc_tests()},
      {header_generator, [parallel], header_tests()},
      {quote_generator, [parallel], quote_tests()},
      {paragraph_generator, [parallel], paragraph_tests()},
@@ -61,6 +64,12 @@ moduledoc_tests() ->
     [ non_existing_moduledoc,
       hidden_moduledoc,
       existing_moduledoc
+    ].
+
+doc_tests() ->
+    [ non_existing_doc,
+      hidden_doc,
+      existing_doc
     ].
 
 header_tests() ->
@@ -103,8 +112,9 @@ comment_tests() ->
     ].
 
 em_tests() ->
-    [ heading_test,
-      paragraph_test
+    [ format_heading_test,
+      format_paragraph_test,
+      unmatched_format
     ].
 
 convert_erlang_html(_Conf) ->
@@ -140,6 +150,25 @@ existing_moduledoc(_Conf) ->
     #{<<"en">> := HtmlModDoc} = extract_moduledoc(HtmlDocs),
     H1 = header(1, <<"Here">>),
     [H1] = HtmlModDoc,
+    ok.
+
+non_existing_doc(_Conf) ->
+    Docs = create_eep48(erlang, <<"text/markdown">>, none, #{}, create_fun(none)),
+    HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+    ok.
+
+hidden_doc(_Conf) ->
+    Docs = create_eep48(erlang, <<"text/markdown">>, none, #{}, create_fun(hidden)),
+    HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
+    ok.
+
+existing_doc(_Conf) ->
+    Docs = create_eep48(erlang, <<"text/markdown">>, none, #{},
+                        create_fun(#{<<"en">> => <<"Test">>})),
+    HtmlDocs = beam_doc:markdown_to_shelldoc(Docs),
+    ok = shell_docs:validate(HtmlDocs),
     ok.
 
 h1_test(_Conf) ->
@@ -368,18 +397,27 @@ forget_closing_comment(_Conf) ->
     {'EXIT', {missing_close_comment, _}} = catch compile(Docs),
     ok.
 
-heading_test(_Conf) ->
-    Docs = create_eep48_doc(<<"# **H1**\n## H2\n### **H3**">>),
+format_heading_test(_Conf) ->
+    Docs = create_eep48_doc(<<"# **H1**\n## _H2_\n### **H3**">>),
     HtmlDocs = compile(Docs),
     Expected = expected([ header(1, em(<<"H1">>)),
-                          header(2, <<"H2">>),
+                          header(2, it(<<"H2">>)),
                           header(3, em(<<"H3">>))
+                          %% header(3, inline_code(<<"code">>))
                         ]),
     Expected = extract_moduledoc(HtmlDocs),
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
-paragraph_test(_Conf) ->
+format_paragraph_test(_Conf) ->
+    {failed, not_implemented}.
+
+unmatched_format(_Conf) ->
+    %% Docs = create_eep48_doc(<<"**Bold *Italics***">>),
+    %% HtmlDocs = compile(Docs),
+    %% Expected = expected([ em([<<"Bold">>, it(<<"Italics">>) ])]),
+    %% Expected = extract_moduledoc(HtmlDocs),
+    %% [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     {failed, not_implemented}.
 
 header(Level, Text) when is_integer(Level) ->
@@ -391,13 +429,24 @@ quote(X) ->
     {pre,[],[{code,[],[X]}]}.
 
 code(X) ->
-    {pre,[],[{code,[],[X]}]}.
+    {pre,[],[inline_code(X)]}.
+
+inline_code(X) ->
+    {code,[],[X]}.
 
 p(X) ->
     {p, [], [X]}.
 
-em(X) ->
+em(X) when is_list(X)->
+    {em, [], X};
+em(X) when is_binary(X)->
     {em, [], [X]}.
+
+it(X) when is_list(X)->
+    {i, [], X};
+it(X) when is_binary(X)->
+    {i, [], [X]}.
+
 
 br() ->
     {br, [], []}.

@@ -264,12 +264,13 @@ markdown_to_shelldoc(#docs_v1{format = Format}=Docs) ->
             Docs
     end.
 
--spec process_moduledoc(Doc :: binary() | none | hidden) -> shell_docs:chunk_elements().
+-spec process_moduledoc(Doc :: map() | none | hidden) -> map() | none | hidden.
 process_moduledoc(Doc) when Doc =:= none orelse Doc =:= hidden ->
     Doc;
 process_moduledoc(Doc) when is_map(Doc) ->
     maps:map(fun (_K, V) -> process_md(V) end, Doc).
 
+-spec process_doc_attr(Doc :: [doc()]) -> [doc()].
 process_doc_attr(Doc) ->
     lists:map(fun process_doc/1, Doc).
 
@@ -283,15 +284,15 @@ process_doc_attr(Doc) ->
                }.
 
 -spec process_doc(doc()) -> doc().
+process_doc({_At, _A, _S, Doc, _M}=Entry) when Doc =:= none orelse Doc =:= hidden ->
+    Entry;
 process_doc({Attributes, Anno, Signature, Doc, Metadata}) ->
     Docs = maps:map(fun (_K, V) -> process_md(V) end, Doc),
     {Attributes, Anno, Signature, Docs, Metadata}.
 
--spec process_md(Doc0 :: binary()) -> Doc1 :: binary().
+-spec process_md(Doc0 :: binary()) -> Doc1 :: shell_docs:chunk_elements().
 process_md(Doc) when is_binary(Doc) ->
-    %% process common documentation
     Lines = binary:split(Doc, [<<"\r\n">>, <<"\n">>], [global]),
-
     process_md(Lines, []).
 
 -spec process_md(Markdown, HtmlErlang) -> HtmlErlang when
@@ -327,32 +328,47 @@ process_md([<<"">> | Rest], Block) ->
     Block ++ process_br(Rest);
 process_md([<<"<!--", Line/binary>> | Rest], Block) ->
     Block ++ process_md(process_comment([Line | Rest]), []);
-process_md([P | Rest], Block) ->
-    Block ++ [process_paragraph(P) | process_md(Rest, [])].
+process_md([P | Rest], Block) when is_binary(P) ->
+    Block ++ process_paragraph(P) ++ process_md(Rest, []).
 
--type chunk_element_attrs() :: [shell_docs:chunk_element_attr()].
+-type chunk_element_type() :: a | code | em | strong | i | b|
+                              p | 'div' | br | pre | ul |
+                              ol | li | dl | dt | dd |
+                              h1 | h2 | h3 | h4 | h5 | h6.
+-type chunk_element_attrs() :: [].  %% | [shell_docs:chunk_element_attr()].
 -type quote() :: {pre, chunk_element_attrs(), [{code,[], shell_docs:chunk_elements()}]}.
 -type code() :: {pre, chunk_element_attrs(), [{code,[], shell_docs:chunk_elements()}]}.
 -type p() :: {p, chunk_element_attrs(), shell_docs:chunk_elements()}.
--type br() :: {p, chunk_element_attrs(), shell_docs:chunk_elements()}.
--type header() :: {h1 | h2 | h3 | h4 | h5 | h6, chunk_element_attrs(), shell_docs:chunk_elements()}.
-
+-type i() :: {i, chunk_element_attrs(), shell_docs:chunk_elements()}.
+-type em() :: {em, chunk_element_attrs(), shell_docs:chunk_elements()}.
+-type code_inline() :: {code, chunk_element_attrs(), shell_docs:chunk_elements()}.
+-type br() :: {br, chunk_element_attrs(), shell_docs:chunk_elements()}.
+-type header() :: {h1 | h2 | h3 | h4 | h5 | h6, chunk_element_attrs(), shell_docs:chunk_elements() | [binary()]}.
 
 -spec process_heading(Level, Heading, Rest) -> HtmlErlang when
       Level         :: 1..6,
       Heading       :: binary(),
-      Rest          :: binary(),
+      Rest          :: [binary()],
       HtmlErlang    :: shell_docs:chunk_elements().
-process_heading(Level, Header, Rest) ->
-    [create_header(Level, Header) | process_md(Rest, [])].
+process_heading(Level, Text, Rest) ->
+    Header = create_header(Level, Text),
+    FormattedHeader = format_inline(Header),
+    FormattedHeader ++ process_md(Rest, []).
 
 -spec create_header(Level, Header) -> header() when
       Level  :: 1..6,
       Header :: binary().
 create_header(Level, Heading) ->
-    HeadingLevel = integer_to_list(Level),
-    HeadingLevelAtom = list_to_existing_atom("h" ++ HeadingLevel),
-    {HeadingLevelAtom, [], [Heading]}.
+    {header_level(Level), [], [Heading]}.
+
+%% this function makes it easier for type check
+%% to understand the meaning.
+header_level(1) -> h1;
+header_level(2) -> h2;
+header_level(3) -> h3;
+header_level(4) -> h4;
+header_level(5) -> h5;
+header_level(6) -> h6.
 
 -spec process_quote(Line, PrevLines) -> HtmlErlang when
       Line       :: [binary()],  %% Represents current parsing line.
@@ -370,11 +386,99 @@ process_quote(Rest, PrevLines) ->
     [create_quote(PrevLines) | process_md(Rest, [])].
 
 -spec process_paragraph(P) -> HtmlErlang when
-      P            :: [binary()],
-      HtmlErlang   :: p().
-process_paragraph(Block) ->
-    create_paragraph(Block).
+      P            :: binary(),
+      HtmlErlang   :: shell_docs:chunk_elements().
+process_paragraph(P0) ->
+    P = create_paragraph(P0),
+    format_inline(P).
 
+-spec format_inline(Inline) -> shell_docs:chunk_elements() when
+      Inline :: {chunk_element_type(), chunk_element_attrs(), shell_docs:chunk_elements()}.
+format_inline(Block) when is_tuple(Block) ->
+    Inline = process_inline(Block),
+    case Inline of
+        T when is_tuple(T) ->
+            [T];
+        L when is_list(L) ->
+            L
+    end.
+
+-spec process_inline(Inline) -> HtmlBlock when
+      Inline :: {chunk_element_type(), chunk_element_attrs(), HtmlBlock},
+      HtmlBlock :: shell_docs:chunk_elements().
+process_inline({Tag, [], Ls}) when is_list(Ls) ->
+    FormattedLines = lists:foldr(fun (L, Acc) -> process_inline(L) ++ Acc end, [], Ls),
+    [{Tag, [], FormattedLines}];
+process_inline(<<"*", "*", Rest/binary>>) ->
+    process_inline(Rest, [<<"*">>, <<"*">>]);
+process_inline(<<"_", "_", Rest/binary>>) ->
+    process_inline(Rest, [<<"_">>, <<"_">>]);
+process_inline(<<"*", Rest/binary>>) ->
+    process_inline(Rest, [<<"*">>]);
+process_inline(<<"_", Rest/binary>>) ->
+    process_inline(Rest, [<<"_">>]);
+process_inline(<<"`", Rest/binary>>) ->
+    process_inline(Rest, [<<"`">>]);
+process_inline(<<Char, Rest/binary>>) ->
+    process_inline(Rest, [], [], [<<Char>>]).
+
+-spec process_inline(Line :: binary(), Format :: [binary()]) -> shell_docs:chunk_elements().
+process_inline(Rest, Format) ->
+    Buffer = [], % tracks the current thing to put within **
+    Acc = [],    % tracks the whole paragraph
+    process_inline(Rest, Format, Buffer, Acc).
+
+-spec process_inline(Line, Format, Buffer, Acc) -> shell_docs:chunk_elements() when
+      Line   :: binary(),
+      Format :: [binary()],
+      Buffer :: shell_docs:chunk_elements(),
+      Acc    :: shell_docs:chunk_elements().
+process_inline(<<Format, Format, Rest/binary>>, [<<Format>>, <<Format>> | Fs], Buffer, Acc) ->
+    InlineFormat = format([<<Format>>, <<Format>>], Buffer),
+    process_inline(Rest, Fs, [], [InlineFormat | Acc]);
+process_inline(<<Format, Rest/binary>>, [<<Format>> | Fs], Buffer, Acc) ->
+    InlineFormat = format([<<Format>>], Buffer),
+    process_inline(Rest, Fs, [], [InlineFormat | Acc]);
+process_inline(<<Char, Rest/binary>>, Format, Buffer, Acc) ->
+    Buffer1 = concat_binaries(<<Char>>,  Buffer),
+    process_inline(Rest, Format, Buffer1, Acc);
+process_inline(<<>>, _Format, Buffer, Acc) ->
+    %% TODO: How to deal with no closing of Format symbol?
+    %% TODO: What if Format == [] and Buffer is not empty?
+    concat_binaries(Buffer, Acc).
+
+concat_binaries(Inline, []) when is_list(Inline) ->
+    Inline;
+concat_binaries(Inline, []) when is_binary(Inline); is_tuple(Inline) ->
+    [Inline];
+concat_binaries(Buffer, Acc) when is_list(Buffer) ->
+    lists:foldl(fun concat_binaries/2, Acc, Buffer);
+concat_binaries(Inline, Acc) when is_tuple(Inline) ->
+    [Inline | Acc];
+concat_binaries(Inline, [H | T]) when is_tuple(H) ->
+    [Inline, H | T];
+concat_binaries(<<Inline/binary>>, [<<H/binary>> | T]) ->
+    [<<H/binary, Inline/binary>> | T].
+
+
+-spec format(Format, Line) -> Result when
+      Line :: shell_docs:chunk_elements(),
+      Result :: {chunk_element_type(), chunk_element_attrs(), shell_docs:chunk_elements()},
+      Format :: [binary()].
+format(Format, Line0) ->
+    Line1 = lists:reverse(Line0),
+    case Format of
+        [<<"*">>, <<"*">>] ->
+            em(Line1);
+        [<<"_">>, <<"_">>] ->
+            em(Line1);
+        [<<"_">>] ->
+            i(Line1);
+        [<<"*">>] ->
+            i(Line1);
+        [<<"`">>] ->
+            code_inline(Line1)
+    end.
 
 -spec process_code(Line, PrevLines) -> HtmlErlang when
       Line       :: [binary()],  %% Represents current parsing line.
@@ -395,9 +499,6 @@ process_br(Rest) ->
     [br() | process_md(Rest, [])].
 
 -spec process_comment(Line :: [binary()]) -> [binary()].
-%% process_comment(Line) when is_binary(Line) ->
-%%     [_Comment, Rest] = binary:split(Line, <<"-->">>),
-%%     Rest;
 process_comment([]) ->
     [];
 process_comment([Line | Rest]) ->
@@ -440,16 +541,30 @@ create_code(X) ->
     create_quote(X).
 
 -spec quote(Quote :: binary()) -> quote().
-quote(X) ->
+quote(X) when is_binary(X) ->
     {pre,[], [{code,[], [X]}]}.
 
--spec p(Text :: binary()) -> p().
-p(X) ->
+-spec p(Line :: binary()) -> p().
+p(X) when is_binary(X) ->
     {p, [], [X]}.
+
+-spec code_inline(Text :: shell_docs:chunk_elements()) -> code_inline().
+code_inline(X) when is_list(X) ->
+    {code, [], X}.
+
+-spec i(Text :: shell_docs:chunk_elements()) -> i().
+i(X) when is_list(X) ->
+    {i, [], X}.
+
+-spec em(Text :: shell_docs:chunk_elements()) -> em().
+em(X) when is_list(X) ->
+    {em, [], X}.
 
 -spec br() -> br().
 br() ->
     {br, [], []}.
+
+
 
 trim_and_add_new_line(Last, Line) ->
     Line1 = trim(Line),
