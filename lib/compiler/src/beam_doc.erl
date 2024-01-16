@@ -424,7 +424,6 @@ process(Bin) when is_binary(Bin)->
 -spec process_inline(Line :: binary(), Format :: [binary()]) -> shell_docs:chunk_elements().
 process_inline(Rest, Format) ->
     Buffer = [], % tracks the current thing to put within **
-    io:format("(~p) Format: ~p, Rest: ~p", [?LINE, Format, Rest]),
     process_inline(Rest, Format, Buffer).
 
 process_inline(Bin, Fs, Buffer) ->
@@ -434,7 +433,6 @@ process_inline(Bin, Fs, Buffer) ->
         {ok, Buffer1} ->
             Buffer1;
         {Continuation, Buffer1} ->
-            io:format("(~p) Cont: ~p, Buffer: ~p", [?LINE, Continuation, Buffer]),
             process_inline(Continuation, [], Buffer1)
     end.
 
@@ -442,36 +440,54 @@ process_format(<<Format, Format, Continuation/binary>>, [<<Format>>, <<Format>>]
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     %% close the format
     InlineFormat = format([<<Format>>, <<Format>>], Buffer),
-    io:format("(~p) Cont: ~p Format: ~p, Buffer: ~p InlineFormat: ~p", [?LINE, Continuation, Format, Buffer, InlineFormat]),
     {Continuation, InlineFormat};
 process_format(<<Format, Continuation/binary>>, [<<Format>>], Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     %% close the format
-    io:format("(~p) Cont: ~p Format: ~p, Buffer: ~p", [?LINE, Continuation, Format, Buffer]),
     InlineFormat = format([<<Format>>], Buffer),
-    io:format("(~p) Cont: ~p Format: ~p, Buffer: ~p InlineFormat: ~p", [?LINE, Continuation, Format, Buffer, InlineFormat]),
     {Continuation, InlineFormat};
 process_format(<<Format, Format, Continuation/binary>>, Fs, Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     %% open a new format
     {Continuation1, Buffer1} = process_format(Continuation, [<<Format>>, <<Format>>], []),
-    io:format("(~p) Cont: ~p Format: ~p, Old Format: ~p, Buffer: ~p Buffer1: ~p", [?LINE, Continuation1, Format, Fs, Buffer, Buffer1]),
-    process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer));
+    case {Continuation1, Buffer1} of
+        {{not_closed, UnmatchSymbol}, Buffer1} when is_list(UnmatchSymbol) ->
+            LastSymbol = concat_inline(Buffer1, UnmatchSymbol),
+            Line = concat_inline(LastSymbol, Buffer),
+            CollapseMarkerList = collapse_marker(Fs),
+            process_format(<<>>, [], concat_inline(Line, CollapseMarkerList));
+        {ok, Buffer1} ->
+            {ok, concat_inline(Buffer1, Buffer)};
+        {Continuation1, Buffer1} when is_binary(Continuation1) ->
+            process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer))
+    end;
+    %% process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer));
 process_format(<<Format, Continuation/binary>>, Fs, Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     %% open a new format
     {Continuation1, Buffer1} = process_format(Continuation, [<<Format>>], []),
-    io:format("(~p) Cont: ~p Format: ~p, Buffer: ~p Buffer1: ~p", [?LINE, Continuation1, Format, Buffer, Buffer1]),
-    process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer));
+    case {Continuation1, Buffer1} of
+        {{not_closed, UnmatchSymbol}, Buffer1} when is_list(UnmatchSymbol) ->
+            LastSymbol = concat_inline(Buffer1, UnmatchSymbol),
+            Line = concat_inline(LastSymbol, Buffer),
+            CollapseMarkerList = collapse_marker(Fs),
+            process_format(<<>>, [], concat_inline(Line, CollapseMarkerList));
+        {ok, Buffer1} ->
+            {ok, concat_inline(Buffer1, Buffer)};
+        {Continuation1, Buffer1} when is_binary(Continuation1) ->
+            process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer))
+    end;
 process_format(<<Char, Rest/binary>>, Format, Buffer) ->
-    io:format("(~p) Char: ~p Rest: ~p Format: ~p, Buffer: ~p InlineCat: ~p~n", [?LINE, Char, Rest, Format, Buffer, concat_inline([<<Char>>],  Buffer)]),
     process_format(Rest, Format, concat_inline([<<Char>>],  Buffer));
 process_format(<<>>, [], Buffer) ->
     {ok, Buffer};
 process_format(<<>>, Format, Buffer) ->
-    io:format("(~p) Format: ~p, Buffer: ~p", [?LINE, Format, Buffer]),
     {{not_closed, Format}, Buffer}.
 
+collapse_marker([<<Marker>>, <<Marker>>]) when Marker =:= $*; Marker =:= $_; Marker =:= $` ->
+    [<<Marker, Marker>>];
+collapse_marker([<<Marker>>]) when Marker =:= $*; Marker =:= $_; Marker =:= $` ->
+    [<<Marker>>].
 
 -spec concat_inline(shell_docs:chunk_elements(), shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
 concat_inline(Buffer, Acc) ->

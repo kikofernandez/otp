@@ -438,11 +438,13 @@ format_multiple_inline(_Conf) ->
 
 unmatched_format(_Conf) ->
     %% Docs = create_eep48_doc(<<"**Bold *Italics***">>),
-    %% HtmlDocs = compile(Docs),
+    Docs = create_eep48_doc(<<"**Bold*">>),
+    HtmlDocs = compile(Docs),
     %% Expected = expected([ em([<<"Bold">>, it(<<"Italics">>) ])]),
-    %% Expected = extract_moduledoc(HtmlDocs),
-    %% [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
-    {failed, not_implemented}.
+    Expected = expected([ p([<<"**Bold*">> ])]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs).
+
 
 header(Level, Text) when is_integer(Level) ->
     HeadingLevel = integer_to_list(Level),
