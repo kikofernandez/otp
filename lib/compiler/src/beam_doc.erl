@@ -395,61 +395,83 @@ process_paragraph(P0) ->
 -spec format_inline(Inline) -> shell_docs:chunk_elements() when
       Inline :: {chunk_element_type(), chunk_element_attrs(), shell_docs:chunk_elements()}.
 format_inline(Block) when is_tuple(Block) ->
-    Inline = process_inline(Block),
-    case Inline of
-        T when is_tuple(T) ->
-            [T];
-        L when is_list(L) ->
-            L
-    end.
+    process_inline(Block).
+    %% Inline = process_inline(Block),
+    %% case Inline of
+    %%     T when is_tuple(T) ->
+    %%         [T];
+    %%     L when is_list(L) ->
+    %%         L
+    %% end.
 
 -spec process_inline(Inline) -> HtmlBlock when
       Inline :: {chunk_element_type(), chunk_element_attrs(), HtmlBlock},
       HtmlBlock :: shell_docs:chunk_elements().
 process_inline({Tag, [], Ls}) when is_list(Ls) ->
-    FormattedLines = lists:foldr(fun (L, Acc) -> process_inline(L) ++ Acc end, [], Ls),
-    [{Tag, [], FormattedLines}];
-process_inline(<<Mark, Mark, Rest/binary>>)
+    FormattedLines = lists:foldr(fun (L, Acc) -> process(L) ++ Acc end, [], Ls),
+    [{Tag, [], reverse(FormattedLines)}].
+
+
+process(<<Mark, Mark, Rest/binary>>)
   when Mark =:= $*; Mark =:= $_; Mark =:= $` ->
     process_inline(Rest, [<<Mark>>, <<Mark>>]);
-process_inline(<<Mark, Rest/binary>>)
+process(<<Mark, Rest/binary>>)
   when Mark =:= $*; Mark =:= $_; Mark =:= $` ->
     process_inline(Rest, [<<Mark>>]);
-process_inline(Bin) when is_binary(Bin)->
+process(Bin) when is_binary(Bin)->
     process_inline(Bin, []).
 
 -spec process_inline(Line :: binary(), Format :: [binary()]) -> shell_docs:chunk_elements().
 process_inline(Rest, Format) ->
     Buffer = [], % tracks the current thing to put within **
-    Acc = [],    % tracks the whole paragraph
-    process_inline(Rest, Format, Buffer, Acc).
+    io:format("(~p) Format: ~p, Rest: ~p", [?LINE, Format, Rest]),
+    process_inline(Rest, Format, Buffer).
 
--spec process_inline(Line, Format, Buffer, Acc) -> shell_docs:chunk_elements() when
-      Line   :: binary(),
-      Format :: [binary()],
-      Buffer :: shell_docs:chunk_elements(),
-      Acc    :: shell_docs:chunk_elements().
-process_inline(<<Format, Format, Rest/binary>>, [<<Format>>, <<Format>> | Fs], Buffer, Acc) ->
+process_inline(Bin, Fs, Buffer) ->
+    case process_format(Bin, Fs, Buffer) of
+        {{not_closed, _Format}, Buffer1} ->
+            Buffer1;
+        {ok, Buffer1} ->
+            Buffer1;
+        {Continuation, Buffer1} ->
+            io:format("(~p) Cont: ~p, Buffer: ~p", [?LINE, Continuation, Buffer]),
+            process_inline(Continuation, [], Buffer1)
+    end.
+
+process_format(<<Format, Format, Continuation/binary>>, [<<Format>>, <<Format>>], Buffer)
+  when Format =:= $*; Format =:= $_; Format =:= $` ->
+    %% close the format
     InlineFormat = format([<<Format>>, <<Format>>], Buffer),
-    process_inline(Rest, Fs, [], [InlineFormat | Acc]);
-process_inline(<<Format, Format, Rest/binary>>, Fs, Buffer, Acc)
+    io:format("(~p) Cont: ~p Format: ~p, Buffer: ~p InlineFormat: ~p", [?LINE, Continuation, Format, Buffer, InlineFormat]),
+    {Continuation, InlineFormat};
+process_format(<<Format, Continuation/binary>>, [<<Format>>], Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
-    process_inline(Rest, [<<Format>>, <<Format>> | Fs], [], concat_inline(Buffer, Acc));
-
-process_inline(<<Format, Rest/binary>>, [<<Format>> | Fs], Buffer, Acc) ->
+    %% close the format
+    io:format("(~p) Cont: ~p Format: ~p, Buffer: ~p", [?LINE, Continuation, Format, Buffer]),
     InlineFormat = format([<<Format>>], Buffer),
-    process_inline(Rest, Fs, [], [InlineFormat | Acc]);
-process_inline(<<Format, Rest/binary>>, Fs, Buffer, Acc)
+    io:format("(~p) Cont: ~p Format: ~p, Buffer: ~p InlineFormat: ~p", [?LINE, Continuation, Format, Buffer, InlineFormat]),
+    {Continuation, InlineFormat};
+process_format(<<Format, Format, Continuation/binary>>, Fs, Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
-    process_inline(Rest, [<<Format>> | Fs], [], concat_inline(Buffer, Acc));
+    %% open a new format
+    {Continuation1, Buffer1} = process_format(Continuation, [<<Format>>, <<Format>>], []),
+    io:format("(~p) Cont: ~p Format: ~p, Old Format: ~p, Buffer: ~p Buffer1: ~p", [?LINE, Continuation1, Format, Fs, Buffer, Buffer1]),
+    process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer));
+process_format(<<Format, Continuation/binary>>, Fs, Buffer)
+  when Format =:= $*; Format =:= $_; Format =:= $` ->
+    %% open a new format
+    {Continuation1, Buffer1} = process_format(Continuation, [<<Format>>], []),
+    io:format("(~p) Cont: ~p Format: ~p, Buffer: ~p Buffer1: ~p", [?LINE, Continuation1, Format, Buffer, Buffer1]),
+    process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer));
+process_format(<<Char, Rest/binary>>, Format, Buffer) ->
+    io:format("(~p) Char: ~p Rest: ~p Format: ~p, Buffer: ~p InlineCat: ~p~n", [?LINE, Char, Rest, Format, Buffer, concat_inline([<<Char>>],  Buffer)]),
+    process_format(Rest, Format, concat_inline([<<Char>>],  Buffer));
+process_format(<<>>, [], Buffer) ->
+    {ok, Buffer};
+process_format(<<>>, Format, Buffer) ->
+    io:format("(~p) Format: ~p, Buffer: ~p", [?LINE, Format, Buffer]),
+    {{not_closed, Format}, Buffer}.
 
-process_inline(<<Char, Rest/binary>>, Format, Buffer, Acc) ->
-    Buffer1 = concat_inline([<<Char>>],  Buffer),
-    process_inline(Rest, Format, Buffer1, Acc);
-process_inline(<<>>, _Format, Buffer, Acc) ->
-    %% TODO: How to deal with no closing of Format symbol?
-    %% TODO: What if Format == [] and Buffer is not empty?
-    reverse(concat_inline(Buffer, Acc)).
 
 -spec concat_inline(shell_docs:chunk_elements(), shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
 concat_inline(Buffer, Acc) ->
@@ -471,22 +493,23 @@ concat_binaries(<<Inline/binary>>, [<<H/binary>> | T]) ->
 
 -spec format(Format, Line) -> Result when
       Line :: shell_docs:chunk_elements(),
-      Result :: {chunk_element_type(), chunk_element_attrs(), shell_docs:chunk_elements()},
+      Result :: [{chunk_element_type(), chunk_element_attrs(), shell_docs:chunk_elements()}],
       Format :: [binary()].
 format(Format, Line0) ->
     Line1 = lists:reverse(Line0),
-    case Format of
-        [<<"*">>, <<"*">>] ->
-            em(Line1);
-        [<<"_">>, <<"_">>] ->
-            em(Line1);
-        [<<"_">>] ->
-            i(Line1);
-        [<<"*">>] ->
-            i(Line1);
-        [<<"`">>] ->
-            code_inline(Line1)
-    end.
+    Formatted = case Format of
+                    [<<"*">>, <<"*">>] ->
+                        em(Line1);
+                    [<<"_">>, <<"_">>] ->
+                        em(Line1);
+                    [<<"_">>] ->
+                        i(Line1);
+                    [<<"*">>] ->
+                        i(Line1);
+                    [<<"`">>] ->
+                        code_inline(Line1)
+                end,
+    [Formatted].
 
 -spec process_code(Line, PrevLines) -> HtmlErlang when
       Line       :: [binary()],  %% Represents current parsing line.
@@ -1417,3 +1440,29 @@ is_var_without_underscore(_) ->
 
 extract_slogan_from_args(F, Args) ->
    io_lib:format("~p(~ts)",[F, join(", ",[string:trim(atom_to_list(Arg),leading,"_") || {var, _, Arg} <- Args])]).
+
+
+%% X = "**This** is a test."
+%% handle_inline(<<"*", "*", "This** is a test"::binary>>, options) ->
+%% handle_inline("This** is a test", ["*" | "*"], [<<"*", "*">>], [], options) ->
+%% handle_inline("T" ++ "his** is a test"/binary, ["*" | "*"], [<<"*", "*">>], [], options) ->
+%% handle_inline(<<"his** is a test">>, ["*" | "*"], [<<"T">> | [<<"*", "*">>]], [], options) ->
+%% handle_inline(<<"is** is a test">>, ["*" | "*"], [ <<"h">> | [<<"T">>, <<"*", "*">>]], [], options) ->
+%% handle_inline(<<"s** is a test">>, ["*" | "*"], [ <<"i">> | [<<"h">>, <<"T">>, <<"*", "*">>]], [], options) ->
+%% handle_inline(<<"** is a test">>, ["*" | "*"], [ <<"s">> | [<<"i">>, <<"h">>, <<"T">>, <<"*", "*">>]], [], options) ->
+%% handle_inline(<<"**", " is a test"/binary>>, ["*" | "*"], [ <<"s">>, <<"i">>, <<"h">>, <<"T">>, <<"*", "*">>], [], options) ->
+%% handle_inline(<<" ", "is a test"/binary>>, nil, [], [inline_buffer | acc], options)
+%%   handle_inline(<<" ", "is a test"/binary>>, nil, [], [inline_buffer([ <<"s">>, <<"i">>, <<"h">>, <<"T">>, <<"*", "*">>], options) | []], options) ->
+%%   [<<"*", "*">> | [<<"This">>]] = Enum.reverse([ <<"s">>, <<"i">>, <<"h">>, <<"T">>, <<"*", "*">>])
+%%   inline_text(<<"*", "*">>, [<<"This">>], options) ->
+%%   [[<<"*", "*">>, <<"This">>] | <<"*", "*">>] ->
+%% handle_inline(<<" ", "is a test"/binary>>, nil, [], [[<<"*", "*">>, <<"This">>] | <<"*", "*">>], options) ->
+%% handle_inline(<<"is a test"/binary>>, nil, [<<" ">>], [[<<"*", "*">>, <<"This">>] | <<"*", "*">>], options) ->
+%% handle_inline(<<"s a test"/binary>>, nil, [<<"i", <<" ">>], [[<<"*", "*">>, <<"This">>] | <<"*", "*">>], options) ->
+%% ...
+%% handle_inline(<<""/binary>>, nil, [<<"t">>, <<"s">>, <<"e">>, <<"t">>, <<" ">>, <<"a">>, <<" ">>, <<"s">>, <<"i">>, <<" ">>],
+%%                [[<<"*", "*">>, <<"This">>] | <<"*", "*">>], options) ->
+%% Enum.reverse([Enum.reverse([<<"t">>, <<"s">>, <<"e">>, <<"t">>, <<" ">>, <<"a">>, <<" ">>, <<"s">>, <<"i">>, <<" ">>])
+%%               | [[<<"*", "*">>, <<"This">>] | <<"*", "*">>]]) ->
+%% Enum.reverse([[<<" ">>, <<"i">>, <<"s">>, <<" ">>, <<"a">>, <<" ">>, <<"t">>, <<"e">>, <<"s">>, <<"t">>]
+%%               , [<<"*", "*">>, <<"This">>] | <<"*", "*">>]) ->
