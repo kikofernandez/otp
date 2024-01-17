@@ -411,13 +411,7 @@ process_inline({Tag, [], Ls}) when is_list(Ls) ->
     FormattedLines = lists:foldr(fun (L, Acc) -> process(L) ++ Acc end, [], Ls),
     [{Tag, [], reverse(FormattedLines)}].
 
-
-process(<<Mark, Mark, Rest/binary>>)
-  when Mark =:= $*; Mark =:= $_; Mark =:= $` ->
-    process_inline(Rest, [<<Mark>>, <<Mark>>]);
-process(<<Mark, Rest/binary>>)
-  when Mark =:= $*; Mark =:= $_; Mark =:= $` ->
-    process_inline(Rest, [<<Mark>>]);
+%% TODO: missing case for Bin being tuple.
 process(Bin) when is_binary(Bin)->
     process_inline(Bin, []).
 
@@ -438,57 +432,86 @@ process_inline(Bin, Fs, Buffer) ->
 
 process_format(<<Format, Format, Continuation/binary>>, [<<Format>>, <<Format>>], Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
-    %% close the format
-    InlineFormat = format([<<Format>>, <<Format>>], Buffer),
-    {Continuation, InlineFormat};
+    close_format(Continuation, [<<Format>>, <<Format>>], Buffer);
 process_format(<<Format, Continuation/binary>>, [<<Format>>], Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     %% close the format
-    InlineFormat = format([<<Format>>], Buffer),
-    {Continuation, InlineFormat};
+    close_format(Continuation, [<<Format>>], Buffer);
+process_format(<<Format, Format>>=_Continuation, Fs, Buffer)
+  when Format =:= $*; Format =:= $_; Format =:= $` ->
+    %% open a new format that will never be matched because
+    %% the Continuation has ended <<>>.
+    process_format(<<>>, Fs, merge_buffers([<<Format>>], Buffer));
 process_format(<<Format, Format, Continuation/binary>>, Fs, Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
-    %% open a new format
-    {Continuation1, Buffer1} = process_format(Continuation, [<<Format>>, <<Format>>], []),
-    case {Continuation1, Buffer1} of
-        {{not_closed, UnmatchSymbol}, Buffer1} when is_list(UnmatchSymbol) ->
-            LastSymbol = concat_inline(Buffer1, UnmatchSymbol),
-            Line = concat_inline(LastSymbol, Buffer),
-            CollapseMarkerList = collapse_marker(Fs),
-            process_format(<<>>, [], concat_inline(Line, CollapseMarkerList));
-        {ok, Buffer1} ->
-            {ok, concat_inline(Buffer1, Buffer)};
-        {Continuation1, Buffer1} when is_binary(Continuation1) ->
-            process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer))
-    end;
-    %% process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer));
+    open_format(Continuation, [<<Format>>, <<Format>>], Fs, Buffer);
+process_format(<<Format>>, Fs, Buffer)
+  when Format =:= $*; Format =:= $_; Format =:= $` ->
+    %% open a new format that will never be matched
+    process_format(<<>>, Fs, merge_buffers([<<Format>>], Buffer));
 process_format(<<Format, Continuation/binary>>, Fs, Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
-    %% open a new format
-    {Continuation1, Buffer1} = process_format(Continuation, [<<Format>>], []),
-    case {Continuation1, Buffer1} of
-        {{not_closed, UnmatchSymbol}, Buffer1} when is_list(UnmatchSymbol) ->
-            LastSymbol = concat_inline(Buffer1, UnmatchSymbol),
-            Line = concat_inline(LastSymbol, Buffer),
-            CollapseMarkerList = collapse_marker(Fs),
-            process_format(<<>>, [], concat_inline(Line, CollapseMarkerList));
-        {ok, Buffer1} ->
-            {ok, concat_inline(Buffer1, Buffer)};
-        {Continuation1, Buffer1} when is_binary(Continuation1) ->
-            process_format(Continuation1, Fs, concat_inline(Buffer1, Buffer))
-    end;
+    open_format(Continuation, [<<Format>>], Fs, Buffer);
 process_format(<<Char, Rest/binary>>, Format, Buffer) ->
     process_format(Rest, Format, concat_inline([<<Char>>],  Buffer));
 process_format(<<>>, [], Buffer) ->
     {ok, Buffer};
-process_format(<<>>, Format, Buffer) ->
-    {{not_closed, Format}, Buffer}.
+process_format(<<>>, _Format, Buffer) ->
+    {not_closed, Buffer}.
 
-collapse_marker([<<Marker>>, <<Marker>>]) when Marker =:= $*; Marker =:= $_; Marker =:= $` ->
-    [<<Marker, Marker>>];
-collapse_marker([<<Marker>>]) when Marker =:= $*; Marker =:= $_; Marker =:= $` ->
-    [<<Marker>>].
+-spec open_format(Continuation, NewFormat, PrevFormat, Buffer) -> Result when
+      Continuation :: binary(),
+      NewFormat    :: [binary()], % list of the following binary chars $* | $_ | $`,
+      PrevFormat   :: [binary()], % same as above
+      Buffer       :: shell_docs:chunk_elements(),
+      Result       :: dynamic().
+open_format(Continuation, NewFormat, PrevFormat, Buffer) ->
+    {Continuation1, Buffer1} = process_format(Continuation, NewFormat, []),
+    case {Continuation1, Buffer1} of
+        {not_closed, Buffer1} ->
+            %% place Marker at the beginning of the buffer, because we could not
+            %% find a closing marker.
+            PrependToLine = merge_buffers(Buffer, NewFormat),
 
+            %% Merge result of new buffer and old buffer
+            Line = merge_buffers(Buffer1, PrependToLine),
+
+            process_format(<<>>, [], Line);
+        {ok, Buffer1} ->
+            {ok, concat_inline(Buffer1, Buffer)};
+        {Continuation1, Buffer1} when is_binary(Continuation1) ->
+            process_format(Continuation1, PrevFormat, concat_inline(Buffer1, Buffer))
+    end.
+
+
+close_format(Continuation, ClosingFormat, Buffer) ->
+    {Continuation, format(ClosingFormat, Buffer)}.
+
+
+
+%% assume that buffers have their elements in reverse order
+%% i.e., [{p, [], [<<"Here ">>, {em, [], <<"there">>}]}] will appear here as
+%% [{p, [], [{em, [], <<"there">>}, <<"Here ">>]}]
+merge_buffers(EndBuffer, BeginningBuffer) ->
+    lists:foldr(fun compact_buffers/2, [], EndBuffer ++ BeginningBuffer).
+
+compact_buffers(X, []) when is_binary(X); is_tuple(X) ->
+    [X];
+compact_buffers(X, Acc) when is_tuple(X) ->
+    [X | Acc];
+compact_buffers(X, [LastEntry | Beginning]) when is_tuple(LastEntry) ->
+    [X, LastEntry | Beginning];
+compact_buffers(<<X/binary>>, [<<LastEntry/binary>> | Beginning]) ->
+    [<<LastEntry/binary, X/binary>> | Beginning].
+
+
+
+
+%% [Z, Y, X] [3, 2, 1]
+%% [1]
+%% [2 | [1]]
+
+%% TODO: this function needs to be better understood...
 -spec concat_inline(shell_docs:chunk_elements(), shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
 concat_inline(Buffer, Acc) ->
     concat_binaries(Buffer, Acc).
@@ -499,6 +522,8 @@ concat_binaries(Inline, []) when is_binary(Inline); is_tuple(Inline) ->
     [Inline];
 concat_binaries(Buffer, Acc) when is_list(Buffer) ->
     lists:foldl(fun concat_binaries/2, Acc, Buffer);
+concat_binaries({Tag, [], Ls}, Acc) when is_binary(Acc) ->
+    {Tag, [], concat_binaries(Ls, Acc)};
 concat_binaries(Inline, Acc) when is_tuple(Inline) ->
     [Inline | Acc];
 concat_binaries(Inline, [H | T]) when is_tuple(H) ->

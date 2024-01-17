@@ -5,13 +5,17 @@
 -export([non_existing_moduledoc/1,hidden_moduledoc/1,existing_moduledoc/1]).
 -export([non_existing_doc/1, hidden_doc/1, existing_doc/1]).
 -export([h1_test/1, h2_test/1, h3_test/1, h4_test/1, h5_test/1, h6_test/1]).
--export([single_line_quote_test/1, ignore_three_spaces_before_quote/1,
-         multiple_line_quote_test/1, paragraph_in_between_test/1]).
+-export([single_line_quote_test/1, double_char_for_quote_test/1,
+         ignore_three_spaces_before_quote/1, multiple_line_quote_test/1,
+         paragraph_in_between_test/1]).
 -export([paragraph_after_heading_test/1, quote_before_and_after_paragraph_test/1]).
 -export([single_line_code_test/1, multiple_line_code_test/1, paragraph_between_code_test/1]).
 -export([start_with_br_test/1, multiple_br_followed_by_paragraph_test/1, ending_br_test/1]).
 -export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1 ]).
--export([format_heading_test/1, format_paragraph_test/1, format_multiple_inline/1, unmatched_format/1]).
+-export([format_heading_test/1, format_paragraph_test/1, format_multiple_inline/1,
+         format_multiple_inline_format_short/1, format_multiple_inline_format_long/1,
+         format_multiple_inline_format_mixed/1, unmatched_format_simple/1,
+         unmatched_format_with_inline/1, unmatched_complex_format_with_inline/1]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -83,6 +87,7 @@ header_tests() ->
 
 quote_tests() ->
     [ single_line_quote_test,
+      double_char_for_quote_test,
       ignore_three_spaces_before_quote,
       multiple_line_quote_test,
       paragraph_in_between_test
@@ -115,7 +120,12 @@ format_tests() ->
     [ format_heading_test,
       format_paragraph_test,
       format_multiple_inline,
-      unmatched_format
+      format_multiple_inline_format_long,
+      format_multiple_inline_format_short,
+      format_multiple_inline_format_mixed,
+      unmatched_format_simple,
+      unmatched_format_with_inline,
+      unmatched_complex_format_with_inline
     ].
 
 convert_erlang_html(_Conf) ->
@@ -251,6 +261,18 @@ single_line_quote_test(_Conf) ->
     HtmlDocs = compile(Docs),
 
     Expected = expected([ header(1, <<"Here">>),
+                          quote(<<"This is a quote">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+double_char_for_quote_test(_Conf) ->
+    Docs = create_eep48_doc(<<"# Here\n>> This is a quote">>),
+    HtmlDocs = compile(Docs),
+
+    Expected = expected([ header(1, <<"Here">>),
+                          quote(<<"\n">>),
+                          quote(<<"\n">>),
                           quote(<<"This is a quote">>)]),
     Expected = extract_moduledoc(HtmlDocs),
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
@@ -435,16 +457,59 @@ format_multiple_inline(_Conf) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
+format_multiple_inline_format_long(_Conf) ->
+    Docs = create_eep48_doc(<<"**H1 __HH__**">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p([ em([<<"H1 ">>, em(<<"HH">>)])]) ]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
 
-unmatched_format(_Conf) ->
-    %% Docs = create_eep48_doc(<<"**Bold *Italics***">>),
+format_multiple_inline_format_short(_Conf) ->
+    Docs = create_eep48_doc(<<"_H1 *HH*_">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p([ it([<<"H1 ">>, it(<<"HH">>)])]) ]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+format_multiple_inline_format_mixed(_Conf) ->
+    Docs = create_eep48_doc(<<"__H1 *HH* _test_ **test2**__ _there_">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p([ em([<<"H1 ">>, it(<<"HH">>), <<" ">>, it(<<"test">>), <<" ">>, em(<<"test2">>)]),
+                              <<" ">>,
+                              it(<<"there">>)])
+                        ]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+
+unmatched_format_simple(_Conf) ->
     Docs = create_eep48_doc(<<"**Bold*">>),
     HtmlDocs = compile(Docs),
-    %% Expected = expected([ em([<<"Bold">>, it(<<"Italics">>) ])]),
     Expected = expected([ p([<<"**Bold*">> ])]),
     Expected = extract_moduledoc(HtmlDocs),
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs).
 
+unmatched_format_with_inline(_Conf) ->
+    Docs = create_eep48_doc(<<"**Bold *Italics*">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected(p([<<"**Bold ">>, it(<<"Italics">>) ])),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs).
+
+unmatched_complex_format_with_inline(_Conf) ->
+    Docs = create_eep48_doc(<<"__H1 *HH* _test_ **test2**_ _there_">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ p([ <<"__H1 ">>, it(<<"HH">>), <<" ">>, it(<<"test">>), <<" ">>,
+                              em(<<"test2">>),
+                              it(<<" ">>),
+                              <<"there_">>])
+                        ]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
 
 header(Level, Text) when is_integer(Level) ->
     HeadingLevel = integer_to_list(Level),
