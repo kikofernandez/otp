@@ -484,7 +484,6 @@ format_multiple_inline_format_mixed(_Conf) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
-
 unmatched_format_simple(_Conf) ->
     Docs = create_eep48_doc(<<"**Bold*">>),
     HtmlDocs = compile(Docs),

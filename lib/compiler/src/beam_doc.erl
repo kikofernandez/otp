@@ -394,31 +394,14 @@ process_paragraph(P0) ->
 
 -spec format_inline(Inline) -> shell_docs:chunk_elements() when
       Inline :: {chunk_element_type(), chunk_element_attrs(), shell_docs:chunk_elements()}.
-format_inline(Block) when is_tuple(Block) ->
-    process_inline(Block).
-    %% Inline = process_inline(Block),
-    %% case Inline of
-    %%     T when is_tuple(T) ->
-    %%         [T];
-    %%     L when is_list(L) ->
-    %%         L
-    %% end.
-
--spec process_inline(Inline) -> HtmlBlock when
-      Inline :: {chunk_element_type(), chunk_element_attrs(), HtmlBlock},
-      HtmlBlock :: shell_docs:chunk_elements().
-process_inline({Tag, [], Ls}) when is_list(Ls) ->
+format_inline({Tag, [], Ls}) when is_list(Ls) ->
     FormattedLines = lists:foldr(fun (L, Acc) -> process(L) ++ Acc end, [], Ls),
     [{Tag, [], reverse(FormattedLines)}].
 
-%% TODO: missing case for Bin being tuple.
 process(Bin) when is_binary(Bin)->
-    process_inline(Bin, []).
-
--spec process_inline(Line :: binary(), Format :: [binary()]) -> shell_docs:chunk_elements().
-process_inline(Rest, Format) ->
-    Buffer = [], % tracks the current thing to put within **
-    process_inline(Rest, Format, Buffer).
+    Format = [], % existing format to match on closing
+    Buffer = [], % tracks the current thing to put within a specific format
+    process_inline(Bin, Format, Buffer).
 
 process_inline(Bin, Fs, Buffer) ->
     case process_format(Bin, Fs, Buffer) of
@@ -437,11 +420,11 @@ process_format(<<Format, Continuation/binary>>, [<<Format>>], Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     %% close the format
     close_format(Continuation, [<<Format>>], Buffer);
-process_format(<<Format, Format>>=_Continuation, Fs, Buffer)
+process_format(<<Format, Format>>, Fs, Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     %% open a new format that will never be matched because
     %% the Continuation has ended <<>>.
-    process_format(<<>>, Fs, merge_buffers([<<Format>>], Buffer));
+    process_format(<<>>, Fs, merge_buffers([<<Format>>, <<Format>>], Buffer));
 process_format(<<Format, Format, Continuation/binary>>, Fs, Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     open_format(Continuation, [<<Format>>, <<Format>>], Fs, Buffer);
@@ -453,7 +436,7 @@ process_format(<<Format, Continuation/binary>>, Fs, Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     open_format(Continuation, [<<Format>>], Fs, Buffer);
 process_format(<<Char, Rest/binary>>, Format, Buffer) ->
-    process_format(Rest, Format, concat_inline([<<Char>>],  Buffer));
+    process_format(Rest, Format, merge_buffers([<<Char>>],  Buffer));
 process_format(<<>>, [], Buffer) ->
     {ok, Buffer};
 process_format(<<>>, _Format, Buffer) ->
@@ -466,32 +449,50 @@ process_format(<<>>, _Format, Buffer) ->
       Buffer       :: shell_docs:chunk_elements(),
       Result       :: dynamic().
 open_format(Continuation, NewFormat, PrevFormat, Buffer) ->
-    {Continuation1, Buffer1} = process_format(Continuation, NewFormat, []),
-    case {Continuation1, Buffer1} of
-        {not_closed, Buffer1} ->
-            %% place Marker at the beginning of the buffer, because we could not
-            %% find a closing marker.
-            PrependToLine = merge_buffers(Buffer, NewFormat),
+    case process_format(Continuation, NewFormat, []) of
+        {not_closed, LastBufferedResult} ->
+            %% the 'NewFormat' could not find a closing match when
+            %% processing, thus one must prepend 'NewFormat'
+            %% to whatever the buffer at that time had, so that
+            %% we add the symbols in 'NewFormat' at their opening place
+            %% if they are a binary:
+            %%
+            %% Example:
+            %%
+            %% Buffer = [<<"Here">>] and NewFormat = [<<"*">>]
+            %% merge_buffers(Buffer, NewFormat) = [<<"*Here">>].
+            %%
+            %% Buffer = [{em, [], X}] and Buffer2 = [<<"Zzz">>]
+            %% merge_buffers(Buffer, Buffer2) = [{em, [], X}, <<"Zzz">>].
+            %%
+            PrependToBuffer = merge_buffers(Buffer, NewFormat),
 
             %% Merge result of new buffer and old buffer
-            Line = merge_buffers(Buffer1, PrependToLine),
+            Line = merge_buffers(LastBufferedResult, PrependToBuffer),
 
-            process_format(<<>>, [], Line);
+            process_format(<<>>, PrevFormat, Line);
         {ok, Buffer1} ->
-            {ok, concat_inline(Buffer1, Buffer)};
-        {Continuation1, Buffer1} when is_binary(Continuation1) ->
-            process_format(Continuation1, PrevFormat, concat_inline(Buffer1, Buffer))
+            %% There is no more continuation, i.e., nothing to process,
+            %% so we are finished.
+            {ok, merge_buffers(Buffer1, Buffer)};
+        {Continuation1, LastBufferedResult} when is_binary(Continuation1) ->
+            %% The NewFormat was closed, so we continue processing
+            %% the resulting continuation
+            process_format(Continuation1, PrevFormat, merge_buffers(LastBufferedResult, Buffer))
     end.
 
-
+-spec close_format(Continuation, ClosingFormat, Buffer) -> Result when
+      Continuation  :: binary(),
+      ClosingFormat :: [binary()], % list of the following binary chars $* | $_ | $`,
+      Buffer        :: shell_docs:chunk_elements(),
+      Result        :: dynamic().
 close_format(Continuation, ClosingFormat, Buffer) ->
     {Continuation, format(ClosingFormat, Buffer)}.
 
-
-
-%% assume that buffers have their elements in reverse order
+%% assume that buffers have their elements in reverse order.
 %% i.e., [{p, [], [<<"Here ">>, {em, [], <<"there">>}]}] will appear here as
 %% [{p, [], [{em, [], <<"there">>}, <<"Here ">>]}]
+%% the reversal operation is taking care of once, in another place.
 merge_buffers(EndBuffer, BeginningBuffer) ->
     lists:foldr(fun compact_buffers/2, [], EndBuffer ++ BeginningBuffer).
 
@@ -503,34 +504,6 @@ compact_buffers(X, [LastEntry | Beginning]) when is_tuple(LastEntry) ->
     [X, LastEntry | Beginning];
 compact_buffers(<<X/binary>>, [<<LastEntry/binary>> | Beginning]) ->
     [<<LastEntry/binary, X/binary>> | Beginning].
-
-
-
-
-%% [Z, Y, X] [3, 2, 1]
-%% [1]
-%% [2 | [1]]
-
-%% TODO: this function needs to be better understood...
--spec concat_inline(shell_docs:chunk_elements(), shell_docs:chunk_elements()) -> shell_docs:chunk_elements().
-concat_inline(Buffer, Acc) ->
-    concat_binaries(Buffer, Acc).
-
-concat_binaries(Inline, []) when is_list(Inline) ->
-    Inline;
-concat_binaries(Inline, []) when is_binary(Inline); is_tuple(Inline) ->
-    [Inline];
-concat_binaries(Buffer, Acc) when is_list(Buffer) ->
-    lists:foldl(fun concat_binaries/2, Acc, Buffer);
-concat_binaries({Tag, [], Ls}, Acc) when is_binary(Acc) ->
-    {Tag, [], concat_binaries(Ls, Acc)};
-concat_binaries(Inline, Acc) when is_tuple(Inline) ->
-    [Inline | Acc];
-concat_binaries(Inline, [H | T]) when is_tuple(H) ->
-    [Inline, H | T];
-concat_binaries(<<Inline/binary>>, [<<H/binary>> | T]) ->
-    [<<H/binary, Inline/binary>> | T].
-
 
 -spec format(Format, Line) -> Result when
       Line :: shell_docs:chunk_elements(),
