@@ -401,7 +401,19 @@ format_inline({Tag, [], Ls}) when is_list(Ls) ->
 process(Bin) when is_binary(Bin)->
     Format = [], % existing format to match on closing
     Buffer = [], % tracks the current thing to put within a specific format
-    process_inline(Bin, Format, Buffer).
+    Text = format_link(Bin),
+    process_inline(Text, Format, Buffer).
+
+format_link(Bin) when is_binary(Bin) ->
+    escape_underscore_in_link(remove_square_brackets(Bin)).
+
+remove_square_brackets(Bin) ->
+    %% thanks to Elixir folks:
+    %% https://github.com/elixir-lang/elixir/blob/main/lib/elixir/lib/io/ansi/docs.ex#L626C22-L626C44
+    list_to_binary(re:replace(Bin, "\\\[([^\\\]]*?)\\\]\\\((.*?)\\\)", "\\1 (\\2)")).
+
+escape_underscore_in_link(Bin) ->
+    Bin.
 
 process_inline(Bin, Fs, Buffer) ->
     case process_format(Bin, Fs, Buffer) of
