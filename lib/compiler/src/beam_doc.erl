@@ -362,20 +362,8 @@ process_list(Format, LineContent, Rest, SpaceCount) ->
                     false ->
                         []
                 end,
-    List = create_item_list(Format, process_context_list([LineContent | Content])),
+    List = create_item_list(Format, process_md([LineContent | Content], [])),
     [List | process_md(Rest1, Paragraph)].
-
-process_context_list(Lines) when is_list(Lines) ->
-    strip_p(process_md(Lines, [])).
-
-strip_p([]) ->
-    [];
-strip_p([Line | Rest]) ->
-    strip_p(Line) ++ strip_p(Rest);
-strip_p({p, [], Item}) when is_list(Item)->
-    Item;
-strip_p(Item) when is_tuple(Item) ->
-    [Item].
 
 create_item_list(ul, Items) when is_list(Items) ->
     ul([li(Items)]);
