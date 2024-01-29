@@ -328,8 +328,123 @@ process_md([<<"">> | Rest], Block) ->
     Block ++ process_br(Rest);
 process_md([<<"<!--", Line/binary>> | Rest], Block) ->
     Block ++ process_md(process_comment([Line | Rest]), []);
-process_md([P | Rest], Block) when is_binary(P) ->
+process_md(Rest, Block) when is_list(Rest) ->
+%% process_md([P | Rest], Block) when is_binary(P) ->
+    %% Block ++ process_paragraph(P) ++ process_md(Rest, []).
+    Block ++ process_rest(Rest).
+
+-define(IS_BULLET(X), X =:= $*; X =:= $-; X =:= $+).
+-define(IS_NUMBERED(X), is_integer(X), min(0, X) =:= 0).
+
+process_rest([P | Rest]=Doc) ->
+    {StrippedP, SpaceCount} = strip_spaces(P, 0, infinity),
+    case StrippedP of
+        <<BulletList, $\s, Line/binary>> when ?IS_BULLET(BulletList) ->
+            process_list(ul, Line, Rest, SpaceCount);
+        <<NumberedList, $., $\s, Line/binary>> when ?IS_NUMBERED(NumberedList) ->
+            process_list(ol, Line, Rest, SpaceCount);
+        %% We do not support OTP writing nested lists.
+        %% <<NumberedList, $., NumberedList, $\s, Line/binary>> when ?IS_NUMBERED(NumberedList) ->
+        %%     process_list(<<NumberedList, $., NumberedList, $\s>>, Line, Rest, SpaceCount);
+        _ ->
+            process_p(Doc, [])
+    end.
+
+-spec process_list(ul | ol , LineContent, Rest, SpaceCount) -> shell_docs:chunk_elements() when
+      LineContent :: binary(),
+      Rest        :: [binary()],
+      SpaceCount  :: non_neg_integer().
+process_list(Format, LineContent, Rest, SpaceCount) ->
+    {Content, Rest1, Done} = process_list_next(Rest, SpaceCount, []),
+    Paragraph = case Done of
+                    true ->
+                        process_br([]);
+                    false ->
+                        []
+                end,
+    List = create_item_list(Format, process_context_list([LineContent | Content])),
+    [List | process_md(Rest1, Paragraph)].
+
+process_context_list(Lines) when is_list(Lines) ->
+    strip_p(process_md(Lines, [])).
+
+strip_p([]) ->
+    [];
+strip_p([Line | Rest]) ->
+    strip_p(Line) ++ strip_p(Rest);
+strip_p({p, [], Item}) when is_list(Item)->
+    Item;
+strip_p(Item) when is_tuple(Item) ->
+    [Item].
+
+create_item_list(ul, Items) when is_list(Items) ->
+    ul([li(Items)]);
+create_item_list(ol, Items) when is_list(Items) ->
+    ol([li(Items)]).
+
+ul(Items) when is_list(Items) ->
+    {ul, [], Items}.
+
+ol(Items) when is_list(Items) ->
+    {ol, [], Items}.
+
+li(Items) when is_list(Items)->
+    {li, [], Items};
+li(Item) ->
+    {li, [], [Item]}.
+
+
+process_list_next([], _SpaceCount, Acc) ->
+    {Acc, [], true};
+process_list_next([Line | Rest], SpaceCount, Acc) ->
+    {Stripped, NextSpaceCount} = strip_spaces(Line, 0, infinity),
+    case process_list_next_kind(Stripped, Rest, NextSpaceCount, SpaceCount) of
+        next ->
+            process_list_next(Rest, SpaceCount, [Stripped | Acc]);
+        done ->
+            {Acc, [Line | Rest], true};
+        list ->
+            {Acc, [Line | Rest], false}
+    end.
+
+process_list_next_kind(<<BulletList, $\s, _Line/binary>>, _Rest, NextCount, Count)
+  when ?IS_BULLET(BulletList), NextCount =< Count ->
+    %% nested list
+    io:format("(~p:~p) list ~p", [?MODULE, ?LINE, {NextCount, Count}]),
+    list;
+process_list_next_kind(<<NumberedList, $., $\s, _Line/binary>>, _Rest, NextCount, Count)
+  when ?IS_NUMBERED(NumberedList), NextCount =< Count ->
+    %% nested list
+    io:format("(~p:~p) list", [?MODULE, ?LINE]),
+    list;
+process_list_next_kind(<<NumberedList1, $., NumberedList2, $., $\s, _Line/binary>>, _Rest, NextCount, Count)
+  when ?IS_NUMBERED(NumberedList1), ?IS_NUMBERED(NumberedList2), NextCount =< Count ->
+    %% nested list
+    io:format("(~p:~p) list", [?MODULE, ?LINE]),
+    list;
+process_list_next_kind(<<>>, [<<" ">> | [_|_]], _NextCount, _Count) ->
+    %% paragraph within the list
+    io:format("(~p:~p) next", [?MODULE, ?LINE]),
+    next;
+process_list_next_kind(<<>>, _, _, _) ->
+    %% this list is done
+    io:format("(~p:~p) done", [?MODULE, ?LINE]),
+    done;
+process_list_next_kind(_, _, _, _) ->
+    io:format("(~p:~p) next", [?MODULE, ?LINE]),
+    next.
+
+
+process_p([], Block) ->
+    Block;
+process_p([P | Rest], Block) when is_binary(P) ->
     Block ++ process_paragraph(P) ++ process_md(Rest, []).
+
+strip_spaces(<<" ", Rest/binary>>, Acc, Max) when Max =:= infinity; Acc =< Max ->
+    strip_spaces(Rest, Acc + 1, Max);
+strip_spaces(Rest, Acc, _) ->
+    {Rest, Acc}.
+
 
 -type chunk_element_type() :: a | code | em | strong | i | b|
                               p | 'div' | br | pre | ul |
@@ -405,15 +520,12 @@ process(Bin) when is_binary(Bin)->
     process_inline(Text, Format, Buffer).
 
 format_link(Bin) when is_binary(Bin) ->
-    escape_underscore_in_link(remove_square_brackets(Bin)).
+    remove_square_brackets(Bin).
 
-remove_square_brackets(Bin) ->
+remove_square_brackets(Bin) when is_binary(Bin) ->
     %% thanks to Elixir folks:
     %% https://github.com/elixir-lang/elixir/blob/main/lib/elixir/lib/io/ansi/docs.ex#L626C22-L626C44
-    list_to_binary(re:replace(Bin, "\\\[([^\\\]]*?)\\\]\\\((.*?)\\\)", "\\1 (\\2)")).
-
-escape_underscore_in_link(Bin) ->
-    Bin.
+    re:replace(Bin, "\\\[([^\\\]]*?)\\\]\\\((.*?)\\\)", "\\1 (\\2)").
 
 process_inline(Bin, Fs, Buffer) ->
     case process_format(Bin, Fs, Buffer) of
@@ -581,7 +693,7 @@ create_quote([]) ->
     quote(<<"\n">>);
 create_quote([Last | _]=Lines) ->
     ProcessedLines =
-        lists:foldl(fun (Line, Acc) ->
+        lists:foldl(fun (Line, Acc) when is_binary(Line), is_binary(Acc) ->
                             Line1 = trim_and_add_new_line(Last, Line),
                             <<Line1/binary, Acc/binary>>
                     end, <<>>, Lines),
@@ -621,8 +733,7 @@ em(X) when is_list(X) ->
 br() ->
     {br, [], []}.
 
-
-
+-spec trim_and_add_new_line(binary(), binary()) -> binary().
 trim_and_add_new_line(Last, Line) ->
     Line1 = trim(Line),
     case Last =:= Line of
@@ -630,11 +741,11 @@ trim_and_add_new_line(Last, Line) ->
         false -> <<Line1/binary, "\n">>
     end.
 
+-spec trim_leading_space(binary()) -> binary().
 trim_leading_space(<<" ", Rest/binary>>) ->
     trim_leading_space(Rest);
 trim_leading_space(Rest) when is_binary(Rest) ->
     Rest.
-
 
 -spec trim(binary()) -> binary().
 trim(Line) ->
@@ -1492,3 +1603,4 @@ extract_slogan_from_args(F, Args) ->
 %%               | [[<<"*", "*">>, <<"This">>] | <<"*", "*">>]]) ->
 %% Enum.reverse([[<<" ">>, <<"i">>, <<"s">>, <<" ">>, <<"a">>, <<" ">>, <<"t">>, <<"e">>, <<"s">>, <<"t">>]
 %%               , [<<"*", "*">>, <<"This">>] | <<"*", "*">>]) ->
+

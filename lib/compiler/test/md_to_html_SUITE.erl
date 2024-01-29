@@ -16,6 +16,9 @@
          format_multiple_inline_format_short/1, format_multiple_inline_format_long/1,
          format_multiple_inline_format_mixed/1, unmatched_format_simple/1,
          unmatched_format_with_inline/1, unmatched_complex_format_with_inline/1]).
+-export([singleton_list/1, singleton_list_followed_new_paragraph/1, singleton_list_with_format/1,
+        multiline_bullet_list/1]).
+
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -36,7 +39,8 @@ all() ->
      {group, code_generator},
      {group, br_generator},
      {group, comment_generator},
-     {group, format_generator}
+     {group, format_generator},
+     {group, bullet_list_generator}
     ].
 
 groups() ->
@@ -49,7 +53,8 @@ groups() ->
      {code_generator, [parallel], code_tests()},
      {br_generator, [parallel], br_tests()},
      {comment_generator, [parallel], comment_tests()},
-     {format_generator, [parallel], format_tests()}
+     {format_generator, [parallel], format_tests()},
+     {bullet_list_generator, [parallel], bullet_list_tests()}
     ].
 
 init_per_group(_, Config) ->
@@ -57,7 +62,6 @@ init_per_group(_, Config) ->
 
 end_per_group(_, _Config) ->
     ok.
-
 
 different_format_conversion_tests() ->
     [ convert_erlang_html,
@@ -126,6 +130,13 @@ format_tests() ->
       unmatched_format_simple,
       unmatched_format_with_inline,
       unmatched_complex_format_with_inline
+    ].
+
+bullet_list_tests() ->
+    [ singleton_list,
+      singleton_list_followed_new_paragraph,
+      singleton_list_with_format,
+      multiline_bullet_list
     ].
 
 convert_erlang_html(_Conf) ->
@@ -510,6 +521,45 @@ unmatched_complex_format_with_inline(_Conf) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
+singleton_list(_Config) ->
+    Docs = create_eep48_doc(<<"* One liner">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([li(<<"One liner">>)]), br()]),
+    io:format("Expected: ~p~nHtmlDocs: ~p~n~n", [Expected, extract_moduledoc(HtmlDocs)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+singleton_list_followed_new_paragraph(_Config) ->
+    Docs = create_eep48_doc(<<"* One liner\n\nThis is a new paragraph">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([li(<<"One liner">>)]), br(), br(), p(<<"This is a new paragraph">>)]),
+    io:format("Expected: ~p~nHtmlDocs: ~p~n~n", [Expected, extract_moduledoc(HtmlDocs)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+singleton_list_with_format(_Config) ->
+    Docs = create_eep48_doc(<<"* *One* __liner__">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([li([it(<<"One">>), <<" ">>,  em(<<"liner">>)])]), br()]),
+    io:format("Expected: ~p~nHtmlDocs: ~p~n~n", [Expected, extract_moduledoc(HtmlDocs)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+multiline_bullet_list(_Config) ->
+    Docs = create_eep48_doc(
+             <<"* One liner\n* Second line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([li(<<"One liner">>), li(<<"Second line">>)]), br()]),
+    io:format("Expected: ~p~nHtmlDocs: ~p~n~n", [Expected, extract_moduledoc(HtmlDocs)]),
+    %% Expected = extract_moduledoc(HtmlDocs),
+    %% [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    %% ok.
+    {failed, not_implemented}.
+
+
 header(Level, Text) when is_integer(Level) ->
     HeadingLevel = integer_to_list(Level),
     HeadingLevelAtom = list_to_existing_atom("h" ++ HeadingLevel),
@@ -542,7 +592,16 @@ it(X) when is_binary(X); is_tuple(X) ->
 br() ->
     {br, [], []}.
 
+ul(Items) when is_list(Items) ->
+    {ul, [], Items}.
 
+%% ol(Items) when is_list(Items) ->
+%%     {ol, [], Items}.
+
+li(Item) when is_binary(Item)->
+    li([Item]);
+li(Items) when is_list(Items) ->
+    {li, [], Items}.
 
 -spec create_eep48(Language, Mime, ModuleDoc, Metadata, Docs) -> #docs_v1{} when
       Language  :: atom(),
