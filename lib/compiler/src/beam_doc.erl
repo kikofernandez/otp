@@ -338,43 +338,56 @@ process_md(Rest, Block) when is_list(Rest) ->
 
 process_rest([P | Rest]=Doc) ->
     {StrippedP, SpaceCount} = strip_spaces(P, 0, infinity),
-    case StrippedP of
-        <<BulletList, $\s, Line/binary>> when ?IS_BULLET(BulletList) ->
-            process_list(ul, Line, Rest, SpaceCount);
-        <<NumberedList, $., $\s, Line/binary>> when ?IS_NUMBERED(NumberedList) ->
-            process_list(ol, Line, Rest, SpaceCount);
-        %% We do not support OTP writing nested lists.
-        %% <<NumberedList, $., NumberedList, $\s, Line/binary>> when ?IS_NUMBERED(NumberedList) ->
-        %%     process_list(<<NumberedList, $., NumberedList, $\s>>, Line, Rest, SpaceCount);
-        _ ->
-            process_p(Doc, [])
-    end.
+    {Content, Rest1, Block} = case StrippedP of
+                                  <<BulletList, $\s, Line/binary>> when ?IS_BULLET(BulletList) ->
+                                      process_list(ul, Line, Rest, SpaceCount);
+                                  <<NumberedList, $., $\s, Line/binary>> when ?IS_NUMBERED(NumberedList) ->
+                                      process_list(ol, Line, Rest, SpaceCount);
+                                  %% We do not support OTP writing nested lists.
+                                  %% <<NumberedList, $., NumberedList, $\s, Line/binary>> when ?IS_NUMBERED(NumberedList) ->
+                                  %%     process_list(<<NumberedList, $., NumberedList, $\s>>, Line, Rest, SpaceCount);
+                                  _ ->
+                                      process_p(Doc, [])
+                     end,
+    Content ++ process_md(Rest1, Block).
 
--spec process_list(ul | ol , LineContent, Rest, SpaceCount) -> shell_docs:chunk_elements() when
+-spec process_list(ul | ol , LineContent, Rest, SpaceCount) -> Result when
       LineContent :: binary(),
       Rest        :: [binary()],
-      SpaceCount  :: non_neg_integer().
+      SpaceCount  :: non_neg_integer(),
+      Result      :: {shell_docs:chunk_elements(), [binary()], shell_docs:chunk_elements()}.
 process_list(Format, LineContent, Rest, SpaceCount) ->
-    {Content, Rest1, Done} = process_list_next(Rest, SpaceCount, []),
+    LineFormatted = li(process_md(LineContent)),
+    io:format("(~p:~p) ~p", [?MODULE, ?LINE, {LineContent, Rest}]),
+    {Content, Rest1, Done} = process_list_next(Rest, SpaceCount, [LineFormatted]),
     Paragraph = case Done of
                     true ->
                         process_br([]);
                     false ->
                         []
                 end,
-    Content1 = compact_content(Content, li(process_md(LineContent))),
-    List = create_item_list(Format, Content1),
-    [List | process_md(Rest1, Paragraph)].
+    io:format("(~p:~p) ~p", [?MODULE, ?LINE, {LineContent, Content, LineFormatted}]),
+    Content1 = compact_content(Content),
+    io:format("(~p:~p) ~p", [?MODULE, ?LINE, {LineContent, Content, Content1}]),
+    {[create_item_list(Format, Content1)], Rest1, Paragraph}.
 
-compact_content(Content, FirstItem) ->
-    Result = lists:foldr(fun ({li, [], _}=Li2, [{li, [], _}=Li1 | Acc]) ->
+compact_content(Content) ->
+    Result = lists:foldr(fun (X, []) ->
+                                 [X];
+                             ({li, [], _}=Li2, [{li, [], _}=Li1 | Acc]) ->
                                  [Li2, Li1 | Acc];
-                             ({p, [], _}=P, [{li, [], Items} | Acc]) when is_list(Items) ->
+                             ({_, [], _}=P, [{li, [], Items} | Acc]) when is_list(Items) ->
                                  [{li, [], [P | Items]} | Acc];
                              (X, Acc) when is_list(Acc), is_tuple(X) ->
                                  [X | Acc]
-                         end, [FirstItem], Content),
-    lists:map(fun ({Tag, [], Items}) -> {Tag, [], reverse(Items)} end, reverse(Result)).
+                         end, [], Content),
+    io:format("(~p:~p) ~p", [?MODULE, ?LINE, Result]),
+    reversal_html(Result).
+
+reversal_html(Items) ->
+    lists:map(fun ({Tag, [], Ls}) when Tag =/= p -> {Tag, [], reversal_html(Ls)};
+                  (X) -> X
+              end, reverse(Items)).
 
 create_item_list(ul, Items) when is_list(Items) ->
     ul(Items);
@@ -392,7 +405,6 @@ li(Items) when is_list(Items)->
 li(Item) ->
     {li, [], [Item]}.
 
-
 process_list_next([], _SpaceCount, Acc) ->
     {Acc, [], true};
 process_list_next([Line | Rest], SpaceCount, Acc) ->
@@ -409,7 +421,14 @@ process_list_next([Line | Rest], SpaceCount, Acc) ->
         list ->
             {Acc, [Line | Rest], false};
         nested_list ->
-            error(not_implemented)
+            {NestedAcc, Remaining, _Done1} = process_list_next([Line | Rest], NextSpaceCount, []),
+            io:format("(~p:~p) nested_list ~p", [?MODULE, ?LINE, {NestedAcc, Remaining, Acc}]),
+            case Acc of
+                [{Tag, [], Items} | Acc1]  ->
+                    process_list_next(Remaining, SpaceCount, [{Tag, [], [ul(NestedAcc)] ++ Items} | Acc1]);
+                [] ->
+                    process_list_next(Remaining, SpaceCount, NestedAcc)
+            end
     end.
 
 process_list_next_kind(<<BulletList, $\s, Line/binary>>, _Rest, NextCount, Count)
@@ -449,9 +468,9 @@ process_list_next_kind(Item, _, _, _) ->
 
 
 process_p([], Block) ->
-    Block;
+    {Block, [], []};
 process_p([P | Rest], Block) when is_binary(P) ->
-    Block ++ process_paragraph(P) ++ process_md(Rest, []).
+    {Block ++ process_paragraph(P), Rest, []}.
 
 strip_spaces(<<" ", Rest/binary>>, Acc, Max) when Max =:= infinity; Acc =< Max ->
     strip_spaces(Rest, Acc + 1, Max);

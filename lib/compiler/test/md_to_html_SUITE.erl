@@ -19,7 +19,8 @@
 -export([singleton_list/1, singleton_list_followed_new_paragraph/1, singleton_list_with_format/1,
          singleton_list_followed_inner_paragraph/1, singleton_list_followed_inner_paragraph2/1,
          multiline_bullet_indented_list/1, multiline_bullet_indented_list2/1,
-         multiline_bullet_list/1]).
+         multiline_bullet_list/1, even_nested_bullet_list/1, odd_nested_bullet_list/1,
+         complex_nested_bullet_list/1, complex_nested_bullet_list2/1]).
 
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
@@ -142,7 +143,11 @@ bullet_list_tests() ->
       singleton_list_followed_inner_paragraph2,
       multiline_bullet_indented_list,
       multiline_bullet_indented_list2,
-      multiline_bullet_list
+      multiline_bullet_list,
+      even_nested_bullet_list,
+      odd_nested_bullet_list,
+      complex_nested_bullet_list,
+      complex_nested_bullet_list2
     ].
 
 convert_erlang_html(_Conf) ->
@@ -595,6 +600,79 @@ multiline_bullet_indented_list2(_Config) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
+even_nested_bullet_list(_Config) ->
+    Docs = create_eep48_doc(<<"* One liner\n  * First nested line\n  * Second nested line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([
+                             li([ p(<<"One liner">>),
+                                  ul([ li(p(<<"First nested line">>)),
+                                       li(p(<<"Second nested line">>))
+                                     ])
+                                ])
+                            ]),
+                         br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+odd_nested_bullet_list(_Config) ->
+    Docs = create_eep48_doc(<<"* One liner\n  * First nested line\n  * Second nested line\n  * Third nested line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([
+                             li([ p(<<"One liner">>),
+                                  ul([ li(p(<<"First nested line">>)),
+                                       li(p(<<"Second nested line">>)),
+                                       li(p(<<"Third nested line">>))
+                                     ])
+                                ])
+                            ]),
+                         br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+complex_nested_bullet_list(_Config) ->
+    Docs = create_eep48_doc(<<"* One liner\n  * First nested line\n* Second line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([
+                             li([ p(<<"One liner">>),
+                                  ul([ li(p(<<"First nested line">>)) ])
+                                ]),
+                             li([p(<<"Second line">>)])
+                            ]),
+                         br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+complex_nested_bullet_list2(_Config) ->
+    Docs = create_eep48_doc(<<"
+* One liner
+  * First nested line
+    * Second level nested line
+  * Second nested line
+    * Another nested line
+* Second one liner">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([br(),
+                         ul([
+                             li([ p(<<"One liner">>),
+                                  ul([ li([
+                                           p(<<"First nested line">>),
+                                           ul([ li([p(<<"Second level nested line">>)])])
+                                          ]),
+                                       li([
+                                           p(<<"Second nested line">>),
+                                           ul([ li([p(<<"Another nested line">>)])])
+                                          ])
+                                     ])
+                                ]),
+                             li([ p(<<"Second one liner">>)])
+                            ]),
+                         br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
 
 header(Level, Text) when is_integer(Level) ->
     HeadingLevel = integer_to_list(Level),
