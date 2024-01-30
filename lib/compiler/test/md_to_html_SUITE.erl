@@ -17,8 +17,9 @@
          format_multiple_inline_format_mixed/1, unmatched_format_simple/1,
          unmatched_format_with_inline/1, unmatched_complex_format_with_inline/1]).
 -export([singleton_list/1, singleton_list_followed_new_paragraph/1, singleton_list_with_format/1,
-        singleton_list_followed_inner_paragraph/1,
-         singleton_list_followed_inner_paragraph2/1,multiline_bullet_list/1]).
+         singleton_list_followed_inner_paragraph/1, singleton_list_followed_inner_paragraph2/1,
+         multiline_bullet_indented_list/1, multiline_bullet_indented_list2/1,
+         multiline_bullet_list/1]).
 
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
@@ -139,6 +140,8 @@ bullet_list_tests() ->
       singleton_list_with_format,
       singleton_list_followed_inner_paragraph,
       singleton_list_followed_inner_paragraph2,
+      multiline_bullet_indented_list,
+      multiline_bullet_indented_list2,
       multiline_bullet_list
     ].
 
@@ -565,15 +568,32 @@ singleton_list_with_format(_Config) ->
     ok.
 
 multiline_bullet_list(_Config) ->
-    Docs = create_eep48_doc(
-             <<"* One liner\n* Second line">>),
+    Docs = create_eep48_doc(<<"* One liner\n* Second line">>),
     HtmlDocs = compile(Docs),
     Expected = expected([ul([li(p(<<"One liner">>)), li(p(<<"Second line">>))]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+multiline_bullet_indented_list(_Config) ->
+    Docs = create_eep48_doc(
+             <<"  * One liner\n  * Second line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([li(p(<<"One liner">>)), li(p(<<"Second line">>))]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+multiline_bullet_indented_list2(_Config) ->
+    Docs = create_eep48_doc(
+             <<"  * _One liner_\n  * _Second_ `line`">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ul([li(p(it(<<"One liner">>))),
+                             li(p([it(<<"Second">>), <<" ">>,  inline_code(<<"line">>)]))]), br()]),
     io:format("Expected: ~p~nHtmlDocs: ~p~n~n", [Expected, extract_moduledoc(HtmlDocs)]),
-    %% Expected = extract_moduledoc(HtmlDocs),
-    %% [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
-    %% ok.
-    {failed, not_implemented}.
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
 
 
 header(Level, Text) when is_integer(Level) ->

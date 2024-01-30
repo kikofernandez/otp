@@ -362,13 +362,24 @@ process_list(Format, LineContent, Rest, SpaceCount) ->
                     false ->
                         []
                 end,
-    List = create_item_list(Format, process_md([LineContent | Content], [])),
+    Content1 = compact_content(Content, li(process_md(LineContent))),
+    List = create_item_list(Format, Content1),
     [List | process_md(Rest1, Paragraph)].
 
+compact_content(Content, FirstItem) ->
+    Result = lists:foldr(fun ({li, [], _}=Li2, [{li, [], _}=Li1 | Acc]) ->
+                                 [Li2, Li1 | Acc];
+                             ({p, [], _}=P, [{li, [], Items} | Acc]) when is_list(Items) ->
+                                 [{li, [], [P | Items]} | Acc];
+                             (X, Acc) when is_list(Acc), is_tuple(X) ->
+                                 [X | Acc]
+                         end, [FirstItem], Content),
+    lists:map(fun ({Tag, [], Items}) -> {Tag, [], reverse(Items)} end, reverse(Result)).
+
 create_item_list(ul, Items) when is_list(Items) ->
-    ul([li(Items)]);
+    ul(Items);
 create_item_list(ol, Items) when is_list(Items) ->
-    ol([li(Items)]).
+    ol(Items).
 
 ul(Items) when is_list(Items) ->
     {ul, [], Items}.
@@ -387,19 +398,33 @@ process_list_next([], _SpaceCount, Acc) ->
 process_list_next([Line | Rest], SpaceCount, Acc) ->
     {Stripped, NextSpaceCount} = strip_spaces(Line, 0, infinity),
     case process_list_next_kind(Stripped, Rest, NextSpaceCount, SpaceCount) of
-        next ->
-            process_list_next(Rest, SpaceCount, [Stripped | Acc]);
+        {new_list_item, StrippedFormattedItem} ->
+            %% next item on the list
+            process_list_next(Rest, SpaceCount, [li(StrippedFormattedItem) | Acc]);
+        {next, StrippedFormattedItem} ->
+            %% paragraph within the list
+            process_list_next(Rest, SpaceCount, StrippedFormattedItem ++ Acc);
         done ->
             {Acc, [Line | Rest], true};
         list ->
-            {Acc, [Line | Rest], false}
+            {Acc, [Line | Rest], false};
+        nested_list ->
+            error(not_implemented)
     end.
 
-process_list_next_kind(<<BulletList, $\s, _Line/binary>>, _Rest, NextCount, Count)
-  when ?IS_BULLET(BulletList), NextCount =< Count ->
+process_list_next_kind(<<BulletList, $\s, Line/binary>>, _Rest, NextCount, Count)
+  when ?IS_BULLET(BulletList) ->
     %% nested list
-    io:format("(~p:~p) list ~p", [?MODULE, ?LINE, {NextCount, Count}]),
-    list;
+    case NextCount - Count of
+        0 ->
+            {new_list_item, process_md(Line)};
+        X when X < 0 ->
+            %% closing list
+            list;
+        X when X > 0 ->
+            %% nested new list
+            nested_list
+    end;
 process_list_next_kind(<<NumberedList, $., $\s, _Line/binary>>, _Rest, NextCount, Count)
   when ?IS_NUMBERED(NumberedList), NextCount =< Count ->
     %% nested list
@@ -413,14 +438,14 @@ process_list_next_kind(<<NumberedList1, $., NumberedList2, $., $\s, _Line/binary
 process_list_next_kind(<<>>, [<<" ">> | [_|_]], _NextCount, _Count) ->
     %% paragraph within the list
     io:format("(~p:~p) next", [?MODULE, ?LINE]),
-    next;
+    {next, process_md(<<>>)};
 process_list_next_kind(<<>>, _, _, _) ->
     %% this list is done
     io:format("(~p:~p) done", [?MODULE, ?LINE]),
     done;
-process_list_next_kind(_, _, _, _) ->
-    io:format("(~p:~p) next", [?MODULE, ?LINE]),
-    next.
+process_list_next_kind(Item, _, _, _) ->
+    %% paragraph within the list
+    {next, process_md(Item)}.
 
 
 process_p([], Block) ->
@@ -515,6 +540,11 @@ remove_square_brackets(Bin) when is_binary(Bin) ->
     %% https://github.com/elixir-lang/elixir/blob/main/lib/elixir/lib/io/ansi/docs.ex#L626C22-L626C44
     re:replace(Bin, "\\\[([^\\\]]*?)\\\]\\\((.*?)\\\)", "\\1 (\\2)").
 
+-spec process_inline(Line, Format, Buffer) -> Result when
+      Line :: binary(),
+      Format :: [binary()],
+      Buffer :: shell_docs:chunk_elements(),
+      Result :: shell_docs:chunk_elements().
 process_inline(Bin, Fs, Buffer) ->
     case process_format(Bin, Fs, Buffer) of
         {{not_closed, _Format}, Buffer1} ->
