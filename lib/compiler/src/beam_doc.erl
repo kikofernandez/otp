@@ -254,7 +254,6 @@ markdown_to_shelldoc(#docs_v1{format = Format}=Docs) ->
     DefaultFormat = binary_to_list(?DEFAULT_FORMAT),
     case Format of
         _ when Format =:= ?DEFAULT_FORMAT orelse Format =:= DefaultFormat ->
-            %% Docs1 = process(#docs_v1.module_doc, #docs_v1.docs),
             ModuleDoc = Docs#docs_v1.module_doc,
             Doc = Docs#docs_v1.docs,
             Docs#docs_v1{format = ?NATIVE_FORMAT,
@@ -329,8 +328,6 @@ process_md([<<"">> | Rest], Block) ->
 process_md([<<"<!--", Line/binary>> | Rest], Block) ->
     Block ++ process_md(process_comment([Line | Rest]), []);
 process_md(Rest, Block) when is_list(Rest) ->
-%% process_md([P | Rest], Block) when is_binary(P) ->
-    %% Block ++ process_paragraph(P) ++ process_md(Rest, []).
     Block ++ process_rest(Rest).
 
 -define(IS_BULLET(X), X =:= $*; X =:= $-; X =:= $+).
@@ -1607,30 +1604,3 @@ is_var_without_underscore(_) ->
 
 extract_slogan_from_args(F, Args) ->
    io_lib:format("~p(~ts)",[F, join(", ",[string:trim(atom_to_list(Arg),leading,"_") || {var, _, Arg} <- Args])]).
-
-
-%% X = "**This** is a test."
-%% handle_inline(<<"*", "*", "This** is a test"::binary>>, options) ->
-%% handle_inline("This** is a test", ["*" | "*"], [<<"*", "*">>], [], options) ->
-%% handle_inline("T" ++ "his** is a test"/binary, ["*" | "*"], [<<"*", "*">>], [], options) ->
-%% handle_inline(<<"his** is a test">>, ["*" | "*"], [<<"T">> | [<<"*", "*">>]], [], options) ->
-%% handle_inline(<<"is** is a test">>, ["*" | "*"], [ <<"h">> | [<<"T">>, <<"*", "*">>]], [], options) ->
-%% handle_inline(<<"s** is a test">>, ["*" | "*"], [ <<"i">> | [<<"h">>, <<"T">>, <<"*", "*">>]], [], options) ->
-%% handle_inline(<<"** is a test">>, ["*" | "*"], [ <<"s">> | [<<"i">>, <<"h">>, <<"T">>, <<"*", "*">>]], [], options) ->
-%% handle_inline(<<"**", " is a test"/binary>>, ["*" | "*"], [ <<"s">>, <<"i">>, <<"h">>, <<"T">>, <<"*", "*">>], [], options) ->
-%% handle_inline(<<" ", "is a test"/binary>>, nil, [], [inline_buffer | acc], options)
-%%   handle_inline(<<" ", "is a test"/binary>>, nil, [], [inline_buffer([ <<"s">>, <<"i">>, <<"h">>, <<"T">>, <<"*", "*">>], options) | []], options) ->
-%%   [<<"*", "*">> | [<<"This">>]] = Enum.reverse([ <<"s">>, <<"i">>, <<"h">>, <<"T">>, <<"*", "*">>])
-%%   inline_text(<<"*", "*">>, [<<"This">>], options) ->
-%%   [[<<"*", "*">>, <<"This">>] | <<"*", "*">>] ->
-%% handle_inline(<<" ", "is a test"/binary>>, nil, [], [[<<"*", "*">>, <<"This">>] | <<"*", "*">>], options) ->
-%% handle_inline(<<"is a test"/binary>>, nil, [<<" ">>], [[<<"*", "*">>, <<"This">>] | <<"*", "*">>], options) ->
-%% handle_inline(<<"s a test"/binary>>, nil, [<<"i", <<" ">>], [[<<"*", "*">>, <<"This">>] | <<"*", "*">>], options) ->
-%% ...
-%% handle_inline(<<""/binary>>, nil, [<<"t">>, <<"s">>, <<"e">>, <<"t">>, <<" ">>, <<"a">>, <<" ">>, <<"s">>, <<"i">>, <<" ">>],
-%%                [[<<"*", "*">>, <<"This">>] | <<"*", "*">>], options) ->
-%% Enum.reverse([Enum.reverse([<<"t">>, <<"s">>, <<"e">>, <<"t">>, <<" ">>, <<"a">>, <<" ">>, <<"s">>, <<"i">>, <<" ">>])
-%%               | [[<<"*", "*">>, <<"This">>] | <<"*", "*">>]]) ->
-%% Enum.reverse([[<<" ">>, <<"i">>, <<"s">>, <<" ">>, <<"a">>, <<" ">>, <<"t">>, <<"e">>, <<"s">>, <<"t">>]
-%%               , [<<"*", "*">>, <<"This">>] | <<"*", "*">>]) ->
-
