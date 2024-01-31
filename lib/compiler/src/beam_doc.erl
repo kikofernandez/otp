@@ -494,7 +494,7 @@ process_heading(Level, Text, Rest) ->
 create_header(Level, Heading) ->
     {header_level(Level), [], [Heading]}.
 
-%% this function makes it easier for type check
+%% this function makes it easier for type checker
 %% to understand the meaning.
 header_level(1) -> h1;
 header_level(2) -> h2;
