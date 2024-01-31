@@ -358,17 +358,14 @@ process_rest([P | Rest]=Doc) ->
       Result      :: {shell_docs:chunk_elements(), [binary()], shell_docs:chunk_elements()}.
 process_list(Format, LineContent, Rest, SpaceCount) ->
     LineFormatted = li(process_md(LineContent)),
-    io:format("(~p:~p) ~p", [?MODULE, ?LINE, {LineContent, Rest}]),
-    {Content, Rest1, Done} = process_list_next(Rest, SpaceCount, [LineFormatted]),
+    {Content, Rest1, Done} = process_list_next(Format, Rest, SpaceCount, [LineFormatted]),
     Paragraph = case Done of
                     true ->
                         process_br([]);
                     false ->
                         []
                 end,
-    io:format("(~p:~p) ~p", [?MODULE, ?LINE, {LineContent, Content, LineFormatted}]),
     Content1 = compact_content(Content),
-    io:format("(~p:~p) ~p", [?MODULE, ?LINE, {LineContent, Content, Content1}]),
     {[create_item_list(Format, Content1)], Rest1, Paragraph}.
 
 compact_content(Content) ->
@@ -381,7 +378,6 @@ compact_content(Content) ->
                              (X, Acc) when is_list(Acc), is_tuple(X) ->
                                  [X | Acc]
                          end, [], Content),
-    io:format("(~p:~p) ~p", [?MODULE, ?LINE, Result]),
     reversal_html(Result).
 
 reversal_html(Items) ->
@@ -405,35 +401,49 @@ li(Items) when is_list(Items)->
 li(Item) ->
     {li, [], [Item]}.
 
-process_list_next([], _SpaceCount, Acc) ->
+process_list_next(_, [], _SpaceCount, Acc) ->
     {Acc, [], true};
-process_list_next([Line | Rest], SpaceCount, Acc) ->
+process_list_next(Format, [Line | Rest], SpaceCount, Acc) ->
     {Stripped, NextSpaceCount} = strip_spaces(Line, 0, infinity),
     case process_list_next_kind(Stripped, Rest, NextSpaceCount, SpaceCount) of
         {new_list_item, StrippedFormattedItem} ->
             %% next item on the list
-            process_list_next(Rest, SpaceCount, [li(StrippedFormattedItem) | Acc]);
+            process_list_next(Format, Rest, SpaceCount, [li(StrippedFormattedItem) | Acc]);
         {next, StrippedFormattedItem} ->
             %% paragraph within the list
-            process_list_next(Rest, SpaceCount, StrippedFormattedItem ++ Acc);
+            process_list_next(Format, Rest, SpaceCount, StrippedFormattedItem ++ Acc);
         done ->
             {Acc, [Line | Rest], true};
         list ->
             {Acc, [Line | Rest], false};
         nested_list ->
-            {NestedAcc, Remaining, _Done1} = process_list_next([Line | Rest], NextSpaceCount, []),
-            io:format("(~p:~p) nested_list ~p", [?MODULE, ?LINE, {NestedAcc, Remaining, Acc}]),
+            {NestedAcc, Remaining, _Done1} = process_list_next(Format, [Line | Rest], NextSpaceCount, []),
             case Acc of
                 [{Tag, [], Items} | Acc1]  ->
-                    process_list_next(Remaining, SpaceCount, [{Tag, [], [ul(NestedAcc)] ++ Items} | Acc1]);
+                    ListItems = [create_item_list(Format, NestedAcc)] ++ Items,
+                    process_list_next(Format, Remaining, SpaceCount, [{Tag, [], ListItems}  | Acc1]);
                 [] ->
-                    process_list_next(Remaining, SpaceCount, NestedAcc)
+                    process_list_next(Format, Remaining, SpaceCount, NestedAcc)
             end
     end.
 
-process_list_next_kind(<<BulletList, $\s, Line/binary>>, _Rest, NextCount, Count)
-  when ?IS_BULLET(BulletList) ->
-    %% nested list
+process_list_next_kind(<<BulletFormat, $\s, Line/binary>>, _Rest, NextCount, Count)
+  when ?IS_BULLET(BulletFormat) ->
+    process_list_nestedness(Line, Count, NextCount);
+process_list_next_kind(<<OrderedFormat, $., $\s, Line/binary>>, _Rest, NextCount, Count)
+  when ?IS_NUMBERED(OrderedFormat) ->
+    process_list_nestedness(Line, Count, NextCount);
+process_list_next_kind(<<>>, [<<" ">> | [_|_]], _NextCount, _Count) ->
+    %% paragraph within the list
+    {next, process_md(<<>>)};
+process_list_next_kind(<<>>, _, _, _) ->
+    %% this list is done
+    done;
+process_list_next_kind(Item, _, _, _) ->
+    %% paragraph within the list
+    {next, process_md(Item)}.
+
+process_list_nestedness(Line, Count, NextCount) ->
     case NextCount - Count of
         0 ->
             {new_list_item, process_md(Line)};
@@ -443,29 +453,7 @@ process_list_next_kind(<<BulletList, $\s, Line/binary>>, _Rest, NextCount, Count
         X when X > 0 ->
             %% nested new list
             nested_list
-    end;
-process_list_next_kind(<<NumberedList, $., $\s, _Line/binary>>, _Rest, NextCount, Count)
-  when ?IS_NUMBERED(NumberedList), NextCount =< Count ->
-    %% nested list
-    io:format("(~p:~p) list", [?MODULE, ?LINE]),
-    list;
-process_list_next_kind(<<NumberedList1, $., NumberedList2, $., $\s, _Line/binary>>, _Rest, NextCount, Count)
-  when ?IS_NUMBERED(NumberedList1), ?IS_NUMBERED(NumberedList2), NextCount =< Count ->
-    %% nested list
-    io:format("(~p:~p) list", [?MODULE, ?LINE]),
-    list;
-process_list_next_kind(<<>>, [<<" ">> | [_|_]], _NextCount, _Count) ->
-    %% paragraph within the list
-    io:format("(~p:~p) next", [?MODULE, ?LINE]),
-    {next, process_md(<<>>)};
-process_list_next_kind(<<>>, _, _, _) ->
-    %% this list is done
-    io:format("(~p:~p) done", [?MODULE, ?LINE]),
-    done;
-process_list_next_kind(Item, _, _, _) ->
-    %% paragraph within the list
-    {next, process_md(Item)}.
-
+    end.
 
 process_p([], Block) ->
     {Block, [], []};
@@ -476,7 +464,6 @@ strip_spaces(<<" ", Rest/binary>>, Acc, Max) when Max =:= infinity; Acc =< Max -
     strip_spaces(Rest, Acc + 1, Max);
 strip_spaces(Rest, Acc, _) ->
     {Rest, Acc}.
-
 
 -type chunk_element_type() :: a | code | em | strong | i | b|
                               p | 'div' | br | pre | ul |

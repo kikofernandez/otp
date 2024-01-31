@@ -1,27 +1,56 @@
 -module(md_to_html_SUITE).
 
+%% callbacks
 -export([all/0, groups/0, init_per_group/2, end_per_group/2]).
+
+%% test format
 -export([convert_erlang_html/1, convert_unknown_format/1]).
+
+%% test non-existing moduledoc
 -export([non_existing_moduledoc/1,hidden_moduledoc/1,existing_moduledoc/1]).
+
+%% test non-existing docs
 -export([non_existing_doc/1, hidden_doc/1, existing_doc/1]).
+
+%% headings
 -export([h1_test/1, h2_test/1, h3_test/1, h4_test/1, h5_test/1, h6_test/1]).
+
+%% quotes
 -export([single_line_quote_test/1, double_char_for_quote_test/1,
          ignore_three_spaces_before_quote/1, multiple_line_quote_test/1,
          paragraph_in_between_test/1]).
+
+%% paragraph
 -export([paragraph_after_heading_test/1, quote_before_and_after_paragraph_test/1]).
+
+%% inline code
 -export([single_line_code_test/1, multiple_line_code_test/1, paragraph_between_code_test/1]).
+
+%% br
 -export([start_with_br_test/1, multiple_br_followed_by_paragraph_test/1, ending_br_test/1]).
+
+%% Comments
 -export([begin_comment_test/1, after_paragraph_comment/1, forget_closing_comment/1 ]).
+
+%% Headings
 -export([format_heading_test/1, format_paragraph_test/1, format_multiple_inline/1,
          format_multiple_inline_format_short/1, format_multiple_inline_format_long/1,
          format_multiple_inline_format_mixed/1, unmatched_format_simple/1,
          unmatched_format_with_inline/1, unmatched_complex_format_with_inline/1]).
--export([singleton_list/1, singleton_list_followed_new_paragraph/1, singleton_list_with_format/1,
-         singleton_list_followed_inner_paragraph/1, singleton_list_followed_inner_paragraph2/1,
+
+%% Bullet lists
+-export([singleton_bullet_list/1, singleton_bullet_list_followed_new_paragraph/1, singleton_bullet_list_with_format/1,
+         singleton_bullet_list_followed_inner_paragraph/1, singleton_bullet_list_followed_inner_paragraph2/1,
          multiline_bullet_indented_list/1, multiline_bullet_indented_list2/1,
          multiline_bullet_list/1, even_nested_bullet_list/1, odd_nested_bullet_list/1,
          complex_nested_bullet_list/1, complex_nested_bullet_list2/1]).
 
+%% Numbered lists
+-export([singleton_numbered_list/1, singleton_numbered_list_followed_new_paragraph/1,
+         singleton_numbered_list_with_format/1, singleton_numbered_list_followed_inner_paragraph/1,
+         singleton_numbered_list_followed_inner_paragraph2/1, multiline_numbered_indented_list/1,
+      multiline_numbered_indented_list2/1, multiline_numbered_list/1, even_nested_numbered_list/1,
+      odd_nested_numbered_list/1]).
 
 -define(ERLANG_HTML, <<"application/erlang+html">>).
 
@@ -43,7 +72,8 @@ all() ->
      {group, br_generator},
      {group, comment_generator},
      {group, format_generator},
-     {group, bullet_list_generator}
+     {group, bullet_list_generator},
+     {group, numbered_list_generator}
     ].
 
 groups() ->
@@ -57,7 +87,8 @@ groups() ->
      {br_generator, [parallel], br_tests()},
      {comment_generator, [parallel], comment_tests()},
      {format_generator, [parallel], format_tests()},
-     {bullet_list_generator, [parallel], bullet_list_tests()}
+     {bullet_list_generator, [parallel], bullet_list_tests()},
+     {numbered_list_generator, [parallel], numbered_list_tests()}
     ].
 
 init_per_group(_, Config) ->
@@ -136,11 +167,11 @@ format_tests() ->
     ].
 
 bullet_list_tests() ->
-    [ singleton_list,
-      singleton_list_followed_new_paragraph,
-      singleton_list_with_format,
-      singleton_list_followed_inner_paragraph,
-      singleton_list_followed_inner_paragraph2,
+    [ singleton_bullet_list,
+      singleton_bullet_list_followed_new_paragraph,
+      singleton_bullet_list_with_format,
+      singleton_bullet_list_followed_inner_paragraph,
+      singleton_bullet_list_followed_inner_paragraph2,
       multiline_bullet_indented_list,
       multiline_bullet_indented_list2,
       multiline_bullet_list,
@@ -148,6 +179,19 @@ bullet_list_tests() ->
       odd_nested_bullet_list,
       complex_nested_bullet_list,
       complex_nested_bullet_list2
+    ].
+
+numbered_list_tests() ->
+    [ singleton_numbered_list,
+      singleton_numbered_list_followed_new_paragraph,
+      singleton_numbered_list_with_format,
+      singleton_numbered_list_followed_inner_paragraph,
+      singleton_numbered_list_followed_inner_paragraph2,
+      multiline_numbered_indented_list,
+      multiline_numbered_indented_list2,
+      multiline_numbered_list,
+      even_nested_numbered_list,
+      odd_nested_numbered_list
     ].
 
 convert_erlang_html(_Conf) ->
@@ -532,7 +576,7 @@ unmatched_complex_format_with_inline(_Conf) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
-singleton_list(_Config) ->
+singleton_bullet_list(_Config) ->
     Docs = create_eep48_doc(<<"* One liner">>),
     HtmlDocs = compile(Docs),
     Expected = expected([ul([li(p(<<"One liner">>))]), br()]),
@@ -540,7 +584,7 @@ singleton_list(_Config) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
-singleton_list_followed_new_paragraph(_Config) ->
+singleton_bullet_list_followed_new_paragraph(_Config) ->
     Docs = create_eep48_doc(<<"* One liner\n\nThis is a new paragraph">>),
     HtmlDocs = compile(Docs),
     Expected = expected([ul([li(p(<<"One liner">>))]), br(), br(), p(<<"This is a new paragraph">>)]),
@@ -548,14 +592,15 @@ singleton_list_followed_new_paragraph(_Config) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
-singleton_list_followed_inner_paragraph(_Config) ->
+singleton_bullet_list_followed_inner_paragraph(_Config) ->
     Docs = create_eep48_doc(<<"* One liner\n  This is a new paragraph">>),
     HtmlDocs = compile(Docs),
     Expected = expected([ul([li([p(<<"One liner">>), p(<<"This is a new paragraph">>)])]), br()]),
     Expected = extract_moduledoc(HtmlDocs),
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
-singleton_list_followed_inner_paragraph2(_Config) ->
+
+singleton_bullet_list_followed_inner_paragraph2(_Config) ->
     Docs = create_eep48_doc(<<"* One liner\nThis is a new paragraph">>),
     HtmlDocs = compile(Docs),
     Expected = expected([ul([li([p(<<"One liner">>), p(<<"This is a new paragraph">>)])]), br()]),
@@ -564,7 +609,7 @@ singleton_list_followed_inner_paragraph2(_Config) ->
     ok.
 
 
-singleton_list_with_format(_Config) ->
+singleton_bullet_list_with_format(_Config) ->
     Docs = create_eep48_doc(<<"* *One* __liner__">>),
     HtmlDocs = compile(Docs),
     Expected = expected([ul([li(p([it(<<"One">>), <<" ">>,  em(<<"liner">>)]))]), br()]),
@@ -595,7 +640,6 @@ multiline_bullet_indented_list2(_Config) ->
     HtmlDocs = compile(Docs),
     Expected = expected([ul([li(p(it(<<"One liner">>))),
                              li(p([it(<<"Second">>), <<" ">>,  inline_code(<<"line">>)]))]), br()]),
-    io:format("Expected: ~p~nHtmlDocs: ~p~n~n", [Expected, extract_moduledoc(HtmlDocs)]),
     Expected = extract_moduledoc(HtmlDocs),
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
@@ -674,6 +718,107 @@ complex_nested_bullet_list2(_Config) ->
     [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
     ok.
 
+
+singleton_numbered_list(_Config) ->
+    Docs = create_eep48_doc(<<"1. One liner">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([li(p(<<"One liner">>))]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+
+singleton_numbered_list_followed_new_paragraph(_Config) ->
+    Docs = create_eep48_doc(<<"1. One liner\n\nThis is a new paragraph">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([li(p(<<"One liner">>))]), br(), br(), p(<<"This is a new paragraph">>)]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+singleton_numbered_list_followed_inner_paragraph(_Config) ->
+    Docs = create_eep48_doc(<<"1. One liner\n  This is a new paragraph">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([li([p(<<"One liner">>), p(<<"This is a new paragraph">>)])]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+singleton_numbered_list_followed_inner_paragraph2(_Config) ->
+    Docs = create_eep48_doc(<<"1. One liner\nThis is a new paragraph">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([li([p(<<"One liner">>), p(<<"This is a new paragraph">>)])]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+
+singleton_numbered_list_with_format(_Config) ->
+    Docs = create_eep48_doc(<<"1. *One* __liner__">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([li(p([it(<<"One">>), <<" ">>,  em(<<"liner">>)]))]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+multiline_numbered_indented_list(_Config) ->
+    Docs = create_eep48_doc(<<"  1. One liner\n  2. Second line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([li(p(<<"One liner">>)), li(p(<<"Second line">>))]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+multiline_numbered_indented_list2(_Config) ->
+    Docs = create_eep48_doc(
+             <<"  1. _One liner_\n  2. _Second_ `line`">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([li(p(it(<<"One liner">>))),
+                             li(p([it(<<"Second">>), <<" ">>,  inline_code(<<"line">>)]))]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+multiline_numbered_list(_Config) ->
+    Docs = create_eep48_doc(<<"1. One liner\n2. Second line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([li(p(<<"One liner">>)), li(p(<<"Second line">>))]), br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+even_nested_numbered_list(_Config) ->
+    Docs = create_eep48_doc(<<"1. One liner\n  1. First nested line\n  2. Second nested line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([
+                             li([ p(<<"One liner">>),
+                                  ol([ li(p(<<"First nested line">>)),
+                                       li(p(<<"Second nested line">>))
+                                     ])
+                                ])
+                            ]),
+                         br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+odd_nested_numbered_list(_Config) ->
+    Docs = create_eep48_doc(<<"1. One liner\n  1. First nested line\n  2. Second nested line\n  3. Third nested line">>),
+    HtmlDocs = compile(Docs),
+    Expected = expected([ol([
+                             li([ p(<<"One liner">>),
+                                  ol([ li(p(<<"First nested line">>)),
+                                       li(p(<<"Second nested line">>)),
+                                       li(p(<<"Third nested line">>))
+                                     ])
+                                ])
+                            ]),
+                         br()]),
+    Expected = extract_moduledoc(HtmlDocs),
+    [ ?EXPECTED_FUN(Expected) ] = extract_doc(HtmlDocs),
+    ok.
+
+
 header(Level, Text) when is_integer(Level) ->
     HeadingLevel = integer_to_list(Level),
     HeadingLevelAtom = list_to_existing_atom("h" ++ HeadingLevel),
@@ -709,8 +854,8 @@ br() ->
 ul(Items) when is_list(Items) ->
     {ul, [], Items}.
 
-%% ol(Items) when is_list(Items) ->
-%%     {ol, [], Items}.
+ol(Items) when is_list(Items) ->
+    {ol, [], Items}.
 
 li(Item) when is_tuple(Item); is_binary(Item) ->
     li([Item]);
