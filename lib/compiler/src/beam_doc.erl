@@ -343,9 +343,6 @@ process_rest([P | Rest]=Doc) ->
                                       process_list(ul, Line, Rest, SpaceCount);
                                   <<NumberedList, $., $\s, Line/binary>> when ?IS_NUMBERED(NumberedList) ->
                                       process_list(ol, Line, Rest, SpaceCount);
-                                  %% We do not support OTP writing nested lists.
-                                  %% <<NumberedList, $., NumberedList, $\s, Line/binary>> when ?IS_NUMBERED(NumberedList) ->
-                                  %%     process_list(<<NumberedList, $., NumberedList, $\s>>, Line, Rest, SpaceCount);
                                   _ ->
                                       process_p(Doc, [])
                      end,
@@ -397,9 +394,7 @@ ol(Items) when is_list(Items) ->
     {ol, [], Items}.
 
 li(Items) when is_list(Items)->
-    {li, [], Items};
-li(Item) ->
-    {li, [], [Item]}.
+    {li, [], Items}.
 
 process_list_next(_, [], _SpaceCount, Acc) ->
     {Acc, [], true};
@@ -455,8 +450,12 @@ process_list_nestedness(Line, Count, NextCount) ->
             nested_list
     end.
 
-process_p([], Block) ->
-    {Block, [], []};
+-spec process_p(Doc, Block) -> {Line, Rest, ReturnedBlock} when
+      Doc :: [binary()],
+      Block :: shell_docs:chunk_elements(),
+      Line  :: shell_docs:chunk_elements(),
+      Rest  :: [binary()],
+      ReturnedBlock :: shell_docs:chunk_elements().
 process_p([P | Rest], Block) when is_binary(P) ->
     {Block ++ process_paragraph(P), Rest, []}.
 
@@ -527,11 +526,12 @@ process_paragraph(P0) ->
     format_inline(P).
 
 -spec format_inline(Inline) -> shell_docs:chunk_elements() when
-      Inline :: {chunk_element_type(), chunk_element_attrs(), shell_docs:chunk_elements()}.
+      Inline :: {chunk_element_type(), [], [binary()]}.
 format_inline({Tag, [], Ls}) when is_list(Ls) ->
-    FormattedLines = lists:foldr(fun (L, Acc) -> process(L) ++ Acc end, [], Ls),
+    FormattedLines = lists:foldr(fun (L, Acc) when is_list(Acc) -> process(L) ++ Acc end, [], Ls),
     [{Tag, [], reverse(FormattedLines)}].
 
+-spec process(Text :: binary()) -> shell_docs:chunk_elements().
 process(Bin) when is_binary(Bin)->
     Format = [], % existing format to match on closing
     Buffer = [], % tracks the current thing to put within a specific format
@@ -553,14 +553,20 @@ remove_square_brackets(Bin) when is_binary(Bin) ->
       Result :: shell_docs:chunk_elements().
 process_inline(Bin, Fs, Buffer) ->
     case process_format(Bin, Fs, Buffer) of
-        {{not_closed, _Format}, Buffer1} ->
+        {not_closed, Buffer1} ->
             Buffer1;
         {ok, Buffer1} ->
             Buffer1;
-        {Continuation, Buffer1} ->
+        {Continuation, Buffer1} when is_binary(Continuation)->
             process_inline(Continuation, [], Buffer1)
     end.
 
+-spec process_format(Text, Format, Buffer) -> {Continuation, ResultBuffer} when
+      Text :: binary(),
+      Format :: [binary()],
+      Buffer :: shell_docs:chunk_elements(),
+      ResultBuffer :: shell_docs:chunk_elements(),
+      Continuation :: not_closed | ok | binary().
 process_format(<<Format, Format, Continuation/binary>>, [<<Format>>, <<Format>>], Buffer)
   when Format =:= $*; Format =:= $_; Format =:= $` ->
     close_format(Continuation, [<<Format>>, <<Format>>], Buffer);
@@ -657,7 +663,7 @@ compact_buffers(<<X/binary>>, [<<LastEntry/binary>> | Beginning]) ->
       Line :: shell_docs:chunk_elements(),
       Result :: [{chunk_element_type(), chunk_element_attrs(), shell_docs:chunk_elements()}],
       Format :: [binary()].
-format(Format, Line0) ->
+format(Format, Line0) when is_list(Line0)->
     Line1 = lists:reverse(Line0),
     Formatted = case Format of
                     [<<"*">>, <<"*">>] ->
