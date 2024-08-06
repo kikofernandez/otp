@@ -2806,8 +2806,14 @@ allowed(_Config) ->
             %% Verify the cluster
             equal_sets( [NodeA, NodeB], nodes(hidden) ),
             [ Node ] = rpc:call( NodeA, erlang, nodes, [hidden] ),
-            [ Node ] = rpc:call( NodeB, erlang, nodes, [hidden] )
+            [ Node ] = rpc:call( NodeB, erlang, nodes, [hidden] ),
 
+            %% Test non-registered process
+            %% 'net_kernel' is registered to a process
+            %% so we unregister it to test the output 'ignored'
+            ok = rpc:call(NodeA, erts_internal, dynamic_node_name, [false]),
+            true = rpc:call(NodeA, erlang, unregister, [net_kernel]),
+            ignored = rpc:call(NodeA, net_kernel, allow, [[NodeB]])
         after
             _ = stop_node(NodeB)
         end
