@@ -1590,7 +1590,13 @@ monitor_nodes_otp_6481(DCfg, Config) ->
     io:format("Testing nodeup...~n"),
     monitor_nodes_otp_6481_test(DCfg, Config, nodeup),
     io:format("ok~n"),
+    kill_existing_nodes(),
     ok.
+
+kill_existing_nodes() ->
+    Nodes = nodes(),
+    lists:foreach(fun(Node) -> stop_node(Node) end, Nodes).
+
 
 monitor_nodes_otp_6481_test(DCfg, Config, TestType) when is_list(Config) ->
     MonNodeState = monitor_node_state(),
