@@ -8,10 +8,10 @@ currently being supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 27      | :white_check_mark: |
 | 26      | :white_check_mark: |
 | 25      | :white_check_mark: |
-| 24      | :white_check_mark: |
-| < 24    | :x:                |
+| =< 24    | :x:                |
 
 ## Reporting a Vulnerability
 
