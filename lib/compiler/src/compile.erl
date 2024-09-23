@@ -2400,7 +2400,6 @@ save_abstract_code(Code, St) ->
 
 -define(META_DOC_CHUNK, <<"Docs">>).
 
-
 %% Adds documentation attributes to extra_chunks (beam file)
 beam_docs(Code, #compile{dir = Dir, options = Options,
                          extra_chunks = ExtraChunks }=St) ->
