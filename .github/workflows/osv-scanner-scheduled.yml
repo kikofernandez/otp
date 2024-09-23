@@ -1,0 +1,22 @@
+name: OSV-Scanner PR Scan
+
+# TODO: is there a way to test latest 4 tags from:
+# git tag --sort=-creatordate | head -n 4
+on:
+  pull_request:
+    branches:
+      - master
+      - maint
+
+permissions:
+  # Required to upload SARIF file to CodeQL.
+  # See: https://github.com/github/codeql-action/issues/2117
+  actions: read
+  # Require writing security events to upload SARIF file to security tab
+  security-events: write
+  # Only need to read contents
+  contents: read
+
+jobs:
+  scan-pr:
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v1.8.5"
