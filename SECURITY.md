@@ -16,10 +16,8 @@ For example, if we have released OTP-27, we would support:
 
 ## Reporting a Vulnerability and/or Security Issues
 
-If you believe you have found a security vulnerability in this repository,
-please report it to erlang-security@erlang.org and/or https://github.com/erlang/otp/security.
-
 Please do not report security vulnerabilities through public channels, like
 GitHub issues, discussions, or pull requests.
 
-
+If you believe you have found a security vulnerability in this repository,
+please report it via https://github.com/erlang/otp/security.
