@@ -1805,6 +1805,71 @@ case_expand_var(E, #sub{t=Tdb}) ->
         _ -> E
     end.
 
+%% lc_singleton_dead_code_elimitation() -> Expr
+%% Rewrites and eliminates code that uses singleton lists as
+%% generators in list-comprehensions. For example:
+%%
+%% [Res || E <- X, Res <- [some_test(E)], Res /= ok].
+%%
+%% every left-hand side of the generator (`E` and `Res`) has been
+%% translated as a lambda call (see v3_core.erl, expr({lc,L,E,Qs0}, St0)).
+%% v3_core:expr/2 produces an empty list allocation for [some_test(E)]
+%% represented as [some_test(E) | []] and adds an extra call.
+%%
+%% ( letrec 'lc$^0'/1 =
+%%             fun (_6) ->
+%%               case _6 of
+%%                 <[E|_2]> when 'true' ->
+%%                     letrec 'lc$^1'/1 =
+%%                        fun (_8) ->
+%%                          case _8 of      %% EXTRA CALL
+%%                            <[Res|_4]> when call 'erlang':'/=' (Res, 'ok') ->
+%%                                let <_10> = apply 'lc$^1'/1 (_4)
+%%                                in  [Res|_10]
+%%                            <[_3|_4]> when 'true' ->
+%%                                apply 'lc$^1'/1(_4)
+%%                            <[]> when 'true' ->
+%%                                apply 'lc$^0'/1(_2)
+%%                            <_9> when 'true' ->
+%%                                call 'erlang':'error'({'bad_generator',_9})
+%%                          end
+%%                     in  let <_5> =apply 'some_test'/1(E)
+%%                         in  apply 'lc$^1'/1([_5|[]])
+%%                 <[_1|_2]> when 'true' ->
+%%                     apply 'lc$^0'/1(_2)
+%%                 <[]> when 'true' ->
+%%                     []
+%%                 <_7> when 'true' ->
+%%                     call 'erlang':'error'({'bad_generator',_7})
+%%               end
+%%   in apply 'lc$^0'/1(( _0)))
+%%
+%% this optimisation removes one allocation and one function call. the function
+%% call removal can be seen as inlining the result of the some_test(_) result
+%% into the immediate function. The result is as follows:
+%%
+%% ( letrec 'lc$^0'/1 =
+%%             fun (_6) ->
+%%               case _6 of
+%%                   <[E|_2]> when 'true' ->
+%%                       let <_5> = apply 'some_test'/1(E)
+%%                        in case _5 of
+%%                               <Res> when call 'erlang':'/=' (Res, 'ok') ->
+%%                                   let <_10> = apply 'lc$^0'/1(_2)
+%%                                   in [Res|_10]
+%%                               <_9> when 'true' ->
+%%                                   apply 'lc$^0'/1(_2)
+%%                           end
+%%                   <[]> when 'true' ->
+%%                       []
+%%                   <_7> when 'true' ->
+%%                       call 'erlang':'error'({'bad_generator',_7})
+%%               end
+%%  in  apply 'lc$^0'/1(( _0)))
+
+lc_singleton_dead_code_elimitation() ->
+    ok.
+
 %% case_opt_nomatch(E, Clauses, LitExpr) -> Clauses'
 %%  Remove all clauses that cannot possibly match.
 

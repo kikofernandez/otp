@@ -1,6 +1,6 @@
 -module(test).
 
--export([main/1, main2/1, main4/1, main3/1]).
+-export([main/1]).
 
 %%
 %% this function introduces a singleton list, which could be remove.
@@ -142,47 +142,49 @@ some_test(X) ->
     X.
 
 
-main2(X) ->
-    Ys = X,
-    %% Kiko will optimize comprehensions like
-    [{Res, Y, Z} || E <- X, Res <- [some_test(E)], Res /= ok, Y <- Ys, Z <- [Y], Z/= ok].
+
+
+%% main2(X) ->
+%%     Ys = X,
+%%     %% Kiko will optimize comprehensions like
+%%     [{Res, Y, Z} || E <- X, Res <- [some_test(E)], Res /= ok, Y <- Ys, Z <- [Y], Z/= ok].
 
 
 
+%% %% Cost of inlining nested function calls, instead of jumping around.
+%% -doc """
 %% Cost of inlining nested function calls, instead of jumping around.
--doc """
-Cost of inlining nested function calls, instead of jumping around.
 
-This version is 3 times faster than main2/1.
+%% This version is 3 times faster than main2/1.
 
-> ./../erlperf/erlperf 'test:main2([1,2,3,4,5,6,7,8]).' 'test:main3([1,2,3,4,5,6,7,8]).' --samples 30 -w 10 -r full
+%% > ./../erlperf/erlperf 'test:main2([1,2,3,4,5,6,7,8]).' 'test:main3([1,2,3,4,5,6,7,8]).' --samples 30 -w 10 -r full
 
-OS : Linux
-CPU: 11th Gen Intel(R) Core(TM) i5-1145G7 @ 2.60GHz
-VM : Erlang/OTP 28 [DEVELOPMENT] [erts-15.0.1] [source-27a6328515] [64-bit] [smp:8:8] [ds:8:8:10] [async-threads:1] [jit:ns]
+%% OS : Linux
+%% CPU: 11th Gen Intel(R) Core(TM) i5-1145G7 @ 2.60GHz
+%% VM : Erlang/OTP 28 [DEVELOPMENT] [erts-15.0.1] [source-27a6328515] [64-bit] [smp:8:8] [ds:8:8:10] [async-threads:1] [jit:ns]
 
-Code                               ||   Samples       Avg   StdDev    Median      P99  Iteration    Rel
-test:main3([1,2,3,4,5,6,7,8]).      1        30    827 Ki    7.37%    849 Ki   916 Ki    1209 ns   100%
-test:main2([1,2,3,4,5,6,7,8]).      1        30    311 Ki    7.90%    322 Ki   345 Ki    3217 ns    38%
-""".
--spec main3(list()) -> list().
-main3(X) ->
-    Ys = X,
-    %% Kiko will optimize comprehensions like
-    [inline(E, Ys, false) || E <- X].
+%% Code                               ||   Samples       Avg   StdDev    Median      P99  Iteration    Rel
+%% test:main3([1,2,3,4,5,6,7,8]).      1        30    827 Ki    7.37%    849 Ki   916 Ki    1209 ns   100%
+%% test:main2([1,2,3,4,5,6,7,8]).      1        30    311 Ki    7.90%    322 Ki   345 Ki    3217 ns    38%
+%% """.
+%% -spec main3(list()) -> list().
+%% main3(X) ->
+%%     Ys = X,
+%%     %% Kiko will optimize comprehensions like
+%%     [inline(E, Ys, false) || E <- X].
 
-inline(E, Ys, false) ->
-    Res = some_test(E),
-    case Res /= ok of
-        true ->
-            inline(Res, Ys, true)
-    end;
-inline(_, [], _) ->
-    [];
-inline(Res, [Z|Zs], true) ->
-    case Z /= ok of
-        true -> [{Res, Z, Z} | inline(Res, Zs, true)]
-    end.
+%% inline(E, Ys, false) ->
+%%     Res = some_test(E),
+%%     case Res /= ok of
+%%         true ->
+%%             inline(Res, Ys, true)
+%%     end;
+%% inline(_, [], _) ->
+%%     [];
+%% inline(Res, [Z|Zs], true) ->
+%%     case Z /= ok of
+%%         true -> [{Res, Z, Z} | inline(Res, Zs, true)]
+%%     end.
 
 
 
@@ -254,62 +256,62 @@ inline(Res, [Z|Zs], true) ->
 %%
 %%  I believe this approach suffers from too many de-structuring checks, list emptyness checks, etc
 %%
-main4(X) ->
-    Ys = X,
-    Loop = fun Loop(Elva, Treton, Femton, Sjuton) ->
-                 %% case {Elva, Treton, Femton, Sjuton} of
-                 %%     {_, _, _, Sjuton} ->
-                         case Sjuton of
-                             [Z|Tio] ->
-                                 case Z /= ok of
-                                     true ->
-                                         [Res|_Fem] = Treton,
-                                         [Y|_Atta] = Femton,
-                                         Nitton = Loop(Elva, Treton, [Y|_Atta], Tio),
-                                         [{Res, Y, Z}|Nitton];
-                                     false ->
-                                         Loop(Elva, Treton, Femton, Tio)
-                                 end;
-                             [] ->
-                                 case Femton of
-                                     [_Y|Atta] ->
-                                         Loop(Elva, Treton, Atta, nil)
-                                 end;
-                             nil ->
-                                 case Femton of
-                                     [] ->
-                                         [_Res|Fem] = Treton,
-                                         Loop(Elva, Fem, nil, nil);
-                                     [Y|_Atta] ->
-                                         Loop(Elva, Treton, Femton, [Y]);
-                                     nil ->
-                                         case Treton of
-                                             [] ->
-                                                 case Elva of
-                                                     [_E|Tre] ->
-                                                         Loop(Tre, nil, nil, nil)
-                                                 end;
-                                             [Res|Fem] ->
-                                                 case Res /= ok of
-                                                     true ->
-                                                         Loop(Elva, [Res|Fem], Ys, nil);
-                                                     false ->
-                                                         Loop(Elva, Fem, nil, nil)
-                                                 end;
-                                             nil ->
-                                                 case Elva of
-                                                     [] ->
-                                                         [];
-                                                     [E|_Tre] ->
-                                                         Sex = some_test(E),
-                                                         Loop(Elva, [Sex], Femton, Sjuton)
-                                                 end
-                                         end
-                                 end
-                         end
-                 %% end
-           end,
-    Loop(X, nil, nil, nil).
+%% main4(X) ->
+%%     Ys = X,
+%%     Loop = fun Loop(Elva, Treton, Femton, Sjuton) ->
+%%                  %% case {Elva, Treton, Femton, Sjuton} of
+%%                  %%     {_, _, _, Sjuton} ->
+%%                          case Sjuton of
+%%                              [Z|Tio] ->
+%%                                  case Z /= ok of
+%%                                      true ->
+%%                                          [Res|_Fem] = Treton,
+%%                                          [Y|_Atta] = Femton,
+%%                                          Nitton = Loop(Elva, Treton, [Y|_Atta], Tio),
+%%                                          [{Res, Y, Z}|Nitton];
+%%                                      false ->
+%%                                          Loop(Elva, Treton, Femton, Tio)
+%%                                  end;
+%%                              [] ->
+%%                                  case Femton of
+%%                                      [_Y|Atta] ->
+%%                                          Loop(Elva, Treton, Atta, nil)
+%%                                  end;
+%%                              nil ->
+%%                                  case Femton of
+%%                                      [] ->
+%%                                          [_Res|Fem] = Treton,
+%%                                          Loop(Elva, Fem, nil, nil);
+%%                                      [Y|_Atta] ->
+%%                                          Loop(Elva, Treton, Femton, [Y]);
+%%                                      nil ->
+%%                                          case Treton of
+%%                                              [] ->
+%%                                                  case Elva of
+%%                                                      [_E|Tre] ->
+%%                                                          Loop(Tre, nil, nil, nil)
+%%                                                  end;
+%%                                              [Res|Fem] ->
+%%                                                  case Res /= ok of
+%%                                                      true ->
+%%                                                          Loop(Elva, [Res|Fem], Ys, nil);
+%%                                                      false ->
+%%                                                          Loop(Elva, Fem, nil, nil)
+%%                                                  end;
+%%                                              nil ->
+%%                                                  case Elva of
+%%                                                      [] ->
+%%                                                          [];
+%%                                                      [E|_Tre] ->
+%%                                                          Sex = some_test(E),
+%%                                                          Loop(Elva, [Sex], Femton, Sjuton)
+%%                                                  end
+%%                                          end
+%%                                  end
+%%                          end
+%%                  %% end
+%%            end,
+%%     Loop(X, nil, nil, nil).
 
 
 
