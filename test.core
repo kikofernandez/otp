@@ -1,41 +1,57 @@
 module 'test' ['main'/1,
-	       'main2'/1,
-	       'main3'/1,
-	       'main4'/1,
 	       'module_info'/0,
 	       'module_info'/1]
     attributes [%% Line 1
 		'file' =
 		    %% Line 1
-		    [{[116|[101|[115|[116|[46|[101|[114|[108]]]]]]]],1}],
-		%% Line 112
-		'spec' =
-		    %% Line 112
-		    [{{'main3',1},[{'type',{112,12},'fun',[{'type',{112,12},'product',[{'type',{112,13},'list',[]}]}|[{'type',{112,24},'list',[]}]]}]}]]
+		    [{[116|[101|[115|[116|[46|[101|[114|[108]]]]]]]],1}]]
 'main'/1 =
-    %% Line 81
+    %% Line 137
     ( fun (_0) ->
 	  ( case ( _0
 		   -| [{'function',{'main',1}}] ) of
 	      <X> when 'true' ->
-		  %% Line 83
+		  %% Line 139
 		  ( letrec
 			'lc$^0'/1 =
 			    fun (_6) ->
 				case _6 of
 				  <[E|_2]> when 'true' ->
-                    let <_5> =
-					    apply 'some_test'/1 (E)
-                    in case _5 of
-                         <Res> when call 'erlang':'/=' (Res,'ok') ->
+				      ( letrec
+					    'lc$^1'/1 =
+						fun (_8) ->
+						    case _8 of
+						      <[Res|_4]>
+							  when call 'erlang':'/='
+								(Res,
+								 'ok') ->
 							  let <_10> =
-							      apply 'lc$^0'/1 (_2)
-                                  in  ( [Res|_10]
-								        -| ['compiler_generated'] )
-                        ( <[_1|_2]> when 'true' ->
-					       apply 'lc$^0'/1
-					       (_2)
-				          -| ['compiler_generated'] )
+							      apply 'lc$^1'/1
+								  (_4)
+							  in  ( [Res|_10]
+								-| ['compiler_generated'] )
+						      ( <[_3|_4]> when 'true' ->
+							    apply 'lc$^1'/1
+								(_4)
+							-| ['compiler_generated'] )
+						      <[]> when 'true' ->
+							  apply 'lc$^0'/1
+							      (_2)
+						      ( <_9> when 'true' ->
+							    call 'erlang':'error'
+								({'bad_generator',_9})
+							-| ['compiler_generated'] )
+						    end
+					in  let <_5> =
+						apply 'some_test'/1
+						    (E)
+					    in  apply 'lc$^1'/1
+						    ([_5|[]])
+					-| ['list_comprehension'] )
+				  ( <[_1|_2]> when 'true' ->
+					apply 'lc$^0'/1
+					    (_2)
+				    -| ['compiler_generated'] )
 				  <[]> when 'true' ->
 				      []
 				  ( <_7> when 'true' ->
@@ -56,12 +72,12 @@ module 'test' ['main'/1,
 	    -| [{'function',{'main',1}}] )
       -| [{'function',{'main',1}}] )
 'some_test'/1 =
-    %% Line 85
+    %% Line 141
     ( fun (_0) ->
 	  ( case ( _0
 		   -| [{'function',{'some_test',1}}] ) of
 	      <X> when 'true' ->
-		  %% Line 86
+		  %% Line 142
 		  X
 	      ( <_1> when 'true' ->
 		    ( primop 'match_fail'
@@ -72,404 +88,6 @@ module 'test' ['main'/1,
 	    end
 	    -| [{'function',{'some_test',1}}] )
       -| [{'function',{'some_test',1}}] )
-'main2'/1 =
-    %% Line 89
-    ( fun (_0) ->
-	  ( case ( _0
-		   -| [{'function',{'main2',1}}] ) of
-	      <X> when 'true' ->
-		  let <Ys> = X
-		  in  %% Line 92
-		      ( letrec
-			    'lc$^0'/1 =
-				fun (_11) ->
-				    case _11 of
-				      <[E|_3]> when 'true' ->
-					  ( letrec
-						'lc$^1'/1 =
-						    fun (_13) ->
-							case _13 of
-							  <[Res|_5]>
-							      when call 'erlang':'/='
-								    (Res,
-								     'ok') ->
-							      ( letrec
-								    'lc$^2'/1 =
-									fun (_15) ->
-									    case _15 of
-									      <[Y|_8]> when 'true' ->
-										  ( letrec
-											'lc$^3'/1 =
-											    fun (_17) ->
-												case _17 of
-												  <[Z|_10]>
-												      when call 'erlang':'/='
-													    (Z,
-													     'ok') ->
-												      let <_19> =
-													  apply 'lc$^3'/1
-													      (_10)
-												      in  ( [{Res,Y,Z}|_19]
-													    -| ['compiler_generated'] )
-												  ( <[_9|_10]> when 'true' ->
-													apply 'lc$^3'/1
-													    (_10)
-												    -| ['compiler_generated'] )
-												  <[]> when 'true' ->
-												      apply 'lc$^2'/1
-													  (_8)
-												  ( <_18> when 'true' ->
-													call 'erlang':'error'
-													    ({'bad_generator',_18})
-												    -| ['compiler_generated'] )
-												end
-										    in  apply 'lc$^3'/1
-											    ([Y|[]])
-										    -| ['list_comprehension'] )
-									      ( <[_7|_8]> when 'true' ->
-										    apply 'lc$^2'/1
-											(_8)
-										-| ['compiler_generated'] )
-									      <[]> when 'true' ->
-										  apply 'lc$^1'/1
-										      (_5)
-									      ( <_16> when 'true' ->
-										    call 'erlang':'error'
-											({'bad_generator',_16})
-										-| ['compiler_generated'] )
-									    end
-								in  apply 'lc$^2'/1
-									(Ys)
-								-| ['list_comprehension'] )
-							  ( <[_4|_5]> when 'true' ->
-								apply 'lc$^1'/1
-								    (_5)
-							    -| ['compiler_generated'] )
-							  <[]> when 'true' ->
-							      apply 'lc$^0'/1
-								  (_3)
-							  ( <_14> when 'true' ->
-								call 'erlang':'error'
-								    ({'bad_generator',_14})
-							    -| ['compiler_generated'] )
-							end
-					    in  let <_6> =
-						    apply 'some_test'/1
-							(E)
-						in  apply 'lc$^1'/1
-							([_6|[]])
-					    -| ['list_comprehension'] )
-				      ( <[_2|_3]> when 'true' ->
-					    apply 'lc$^0'/1
-						(_3)
-					-| ['compiler_generated'] )
-				      <[]> when 'true' ->
-					  []
-				      ( <_12> when 'true' ->
-					    call 'erlang':'error'
-						({'bad_generator',_12})
-					-| ['compiler_generated'] )
-				    end
-			in  apply 'lc$^0'/1
-				(X)
-			-| ['list_comprehension'] )
-	      ( <_20> when 'true' ->
-		    ( primop 'match_fail'
-			  (( {'function_clause',_20}
-			     -| [{'function',{'main2',1}}] ))
-		      -| [{'function',{'main2',1}}] )
-		-| ['compiler_generated'] )
-	    end
-	    -| [{'function',{'main2',1}}] )
-      -| [{'function',{'main2',1}}] )
-'main3'/1 =
-    %% Line 113
-    ( fun (_0) ->
-	  ( case ( _0
-		   -| [{'function',{'main3',1}}] ) of
-	      <X> when 'true' ->
-		  let <Ys> = X
-		  in  %% Line 116
-		      ( letrec
-			    'lc$^0'/1 =
-				fun (_4) ->
-				    case _4 of
-				      <[E|_3]> when 'true' ->
-					  let <_6> =
-					      apply 'inline'/3
-						  (E, Ys, 'false')
-					  in  let <_7> =
-						  apply 'lc$^0'/1
-						      (_3)
-					      in  ( [_6|_7]
-						    -| ['compiler_generated'] )
-				      ( <[_2|_3]> when 'true' ->
-					    apply 'lc$^0'/1
-						(_3)
-					-| ['compiler_generated'] )
-				      <[]> when 'true' ->
-					  []
-				      ( <_5> when 'true' ->
-					    call 'erlang':'error'
-						({'bad_generator',_5})
-					-| ['compiler_generated'] )
-				    end
-			in  apply 'lc$^0'/1
-				(X)
-			-| ['list_comprehension'] )
-	      ( <_8> when 'true' ->
-		    ( primop 'match_fail'
-			  (( {'function_clause',_8}
-			     -| [{'function',{'main3',1}}] ))
-		      -| [{'function',{'main3',1}}] )
-		-| ['compiler_generated'] )
-	    end
-	    -| [{'function',{'main3',1}}] )
-      -| [{'function',{'main3',1}}] )
-'inline'/3 =
-    %% Line 118
-    ( fun (_0,_1,_2) ->
-	  ( case ( <_0,_1,_2>
-		   -| [{'function',{'inline',3}}] ) of
-	      <E,Ys,'false'> when 'true' ->
-		  let <Res> =
-		      apply %% Line 119
-			    'some_test'/1
-			  (%% Line 119
-			   E)
-		  in  %% Line 120
-		      case call 'erlang':'/='
-			       (Res, 'ok') of
-			%% Line 121
-			<'true'> when 'true' ->
-			    %% Line 122
-			    apply 'inline'/3
-				(Res, Ys, 'true')
-			( <_4> when 'true' ->
-			      primop 'match_fail'
-				  ({'case_clause',_4})
-			  -| ['compiler_generated'] )
-		      end
-	      %% Line 124
-	      <_10,[],_11> when 'true' ->
-		  %% Line 125
-		  []
-	      %% Line 126
-	      <Res,[Z|Zs],'true'> when 'true' ->
-		  %% Line 127
-		  case call 'erlang':'/='
-			   (Z, 'ok') of
-		    %% Line 128
-		    <'true'> when 'true' ->
-			let <_5> =
-			    apply 'inline'/3
-				(Res, Zs, 'true')
-			in  [{Res,Z,Z}|_5]
-		    ( <_6> when 'true' ->
-			  primop 'match_fail'
-			      ({'case_clause',_6})
-		      -| ['compiler_generated'] )
-		  end
-	      ( <_9,_8,_7> when 'true' ->
-		    ( primop 'match_fail'
-			  (( {'function_clause',_9,_8,_7}
-			     -| [{'function',{'inline',3}}] ))
-		      -| [{'function',{'inline',3}}] )
-		-| ['compiler_generated'] )
-	    end
-	    -| [{'function',{'inline',3}}] )
-      -| [{'function',{'inline',3}}] )
-'main4'/1 =
-    %% Line 201
-    ( fun (_0) ->
-	  ( case ( _0
-		   -| [{'function',{'main4',1}}] ) of
-	      <X> when 'true' ->
-		  let <Ys> = X
-		  in  let <Loop> =
-			  letrec
-			      'Loop'/4 =
-				  %% Line 203
-				  ( fun (_18,_17,_16,_15) ->
-					let <Loop> = 'Loop'/4
-					in  case <_18,_17,_16,_15> of
-					      <Elva,Treton,Femton,Sjuton> when 'true' ->
-						  %% Line 206
-						  case Sjuton of
-						    %% Line 207
-						    <[Z|Tio]> when 'true' ->
-							%% Line 208
-							case call 'erlang':'/='
-								 (Z, 'ok') of
-							  %% Line 209
-							  <'true'> when 'true' ->
-							      %% Line 210
-							      case Treton of
-								<[Res|_X_Fem]> when 'true' ->
-								    %% Line 211
-								    case Femton of
-								      <[Y|_X_Atta]> when 'true' ->
-									  let <Nitton> =
-									      apply %% Line 212
-										    Loop
-										  (%% Line 212
-										   Elva, %% Line 212
-											 Treton, %% Line 212
-												 [Y|_X_Atta], %% Line 212
-													      Tio)
-									  in  %% Line 213
-									      [{Res,Y,Z}|Nitton]
-								      ( <_3> when 'true' ->
-									    primop 'match_fail'
-										({'badmatch',_3})
-									-| ['compiler_generated'] )
-								    end
-								( <_2> when 'true' ->
-								      primop 'match_fail'
-									  ({'badmatch',_2})
-								  -| ['compiler_generated'] )
-							      end
-							  %% Line 214
-							  <'false'> when 'true' ->
-							      %% Line 215
-							      apply Loop
-								  (Elva, Treton, Femton, Tio)
-							  ( <_5> when 'true' ->
-								primop 'match_fail'
-								    ({'case_clause',_5})
-							    -| ['compiler_generated'] )
-							end
-						    %% Line 217
-						    <[]> when 'true' ->
-							%% Line 218
-							case Femton of
-							  %% Line 219
-							  <[_X_Y|Atta]> when 'true' ->
-							      %% Line 220
-							      apply Loop
-								  (Elva, Treton, Atta, 'nil')
-							  ( <_6> when 'true' ->
-								primop 'match_fail'
-								    ({'case_clause',_6})
-							    -| ['compiler_generated'] )
-							end
-						    %% Line 222
-						    <'nil'> when 'true' ->
-							%% Line 223
-							case Femton of
-							  %% Line 224
-							  <[]> when 'true' ->
-							      %% Line 225
-							      case Treton of
-								<[_X_Res|Fem]> when 'true' ->
-								    %% Line 226
-								    apply Loop
-									(Elva, Fem, 'nil', 'nil')
-								( <_7> when 'true' ->
-								      primop 'match_fail'
-									  ({'badmatch',_7})
-								  -| ['compiler_generated'] )
-							      end
-							  %% Line 227
-							  <[Y|_X_Atta]> when 'true' ->
-							      %% Line 228
-							      apply Loop
-								  (Elva, Treton, Femton, [Y|[]])
-							  %% Line 229
-							  <'nil'> when 'true' ->
-							      %% Line 230
-							      case Treton of
-								%% Line 231
-								<[]> when 'true' ->
-								    %% Line 232
-								    case Elva of
-								      %% Line 233
-								      <[_X_E|Tre]> when 'true' ->
-									  %% Line 234
-									  apply Loop
-									      (Tre, 'nil', 'nil', 'nil')
-								      ( <_8> when 'true' ->
-									    primop 'match_fail'
-										({'case_clause',_8})
-									-| ['compiler_generated'] )
-								    end
-								%% Line 236
-								<[Res|Fem]> when 'true' ->
-								    %% Line 237
-								    case call 'erlang':'/='
-									     (Res, 'ok') of
-								      %% Line 238
-								      <'true'> when 'true' ->
-									  %% Line 239
-									  apply Loop
-									      (Elva, [Res|Fem], Ys, 'nil')
-								      %% Line 240
-								      <'false'> when 'true' ->
-									  %% Line 241
-									  apply Loop
-									      (Elva, Fem, 'nil', 'nil')
-								      ( <_9> when 'true' ->
-									    primop 'match_fail'
-										({'case_clause',_9})
-									-| ['compiler_generated'] )
-								    end
-								%% Line 243
-								<'nil'> when 'true' ->
-								    %% Line 244
-								    case Elva of
-								      %% Line 245
-								      <[]> when 'true' ->
-									  %% Line 246
-									  []
-								      %% Line 247
-								      <[E|_X_Tre]> when 'true' ->
-									  let <Sex> =
-									      apply %% Line 248
-										    'some_test'/1
-										  (%% Line 248
-										   E)
-									  in  %% Line 249
-									      apply Loop
-										  (Elva, [Sex|[]], Femton, Sjuton)
-								      ( <_11> when 'true' ->
-									    primop 'match_fail'
-										({'case_clause',_11})
-									-| ['compiler_generated'] )
-								    end
-								( <_12> when 'true' ->
-								      primop 'match_fail'
-									  ({'case_clause',_12})
-								  -| ['compiler_generated'] )
-							      end
-							  ( <_13> when 'true' ->
-								primop 'match_fail'
-								    ({'case_clause',_13})
-							    -| ['compiler_generated'] )
-							end
-						    ( <_14> when 'true' ->
-							  primop 'match_fail'
-							      ({'case_clause',_14})
-						      -| ['compiler_generated'] )
-						  end
-					      ( <_22,_21,_20,_19> when 'true' ->
-						    primop 'match_fail'
-							({'function_clause',_22,_21,_20,_19})
-						-| ['compiler_generated'] )
-					    end
-				    -| [{'id',{0,0,'-main4/1-fun-0-'}}] )
-			  in  'Loop'/4
-		      in  %% Line 256
-			  apply Loop
-			      (X, 'nil', 'nil', 'nil')
-	      ( <_24> when 'true' ->
-		    ( primop 'match_fail'
-			  (( {'function_clause',_24}
-			     -| [{'function',{'main4',1}}] ))
-		      -| [{'function',{'main4',1}}] )
-		-| ['compiler_generated'] )
-	    end
-	    -| [{'function',{'main4',1}}] )
-      -| [{'function',{'main4',1}}] )
 'module_info'/0 =
     ( fun () ->
 	  ( case ( <>

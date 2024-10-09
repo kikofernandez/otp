@@ -688,7 +688,7 @@ expr({cons,L,H0,T0}, St0) ->
     {[H1,T1],Eps,St1} = safe_list([H0,T0], St0),
     A = full_anno(L, St1),
     {annotate_cons(A, H1, T1, St1),Eps,St1};
-expr({lc,L,E,Qs0}, St0) ->
+expr({lc,L,E,Qs0}, St0) ->  % HERE
     {Qs1,St1} = preprocess_quals(L, Qs0, St0),
     lc_tq(L, E, Qs1, #c_literal{anno=lineno_anno(L, St1),val=[]}, St1);
 expr({bc,L,E,Qs}, St) ->
