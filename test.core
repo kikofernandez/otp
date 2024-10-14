@@ -22,13 +22,15 @@ module 'test' ['main'/1,
 					when call 'erlang':'/='
 					      (_5,
 					       'ok') ->
-					( [Res]
-					  -| ['compiler_generated'] )
-				    ( <_3> when 'true' ->
-					  apply 'lc$^1'/1
-					      (( []
-						 -| ['compiler_generated'] ))
-				      -| ['compiler_generated'] )
+					let <_12> =
+					    apply 'lc$^0'/1
+						(_2)
+					in  ( [Res|_12]
+					      -| ['compiler_generated'] )
+				    <( _15
+				       -| ['compiler_generated'] )> when 'true' ->
+					apply 'lc$^0'/1
+					    (_2)
 				  end
 			  ( <[_1|_2]> when 'true' ->
 				apply 'lc$^0'/1

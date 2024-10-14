@@ -98,8 +98,8 @@
 -define(IS_FUNC_ARITY(A), is_integer(A) andalso 0 =< A andalso A =< ?MAX_FUNC_ARGS).
 
 -define(CT(Variables),
-        (
-          io:format("~n~n[~p] ~p~n~n", [?LINE, Variables])
+        ( ok
+          %% io:format("~n~n[~p] ~p~n~n", [?LINE, Variables])
         )).
 
 %% Variable value info.
@@ -1540,7 +1540,7 @@ opt_bool_clauses(Cs, true, true) ->
 	    []
     end;
 opt_bool_clauses([#c_clause{pats=[#c_literal{val=Lit}],
-			    guard=#c_literal{val=true}}=C|Cs]=T, SeenT, SeenF) ->
+			    guard=#c_literal{val=true}}=C|Cs], SeenT, SeenF) ->
     case is_boolean(Lit) of
 	false ->
 	    %% Not a boolean - this clause can't match.
@@ -1559,7 +1559,7 @@ opt_bool_clauses([#c_clause{pats=[#c_literal{val=Lit}],
                     opt_bool_clauses(Cs, SeenT, SeenF)
 	    end
     end;
-opt_bool_clauses([#c_clause{pats=Ps,guard=#c_literal{val=true}}=C|Cs]=T, SeenT, SeenF) ->
+opt_bool_clauses([#c_clause{pats=Ps,guard=#c_literal{val=true}}=C|Cs], SeenT, SeenF) ->
     case Ps of
 	[#c_var{}] ->
 	    %% Will match a boolean.
@@ -1922,7 +1922,7 @@ dead_code_elimitation_singleton_list(#c_letrec{defs=Fs0,body=B0}=Letrec, _Sub) -
     case Fs0 of
         %% Deal with multiple defs in letrec
         [{#c_var{}=FunName, #c_fun{vars=[#c_var{}=VarFun], body=BodyFun}}] ->
-            io:format("[~p] All changed: ~p~n", [?LINE, FunName]),
+            %% io:format("[~p] All changed: ~p~n", [?LINE, FunName]),
             B1 = cerl_trees:map(
               fun (Node) ->
                       %% checks that the letrec comes from a lc.
@@ -1967,40 +1967,75 @@ dead_code_elimitation_singleton_list(#c_letrec{defs=Fs0,body=B0}=Letrec, _Sub) -
 
 dead_code_unused_branch(#c_var{}=FVarName, #c_case{arg=_Arg, clauses=Clauses}=BodyFun, _Sub) ->
     ?CT(Clauses),
-    _ContBody = extract_empty_match_clause_continuation(Clauses),
-    ?CT(_ContBody),
+    [ContBody] = extract_empty_match_clause_continuation(Clauses),
+    Clauses1 = remove_tail_call_non_existing_fun(FVarName, Clauses),
+    ?CT(ContBody),
     F = fun(#c_clause{body=B}=C) ->
-                LetBody0 = cerl_trees:map(
-                  fun (#c_let{vars=Vars, arg=#c_apply{op=Op}, body=LetBody}=Let) ->
-                          maybe
-                              true ?= cerl:var_name(Op) == cerl:var_name(FVarName),
-                              [#c_var{}=UVar] ?= Vars,
-                              io:format("~n~n~n~n~n~n~n~n~n[~p] LetBody: ~p~n~n~n~n~n~n~n~n~n", [?LINE, LetBody]),
-                              cerl_trees:map(fun (#c_var{}=V) ->
-                                                     case cerl:var_name(V) == cerl:var_name(UVar) of
-                                                         true ->
-                                                            %% ContBody;
-                                                            cerl:make_list([]);
-                                                         _ ->
-                                                             V
-                                                             %% NewVar = make_var_name(),
-                                                             %% NewBody = cerl:make_list([V, NewVar]),
-                                                             %% cerl:c_let([NewVar], ContBody, NewBody);
-                                                     end;
-                                                 (Else) ->
-                                                     Else
-                                             end, LetBody)
-                          else
-                              _ ->
-                                  Let
-                          end;
-                      (Else) ->
-                          Else
-                  end, B),
-                C#c_clause{body=LetBody0}
+                case C of
+                    ContBody ->
+                        %% case where we substitute pattern [] by some variable,
+                        %% since the [] cannot ever happen.
+                        NewVar = make_var(cerl:get_ann(C)),
+                        C#c_clause{pats = [NewVar]};
+                    _ ->
+                        F = fun (#c_let{anno=Anno, vars=Vars, arg=#c_apply{op=Op}, body=LetBody}=Let) ->
+                                    maybe
+                                        true ?= cerl:var_name(Op) == cerl:var_name(FVarName),
+                                        [#c_var{}=UVar] ?= Vars,
+                                        %% io:format("~n~n~n~n~n~n~n~n~n[~p] LetBody: ~p~n~n~n~n~n~n~n~n~n", [?LINE, LetBody]),
+
+                                        %% checks if let-bound variable should be removed, e.g.,
+                                        %% let <_10> = apply 'lc$^1'/1 (_4)
+                                        %% in ( [Res|_10]
+                                        %% because lc^1 has been removed.
+                                        NewVar = make_var(Anno),
+                                        %% NewBody = cerl:make_list([V, NewVar]),
+                                        NewBody = cerl_trees:map(
+                                                    fun (#c_var{}=V) ->
+                                                            case cerl:var_name(V) == cerl:var_name(UVar) of
+                                                                true ->
+                                                                    NewVar;
+                                                                   %% ContBody;
+                                                                   %% NewVar = make_var_name(),
+                                                                   %% NewBody = cerl:make_list([V, NewVar]),
+                                                                   %% cerl:c_let([NewVar], ContBody, NewBody);
+                                                                   %% cerl:make_list([]);
+                                                                _ ->
+                                                                    V
+                                                                       %% NewVar = make_var_name(),
+                                                                       %% NewBody = cerl:make_list([V, NewVar]),
+                                                                       %% cerl:c_let([NewVar], ContBody, NewBody);
+                                                            end;
+                                                        (Else) ->
+                                                            Else
+                                                    end, LetBody),
+                                        Result = cerl:c_let([NewVar], cerl:clause_body(ContBody), NewBody),
+                                        ?CT(Result),
+                                        Result
+                                    else
+                                        _ ->
+                                            Let
+                                    end;
+                                (Else) ->
+                                    Else
+                            end,
+                        LetBody0 = cerl_trees:map(F, B),
+                        C#c_clause{body=LetBody0}
+                end
         end,
-    Clauses0 = lists:map(F, Clauses),
-    BodyFun#c_case{clauses=Clauses0}.
+    BodyFun#c_case{clauses=lists:map(F, Clauses1)}.
+
+remove_tail_call_non_existing_fun(FVarName, Clauses) ->
+    lists:filter(fun (#c_clause{body=Body}) ->
+                         case cerl:is_c_apply(Body) of
+                             true ->
+                                 Op = cerl:apply_op(Body),
+                                     cerl:var_name(Op) /= cerl:var_name(FVarName);
+                             _ ->
+                                 true
+                         end
+                 end, Clauses).
+
 
 extract_empty_match_clause_continuation(Clauses) ->
     Singleton = lists:filter(fun (#c_clause{pats=[L]}) ->
