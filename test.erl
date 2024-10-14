@@ -135,8 +135,14 @@
 %%        -| [{'function',{'main',1}}] )
 %%
 main(X) ->
+    %% Z=Foo = X,
+    %% {Bar, Baz} = Foo,
+    %% Baz2 = [X],
     %% Kiko will optimize comprehensions like
+    %% some_test([X]).
     [Res || E <- X, Res <- [some_test(E)], Res /= ok].
+    %% Foo = X,
+    %% [Res || E <- X, Res <- [some_test(E)], EE <- Foo, Res /= ok andalso EE /= bar].
 
 some_test(X) ->
     X.

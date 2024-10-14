@@ -97,6 +97,11 @@
 -define(MAX_FUNC_ARGS, 255).
 -define(IS_FUNC_ARITY(A), is_integer(A) andalso 0 =< A andalso A =< ?MAX_FUNC_ARGS).
 
+-define(CT(Variables),
+        (
+          io:format("~n~n[~p] ~p~n~n", [?LINE, Variables])
+        )).
+
 %% Variable value info.
 -record(sub, {v=[],                                 %Variable substitutions
               s=sets:new([{version, 2}]) :: sets:set(), %Variables in scope
@@ -289,7 +294,9 @@ expr(#c_letrec{defs=Fs0,body=B0}=Letrec, Ctxt, Sub) ->
                       end
 	      end, Fs0),
     B1 = body(B0, Ctxt, Sub),
-    Letrec#c_letrec{defs=Fs1,body=B1};
+    Letrec1 = Letrec#c_letrec{defs=Fs1,body=B1},
+    lc_optimisation(Letrec1, Sub);
+    %% dead_code_elimitation_singleton_list(Letrec1);
 expr(#c_case{}=Case0, Ctxt, Sub) ->
     %% Ideally, the compiler should only emit warnings when there is
     %% a real mistake in the code being compiled. We use the follow
@@ -1533,10 +1540,11 @@ opt_bool_clauses(Cs, true, true) ->
 	    []
     end;
 opt_bool_clauses([#c_clause{pats=[#c_literal{val=Lit}],
-			    guard=#c_literal{val=true}}=C|Cs], SeenT, SeenF) ->
+			    guard=#c_literal{val=true}}=C|Cs]=T, SeenT, SeenF) ->
     case is_boolean(Lit) of
 	false ->
 	    %% Not a boolean - this clause can't match.
+            ?CT(T),
             add_warning(C, {nomatch,clause_type}),
 	    opt_bool_clauses(Cs, SeenT, SeenF);
 	true ->
@@ -1551,7 +1559,7 @@ opt_bool_clauses([#c_clause{pats=[#c_literal{val=Lit}],
                     opt_bool_clauses(Cs, SeenT, SeenF)
 	    end
     end;
-opt_bool_clauses([#c_clause{pats=Ps,guard=#c_literal{val=true}}=C|Cs], SeenT, SeenF) ->
+opt_bool_clauses([#c_clause{pats=Ps,guard=#c_literal{val=true}}=C|Cs]=T, SeenT, SeenF) ->
     case Ps of
 	[#c_var{}] ->
 	    %% Will match a boolean.
@@ -1562,6 +1570,7 @@ opt_bool_clauses([#c_clause{pats=Ps,guard=#c_literal{val=true}}=C|Cs], SeenT, Se
 	_ ->
 	    %% The clause cannot possible match a boolean.
 	    %% We can remove it.
+            ?CT(T),
 	    add_warning(C, {nomatch,clause_type}),
 	    opt_bool_clauses(Cs, SeenT, SeenF)
     end;
@@ -1866,9 +1875,146 @@ case_expand_var(E, #sub{t=Tdb}) ->
 %%                       call 'erlang':'error'({'bad_generator',_7})
 %%               end
 %%  in  apply 'lc$^0'/1(( _0)))
+%%
+%% dead_code_elimitation_singleton_list(Letrec, _Ctxt, _Sub) ->
+%%     Letrec.
 
-lc_singleton_dead_code_elimitation() ->
-    ok.
+lc_optimisation(Letrec, Sub) ->
+    dead_code_elimitation_singleton_list(Letrec, Sub).
+    %% case check_if_possible_lc(Letrec) of
+    %%     false -> Letrec;
+    %%     {true, _Dependency} ->
+    %%         dead_code_elimitation_singleton_list(Letrec, Sub)
+    %% end.
+
+
+%% check_if_possible_lc(Node) ->
+%%     case cerl:is_c_letrec(Node) of
+%%         false ->
+%%             false;
+%%         true ->
+%%             Defs = cerl:letrec_defs(Node),
+%%             Defs1 = [{V, cerl:fun_body(F)} || {V,F} <- Defs, cerl:is_c_var(V), cerl:is_c_fun(F)],
+
+%%             %% Ideally we use a graph here, but seems like an overkill
+%%             %% The dependency graph will tell us which functions call other letrecs
+%%             %% this dependency function allows us to know which function we should call
+%%             %% when we are in position X. Example:
+%%             %%
+%%             %% DepGraph: #{Foo => [Bar], Bar => [Foo, Bar]}
+%%             %%
+%%             %% If we are inside a letrec in Bar and we Bar letrec will be removed,
+%%             check_lc_dependency_graph(Defs1, #{})
+%%     end.
+
+%% check_lc_dependency_graph([], G) -> false;
+%% check_lc_dependency_graph([{V, F} | VFs], G) ->
+%%     G1 = analyse_lc_call(V, F, G),
+%%     check_lc_dependency_graph(VFs, G1).
+
+%% analyse_lc_call(CurrentCall, F, G) ->
+%%     case type(F)
+
+
+dead_code_elimitation_singleton_list(#c_letrec{defs=Fs0,body=B0}=Letrec, _Sub) ->
+    %% The pattern of a lc is a letrec `FName1` that contains other letrecs that call `FName1`.
+
+    case Fs0 of
+        %% Deal with multiple defs in letrec
+        [{#c_var{}=FunName, #c_fun{vars=[#c_var{}=VarFun], body=BodyFun}}] ->
+            io:format("[~p] All changed: ~p~n", [?LINE, FunName]),
+            B1 = cerl_trees:map(
+              fun (Node) ->
+                      %% checks that the letrec comes from a lc.
+                      %% if the body contains a singleton list,
+                      %% replace the recursive call by the body.
+                      maybe
+                          #c_apply{op=Op, args=[Args]} ?= Node,
+                          %% io:format("[~p] All changed~nNode: ~p~n~n~n~n", [?LINE, Node]),
+                          true ?= cerl:is_c_var(Op),
+                          %% io:format("[~p] All changed~n ~p == ~p = ~p~n", [?LINE, cerl:var_name(FunName), cerl:var_name(Op), cerl:var_name(FunName) == cerl:var_name(Op)]),
+                          true ?= cerl:var_name(FunName) == cerl:var_name(Op),
+                          %% io:format("[~p] Args: ~p~nisList: ~p~n", [?LINE, Args, cerl:is_c_list(Args)]),
+                          true ?= cerl:is_c_list(Args),
+                          %% io:format("[~p] Length: ~p~n", [?LINE, cerl:list_length(Args)]),
+                          1 ?= cerl:list_length(Args),
+                          BodyFun1 = dead_code_unused_branch(FunName, BodyFun, _Sub),
+                          Result = cerl:c_let([VarFun], Args, BodyFun1),
+                          %% io:format("[~p] Result: ~p~n", [?LINE, Result]),
+                          Result
+                          %% TODO: remove let-XS-in-B when Xs calls apply of non-existing recursive call,
+                          %%       and leave simply the result of the case branch
+                      else
+                          _ ->
+                              %% io:format("[~p] No changed~n", [?LINE]),
+                              Node
+                      end
+              end, B0),
+            Result = case cerl:is_c_let(B1) of
+                         true ->
+                             %% removes the lecrec
+                             B1;
+                         false ->
+                             %% TODO: throw exception.
+                             Letrec#c_letrec{defs=Fs0,body=B1}
+                     end,
+            %% io:format("End:~n~n~p~n~n", [Result]),
+            Result;
+        _ ->
+            %% io:format("[~p] No changed~n", [?LINE]),
+            Letrec
+        end.
+
+dead_code_unused_branch(#c_var{}=FVarName, #c_case{arg=_Arg, clauses=Clauses}=BodyFun, _Sub) ->
+    ?CT(Clauses),
+    _ContBody = extract_empty_match_clause_continuation(Clauses),
+    ?CT(_ContBody),
+    F = fun(#c_clause{body=B}=C) ->
+                LetBody0 = cerl_trees:map(
+                  fun (#c_let{vars=Vars, arg=#c_apply{op=Op}, body=LetBody}=Let) ->
+                          maybe
+                              true ?= cerl:var_name(Op) == cerl:var_name(FVarName),
+                              [#c_var{}=UVar] ?= Vars,
+                              io:format("~n~n~n~n~n~n~n~n~n[~p] LetBody: ~p~n~n~n~n~n~n~n~n~n", [?LINE, LetBody]),
+                              cerl_trees:map(fun (#c_var{}=V) ->
+                                                     case cerl:var_name(V) == cerl:var_name(UVar) of
+                                                         true ->
+                                                            %% ContBody;
+                                                            cerl:make_list([]);
+                                                         _ ->
+                                                             V
+                                                             %% NewVar = make_var_name(),
+                                                             %% NewBody = cerl:make_list([V, NewVar]),
+                                                             %% cerl:c_let([NewVar], ContBody, NewBody);
+                                                     end;
+                                                 (Else) ->
+                                                     Else
+                                             end, LetBody)
+                          else
+                              _ ->
+                                  Let
+                          end;
+                      (Else) ->
+                          Else
+                  end, B),
+                C#c_clause{body=LetBody0}
+        end,
+    Clauses0 = lists:map(F, Clauses),
+    BodyFun#c_case{clauses=Clauses0}.
+
+extract_empty_match_clause_continuation(Clauses) ->
+    Singleton = lists:filter(fun (#c_clause{pats=[L]}) ->
+                                     cerl:is_c_list(L) andalso cerl:list_length(L) == 0
+                             end, Clauses),
+    case Singleton of
+        [S] ->
+            [S];
+        _ ->
+            Clauses
+    end.
+
+
+
 
 %% case_opt_nomatch(E, Clauses, LitExpr) -> Clauses'
 %%  Remove all clauses that cannot possibly match.
@@ -1880,7 +2026,7 @@ case_opt_nomatch(E, [{[P|_],C,_,_}=Current|Cs], LitExpr) ->
             %% the clause.  Unless the entire case expression is a
             %% literal, also emit a warning.
             case LitExpr of
-                false -> add_warning(C, {nomatch,clause_type});
+                false -> ?CT({E, P}), add_warning(C, {nomatch,clause_type});
                 true -> ok
             end,
             case_opt_nomatch(E, Cs, LitExpr);
