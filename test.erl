@@ -140,8 +140,13 @@ main(X) ->
     %% Baz2 = [X],
     %% Kiko will optimize comprehensions like
     %% some_test([X]).
-    [Res || E <- X, Res <- [some_test(E)], Res /= ok].
+    [] = [t || {_C=_D}={_,_} <- []],
+    [] = [X || {X,{_Y}={X,X}} <- []],
+    [t] = [t || "a"++"b" = "ab" <- ["ab"]],
+
+    [some_test(Res) || E <- X, Res <- [some_test(E)], Res /= ok].
     %% Foo = X,
+    %% [Res || E <- X, Res <- [some_test(E)], EE <- Foo, Res /= ok andalso EE /= bar].
     %% [Res || E <- X, Res <- [some_test(E)], EE <- Foo, Res /= ok andalso EE /= bar].
 
 some_test(X) ->

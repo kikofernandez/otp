@@ -8,48 +8,157 @@ module 'test' ['main'/1,
 'main'/1 =
     %% Line 137
     ( fun (_0) ->
-	  %% Line 143
-	  ( letrec
-		'lc$^0'/1 =
-		    fun (_6) ->
-			case _6 of
-			  <[E|_2]> when 'true' ->
-			      let <_5> =
-				  apply 'some_test'/1
-				      (E)
-			      in  case _5 of
-				    <Res>
-					when call 'erlang':'/='
-					      (_5,
-					       'ok') ->
-					let <_12> =
-					    apply 'lc$^0'/1
-						(_2)
-					in  ( [Res|_12]
-					      -| ['compiler_generated'] )
-				    <( _15
-				       -| ['compiler_generated'] )> when 'true' ->
-					apply 'lc$^0'/1
-					    (_2)
-				  end
-			  ( <[_1|_2]> when 'true' ->
-				apply 'lc$^0'/1
-				    (_2)
-			    -| ['compiler_generated'] )
+	  let <_6> =
+	      letrec
+		  'lc$^0'/1 =
+		      %% Line 143
+		      fun (_3) ->
+			  case _3 of
+			    ( <[_1|_2]> when 'true' ->
+				  apply 'lc$^0'/1
+				      (_2)
+			      -| ['compiler_generated'] )
+			    <[]> when 'true' ->
+				[]
+			    ( <_4> when 'true' ->
+				  call 'erlang':'error'
+				      ({'bad_generator',_4})
+			      -| ['compiler_generated'] )
+			  end
+	      in  %% Line 143
+		  apply 'lc$^0'/1
+		      ([])
+	  in  %% Line 143
+	      case ( _6
+		     -| ['list_comprehension'] ) of
+		<[]> when 'true' ->
+		    let <_13> =
+			letrec
+			    'lc$^1'/1 =
+				%% Line 144
+				fun (_10) ->
+				    case _10 of
+				      ( <[_8|_9]> when 'true' ->
+					    apply 'lc$^1'/1
+						(_9)
+					-| ['compiler_generated'] )
+				      <[]> when 'true' ->
+					  []
+				      ( <_11> when 'true' ->
+					    call 'erlang':'error'
+						({'bad_generator',_11})
+					-| ['compiler_generated'] )
+				    end
+			in  %% Line 144
+			    apply 'lc$^1'/1
+				([])
+		    in  %% Line 144
+			case ( _13
+			       -| ['list_comprehension'] ) of
 			  <[]> when 'true' ->
-			      []
-			  ( <_7> when 'true' ->
-				call 'erlang':'error'
-				    ({'bad_generator',_7})
+			      let <_20> =
+				  letrec
+				      'lc$^2'/1 =
+					  %% Line 145
+					  fun (_17) ->
+					      case _17 of
+						<[[97|[98]]|_16]> when 'true' ->
+						    let <_19> =
+							apply 'lc$^2'/1
+							    (_16)
+						    in  ( ['t'|_19]
+							  -| ['compiler_generated'] )
+						( <[_15|_16]> when 'true' ->
+						      apply 'lc$^2'/1
+							  (_16)
+						  -| ['compiler_generated'] )
+						<[]> when 'true' ->
+						    []
+						( <_18> when 'true' ->
+						      call 'erlang':'error'
+							  ({'bad_generator',_18})
+						  -| ['compiler_generated'] )
+					      end
+				  in  %% Line 145
+				      apply 'lc$^2'/1
+					  ([[97|[98]]])
+			      in  %% Line 145
+				  case ( _20
+					 -| ['list_comprehension'] ) of
+				    <['t']> when 'true' ->
+					%% Line 147
+					( letrec
+					      'lc$^3'/1 =
+						  fun (_27) ->
+						      case _27 of
+							<[E|_23]> when 'true' ->
+							    ( letrec
+								  'lc$^4'/1 =
+								      fun (_29) ->
+									  case _29 of
+									    <[Res|_25]>
+										when call 'erlang':'/='
+										      (Res,
+										       'ok') ->
+										let <_31> =
+										    apply 'some_test'/1
+											(Res)
+										in  let <_32> =
+											apply 'lc$^4'/1
+											    (_25)
+										    in  ( [_31|_32]
+											  -| ['compiler_generated'] )
+									    ( <[_24|_25]> when 'true' ->
+										  apply 'lc$^4'/1
+										      (_25)
+									      -| ['compiler_generated'] )
+									    <[]> when 'true' ->
+										apply 'lc$^3'/1
+										    (_23)
+									    ( <_30> when 'true' ->
+										  call 'erlang':'error'
+										      ({'bad_generator',_30})
+									      -| ['compiler_generated'] )
+									  end
+							      in  let <_26> =
+								      apply 'some_test'/1
+									  (E)
+								  in  apply 'lc$^4'/1
+									  ([_26|[]])
+							      -| ['list_comprehension'] )
+							( <[_22|_23]> when 'true' ->
+							      apply 'lc$^3'/1
+								  (_23)
+							  -| ['compiler_generated'] )
+							<[]> when 'true' ->
+							    []
+							( <_28> when 'true' ->
+							      call 'erlang':'error'
+								  ({'bad_generator',_28})
+							  -| ['compiler_generated'] )
+						      end
+					  in  apply 'lc$^3'/1
+						  (( _0
+						     -| [{'function',{'main',1}}] ))
+					  -| ['list_comprehension'] )
+				    ( <_21> when 'true' ->
+					  primop 'match_fail'
+					      ({'badmatch',_21})
+				      -| ['compiler_generated'] )
+				  end
+			  ( <_14> when 'true' ->
+				primop 'match_fail'
+				    ({'badmatch',_14})
 			    -| ['compiler_generated'] )
 			end
-	    in  apply 'lc$^0'/1
-		    (( _0
-		       -| [{'function',{'main',1}}] ))
-	    -| ['list_comprehension'] )
+		( <_7> when 'true' ->
+		      primop 'match_fail'
+			  ({'badmatch',_7})
+		  -| ['compiler_generated'] )
+	      end
       -| [{'function',{'main',1}}] )
 'some_test'/1 =
-    %% Line 147
+    %% Line 152
     ( fun (_0) ->
 	  ( _0
 	    -| [{'function',{'some_test',1}}] )

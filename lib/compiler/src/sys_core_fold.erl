@@ -1544,7 +1544,6 @@ opt_bool_clauses([#c_clause{pats=[#c_literal{val=Lit}],
     case is_boolean(Lit) of
 	false ->
 	    %% Not a boolean - this clause can't match.
-            ?CT(T),
             add_warning(C, {nomatch,clause_type}),
 	    opt_bool_clauses(Cs, SeenT, SeenF);
 	true ->
@@ -1570,7 +1569,6 @@ opt_bool_clauses([#c_clause{pats=Ps,guard=#c_literal{val=true}}=C|Cs], SeenT, Se
 	_ ->
 	    %% The clause cannot possible match a boolean.
 	    %% We can remove it.
-            ?CT(T),
 	    add_warning(C, {nomatch,clause_type}),
 	    opt_bool_clauses(Cs, SeenT, SeenF)
     end;
@@ -1965,85 +1963,136 @@ dead_code_elimitation_singleton_list(#c_letrec{defs=Fs0,body=B0}=Letrec, _Sub) -
             Letrec
         end.
 
-dead_code_unused_branch(#c_var{}=FVarName, #c_case{arg=_Arg, clauses=Clauses}=BodyFun, _Sub) ->
-    ?CT(Clauses),
-    [ContBody] = extract_empty_match_clause_continuation(Clauses),
-    Clauses1 = remove_tail_call_non_existing_fun(FVarName, Clauses),
-    ?CT(ContBody),
-    F = fun(#c_clause{body=B}=C) ->
-                case C of
-                    ContBody ->
-                        %% case where we substitute pattern [] by some variable,
-                        %% since the [] cannot ever happen.
+dead_code_unused_branch(#c_var{}=FVarName, #c_case{clauses=Clauses}=BodyFun, _Sub) ->
+    Clauses1 = lc_remove_tail_call_non_existing_fun(FVarName, Clauses),
+    F = fun (#c_clause{body=B}=C) ->
+                [CallbackClause] = lc_extract_callback(Clauses),
+                case CallbackClause == C of
+                    true ->
+                        %% Create a new pattern to express pattern-match on anything.
+                        %% We go from:
+                        %%
+                        %% letrec F = fun(_6) ->
+                        %% case _6 of
+                        %%   <...> -> ...
+                        %%   <[]> -> CallbackBody
+                        %% end
+                        %%
+                        %% To
+                        %%
+                        %% letrec F = fun(_6) ->
+                        %% %% case _6 of
+                        %%   <...> -> ...
+                        %%   <_NewVar> -> CallBackBody
+                        %% end
                         NewVar = make_var(cerl:get_ann(C)),
                         C#c_clause{pats = [NewVar]};
-                    _ ->
-                        F = fun (#c_let{anno=Anno, vars=Vars, arg=#c_apply{op=Op}, body=LetBody}=Let) ->
-                                    maybe
-                                        true ?= cerl:var_name(Op) == cerl:var_name(FVarName),
-                                        [#c_var{}=UVar] ?= Vars,
-                                        %% io:format("~n~n~n~n~n~n~n~n~n[~p] LetBody: ~p~n~n~n~n~n~n~n~n~n", [?LINE, LetBody]),
-
-                                        %% checks if let-bound variable should be removed, e.g.,
-                                        %% let <_10> = apply 'lc$^1'/1 (_4)
-                                        %% in ( [Res|_10]
-                                        %% because lc^1 has been removed.
-                                        NewVar = make_var(Anno),
-                                        %% NewBody = cerl:make_list([V, NewVar]),
-                                        NewBody = cerl_trees:map(
-                                                    fun (#c_var{}=V) ->
-                                                            case cerl:var_name(V) == cerl:var_name(UVar) of
-                                                                true ->
-                                                                    NewVar;
-                                                                   %% ContBody;
-                                                                   %% NewVar = make_var_name(),
-                                                                   %% NewBody = cerl:make_list([V, NewVar]),
-                                                                   %% cerl:c_let([NewVar], ContBody, NewBody);
-                                                                   %% cerl:make_list([]);
-                                                                _ ->
-                                                                    V
-                                                                       %% NewVar = make_var_name(),
-                                                                       %% NewBody = cerl:make_list([V, NewVar]),
-                                                                       %% cerl:c_let([NewVar], ContBody, NewBody);
-                                                            end;
-                                                        (Else) ->
-                                                            Else
-                                                    end, LetBody),
-                                        Result = cerl:c_let([NewVar], cerl:clause_body(ContBody), NewBody),
-                                        ?CT(Result),
-                                        Result
-                                    else
-                                        _ ->
-                                            Let
-                                    end;
-                                (Else) ->
-                                    Else
-                            end,
-                        LetBody0 = cerl_trees:map(F, B),
+                    false ->
+                        %% removes the recursive call to non-existing fn 'lc$^1':
+                        %%
+                        %% letrec 'lc$^0'/1 = fun (_6) ->
+                        %%   case _6 of
+                        %%     <[E|_2]> when 'true' ->
+                        %%       letrec 'lc$^1'/1 = fun (_8) ->
+                        %%         case _8 of
+                        %%           <[Res|_4]> when call 'erlang':'/=' (Res, 'ok') ->
+                        %%             let <_10> = apply 'lc$^1'/1 (_4) in  [Res|_10]
+                        %%           ... -> ...
+                        %%         end
+                        %%       in ...
+                        %%   end
+                        %%
+                        %% To:
+                        %%
+                        %% letrec 'lc$^0'/1 = fun (_6) ->
+                        %%   case _6 of
+                        %%     <[E|_2]> when 'true' ->
+                        %%       letrec 'lc$^1'/1 = fun (_8) ->     % this is shown for illustration purposes.
+                        %%                                          % but letrec lc$^1/1 is removed, reason
+                        %%                                          % for which we can call lc$^0'/1 (_2)
+                        %%         case _8 of
+                        %%           <[Res|_4]> when call 'erlang':'/=' (Res, 'ok') ->
+                        %%             let <_10> = apply 'lc$^0'/1 (_2) in  [Res|_10]
+                        %%           ... -> ...
+                        %%         end
+                        %%       in ...
+                        %%   end
+                        %%
+                        LetBody0 = lc_replace_letin(FVarName, CallbackClause, B),
                         C#c_clause{body=LetBody0}
                 end
         end,
     BodyFun#c_case{clauses=lists:map(F, Clauses1)}.
 
-remove_tail_call_non_existing_fun(FVarName, Clauses) ->
+
+%% replaces clause apply FVarName by the body of CallbackClause.
+%% CallbackClause contains prev value to continue lc iteration.
+lc_replace_letin(FVarName, CallbackClause, B) ->
+    F = fun (Node) ->
+                maybe
+                    #c_let{vars=[#c_var{}=LetVar], arg=#c_apply{op=Op}, body=LetBody} ?= Node,
+                    true ?= cerl:var_name(Op) == cerl:var_name(FVarName),
+
+                    %% checks if let-bound variable should be removed, e.g.,
+                    %% let <_10> = apply 'lc$^1'/1 (_4)
+                    %% in ( [Res|_10]
+                    %% because lc^1 has been removed.
+                    NewVar = make_var(cerl:get_ann(Node)),
+                    NewBody = lc_replace_var(LetBody, LetVar, NewVar),
+                    cerl:c_let([NewVar], cerl:clause_body(CallbackClause), NewBody)
+                else
+                    _ ->
+                        Node
+                end
+        end,
+    cerl_trees:map(F, B).
+
+%% replaces 'ReplacingVar' appearing in 'Node' by 'NewVar'.
+-spec lc_replace_var(Node, ReplacingVar, NewVar) -> Result when
+      Node :: cerl:cerl(),
+      ReplacingVar :: cerl:c_var(),
+      NewVar :: cerl:c_var(),
+      Result :: cerl:cerl().
+lc_replace_var(Node, ReplacingVar, NewVar) ->
+    cerl_trees:map(fun (#c_var{}=V) ->
+                           case cerl:var_name(V) == cerl:var_name(ReplacingVar) of
+                               true ->
+                                   NewVar;
+                               _ ->
+                                   V
+                           end;
+                       (Else) ->
+                           Else
+                   end, Node).
+
+%% Filter out clauses with an `apply` op calling function 'Name'.
+-spec lc_remove_tail_call_non_existing_fun(Name, Clauses) -> Return when
+      Name :: cerl:c_var(),
+      Clauses :: [cerl:c_clause()],
+      Return :: [cerl:c_clause()].
+lc_remove_tail_call_non_existing_fun(FVarName, Clauses) ->
     lists:filter(fun (#c_clause{body=Body}) ->
                          case cerl:is_c_apply(Body) of
                              true ->
                                  Op = cerl:apply_op(Body),
-                                     cerl:var_name(Op) /= cerl:var_name(FVarName);
+                                 cerl:var_name(Op) /= cerl:var_name(FVarName);
                              _ ->
                                  true
                          end
                  end, Clauses).
 
-
-extract_empty_match_clause_continuation(Clauses) ->
-    Singleton = lists:filter(fun (#c_clause{pats=[L]}) ->
-                                     cerl:is_c_list(L) andalso cerl:list_length(L) == 0
-                             end, Clauses),
-    case Singleton of
-        [S] ->
-            [S];
+%% Extracts the previous callback.
+%% This callback always happens to match the empty case,
+%% which can be used to rewrite the pattern leaving the body equal
+-spec lc_extract_callback(Clauses :: [#c_clause{}]) -> [#c_clause{}].
+lc_extract_callback(Clauses) ->
+    maybe
+        true ?= lists:all( fun cerl:is_c_clause/1, Clauses),
+        [Singleton] ?= lists:filter(fun (#c_clause{pats=[L]}) ->
+                                          cerl:is_c_list(L) andalso cerl:list_length(L) == 0
+                                    end, Clauses),
+        [Singleton]
+    else
         _ ->
             Clauses
     end.
@@ -2061,7 +2110,7 @@ case_opt_nomatch(E, [{[P|_],C,_,_}=Current|Cs], LitExpr) ->
             %% the clause.  Unless the entire case expression is a
             %% literal, also emit a warning.
             case LitExpr of
-                false -> ?CT({E, P}), add_warning(C, {nomatch,clause_type});
+                false -> add_warning(C, {nomatch,clause_type});
                 true -> ok
             end,
             case_opt_nomatch(E, Cs, LitExpr);
