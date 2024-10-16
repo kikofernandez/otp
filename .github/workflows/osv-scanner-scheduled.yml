@@ -1,12 +1,10 @@
 name: OSV-Scanner PR Scan
 
-# TODO: is there a way to test latest 4 tags from:
-# git tag --sort=-creatordate | head -n 4
 on:
   pull_request:
-    branches:
-      - master
-      - maint
+  push:
+  schedule:
+    - cron: 0 1 * * *
 
 permissions:
   # Required to upload SARIF file to CodeQL.
@@ -19,4 +17,34 @@ permissions:
 
 jobs:
   scan-pr:
+    if: github.event_name != 'schedule'
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v1.8.5"
+
+  schedule-scan:
+    runs-on: ubuntu-latest
+    #if: github.event_name == 'schedule'
+    outputs:
+       versions: ${{ steps.run.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4.1.7
+        run: |
+          VSNs=$(grep -E 'OTP-[^.]+[.]0 :' otp_versions.table | awk '{ print $1 '} | head -3 | sed 's/[-.]/ /g' | awk '{print $2}')
+          versions='["maint", "master"'
+          for vsn in $VSNs; do
+            versions="${versions}, \"maint-$vsn\""
+          done
+          versions="${versions}]"
+          echo "versions='${versions}'" > $GITHUB_OUTPUT
+
+  run-scheduled-scan:
+    needs: schedule-scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        type: ${{ fromJson(needs.schedule-scan.outputs.versions) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4.1.7
+        with:
+          branch: ${{ matrix.type }}
+      - uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v1.8.5"
