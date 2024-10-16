@@ -26,10 +26,11 @@ jobs:
     #if: github.event_name == 'schedule'
     if: github.event_name != 'workflow_dispatch'
     outputs:
-       versions: ${{ steps.run.outputs.versions }}
+       versions: ${{ steps.get-versions.outputs.versions }}
     steps:
       - uses: actions/checkout@v4.1.7
-      - run: |
+      - id: get-versions
+        run: |
           VSNs=$(grep -E 'OTP-[^.]+[.]0 :' otp_versions.table | awk '{ print $1 '} | head -3 | sed 's/[-.]/ /g' | awk '{print $2}')
           versions='["maint", "master"'
           for vsn in $VSNs; do
