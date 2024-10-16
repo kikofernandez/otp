@@ -1678,7 +1678,8 @@ core_passes(CoreStatus) ->
              {iff,dcopt,{listing,"copt"}},
              {unless,no_alias,{pass,sys_core_alias}},
              {iff,dalias,{listing,"core_alias"}},
-             ?pass(core_transforms)]},
+             ?pass(core_transforms)
+            ]},
            {iff,'to_core',{done,"core"}}]}
          | kernel_passes()].
 

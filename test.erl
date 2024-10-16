@@ -135,24 +135,46 @@
 %%        -| [{'function',{'main',1}}] )
 %%
 main(X) ->
+    _ = X,
     %% Z=Foo = X,
     %% {Bar, Baz} = Foo,
     %% Baz2 = [X],
     %% Kiko will optimize comprehensions like
     %% some_test([X]).
-    [] = [t || {_C=_D}={_,_} <- []],
-    [] = [X || {X,{_Y}={X,X}} <- []],
-    [t] = [t || "a"++"b" = "ab" <- ["ab"]],
+    %% [] = [Y || {Y} <- [], (false or (Y/0 > 3))].
 
-    [some_test(Res) || E <- X, Res <- [some_test(E)], Res /= ok].
-    %% Foo = X,
-    %% [Res || E <- X, Res <- [some_test(E)], EE <- Foo, Res /= ok andalso EE /= bar].
-    %% [Res || E <- X, Res <- [some_test(E)], EE <- Foo, Res /= ok andalso EE /= bar].
+
+    %% Test1
+    %% [some_test(Res) || E <- X, Res <- [some_test(E)], Res /= ok].
+    [Res || E <- X, Res <- [some_test(E)]].
+
+    %% Test 2
+    %% [Res || E <- X, Res <- [some_test(E)], EE <- X, Res /= ok andalso EE /= bar].
 
 some_test(X) ->
     X.
 
 
+%% case [Res|[]] of
+%%     [Res|_5] ->
+%%         _13 = apply lc01 _3,
+%%         [Res|13];
+%%     _14 ->
+%%         apply lc01 _3
+
+%% Next Opt
+%% case _6 of
+%%     [Res|_5] ->
+%%         _13 = apply lc01 _3,
+%%         [Res|13];
+%%     _14 ->
+%%         apply lc01 _3
+
+
+%% case _6 of
+%%   Res when true ->
+%%     let _13 = apply lc01 _3
+%%     in [Res|_13]
 
 
 %% main2(X) ->

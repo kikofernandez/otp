@@ -98,8 +98,8 @@
 -define(IS_FUNC_ARITY(A), is_integer(A) andalso 0 =< A andalso A =< ?MAX_FUNC_ARGS).
 
 -define(CT(Variables),
-        ( ok
-          %% io:format("~n~n[~p] ~p~n~n", [?LINE, Variables])
+        (
+          io:format("~n~n[~p] ~p~n~n", [?LINE, Variables])
         )).
 
 %% Variable value info.
@@ -113,9 +113,11 @@
 	{'ok', cerl:c_module(), [_]}.
 
 module(#c_module{defs=Ds0}=Mod, Opts) ->
+    io:format("Mod: ~p~n~n~n", [Mod]),
     put(no_inline_list_funcs, not member(inline_list_funcs, Opts)),
     init_warnings(),
     Ds1 = [function_1(D) || D <- Ds0],
+    io:format("ModEnd: ~p~n~n~n", [Ds1]),
     erase(new_var_num),
     erase(no_inline_list_funcs),
     {ok,Mod#c_module{defs=Ds1},get_warnings()}.
@@ -331,8 +333,13 @@ expr(#c_case{}=Case0, Ctxt, Sub) ->
     Arg1 = body(Arg0, value, Sub),
     LitExpr = cerl:is_literal(Arg1),
     {Arg2,Cs1} = case_opt(Arg1, Cs0, Sub),
+    ?CT({"expr(case):\n", Case0}),
+    ?CT({"case Arg1 of:\n", Arg1}),
+    ?CT({"Arg2", Arg2}),
+    ?CT({"Cs1", Cs1}),
     Cs2 = clauses(Arg2, Cs1, Ctxt, Sub, LitExpr, Anno),
     Case = Case1#c_case{arg=Arg2,clauses=Cs2},
+    ?CT({"Case Result: ", Case}),
     warn_no_clause_match(Case1, Case),
     Expr = eval_case(Case, Sub),
     move_case_into_arg(Expr, Sub);
@@ -1429,7 +1436,8 @@ warn_no_clause_match(CaseOrig, CaseOpt) ->
 
 clauses(E, [C0|Cs], Ctxt, Sub, LitExpr, Anno) ->
     #c_clause{pats=Ps,guard=G} = C1 = clause(C0, E, Ctxt, Sub),
-    %%ok = io:fwrite("~w: ~p~n", [?LINE,{E,Ps}]),
+    ok = io:fwrite("~w: E:~p~nPs: ~p~nC0:Cs: ~p~nWill match and will success: ~p~n~n~n",
+                   [?LINE,E,Ps, [C0|Cs], {will_match(E, Ps),will_succeed(G)}]),
     case {will_match(E, Ps),will_succeed(G)} of
 	{yes,yes} ->
 	    case LitExpr of
@@ -1457,6 +1465,10 @@ shadow_warning([C|Cs], none, Anno) ->
 shadow_warning([C|Cs], Line, Anno) ->
     case keyfind(function, 1, Anno) of
 	{function, {Name, Arity}} ->
+            ?CT("BEGGIIIIINNNNNN"),
+            ?CT(C),
+            ?CT({Line, Anno}),
+            ?CT({Name, Arity}),
             add_warning(C, {nomatch,{shadow,Line,{Name,Arity}}});
 	_ ->
             add_warning(C, {nomatch,{shadow,Line}})
@@ -1916,7 +1928,6 @@ lc_optimisation(Letrec, Sub) ->
 
 dead_code_elimitation_singleton_list(#c_letrec{defs=Fs0,body=B0}=Letrec, _Sub) ->
     %% The pattern of a lc is a letrec `FName1` that contains other letrecs that call `FName1`.
-
     case Fs0 of
         %% Deal with multiple defs in letrec
         [{#c_var{}=FunName, #c_fun{vars=[#c_var{}=VarFun], body=BodyFun}}] ->
@@ -1928,38 +1939,30 @@ dead_code_elimitation_singleton_list(#c_letrec{defs=Fs0,body=B0}=Letrec, _Sub) -
                       %% replace the recursive call by the body.
                       maybe
                           #c_apply{op=Op, args=[Args]} ?= Node,
-                          %% io:format("[~p] All changed~nNode: ~p~n~n~n~n", [?LINE, Node]),
                           true ?= cerl:is_c_var(Op),
-                          %% io:format("[~p] All changed~n ~p == ~p = ~p~n", [?LINE, cerl:var_name(FunName), cerl:var_name(Op), cerl:var_name(FunName) == cerl:var_name(Op)]),
                           true ?= cerl:var_name(FunName) == cerl:var_name(Op),
-                          %% io:format("[~p] Args: ~p~nisList: ~p~n", [?LINE, Args, cerl:is_c_list(Args)]),
                           true ?= cerl:is_c_list(Args),
-                          %% io:format("[~p] Length: ~p~n", [?LINE, cerl:list_length(Args)]),
                           1 ?= cerl:list_length(Args),
                           BodyFun1 = dead_code_unused_branch(FunName, BodyFun, _Sub),
-                          Result = cerl:c_let([VarFun], Args, BodyFun1),
-                          %% io:format("[~p] Result: ~p~n", [?LINE, Result]),
-                          Result
-                          %% TODO: remove let-XS-in-B when Xs calls apply of non-existing recursive call,
-                          %%       and leave simply the result of the case branch
+                          %% BodyFun1 = BodyFun,
+                          cerl:c_let([VarFun], Args, BodyFun1)
                       else
                           _ ->
-                              %% io:format("[~p] No changed~n", [?LINE]),
                               Node
                       end
               end, B0),
+            ?CT(["B1 body: \n", B1]),
             Result = case cerl:is_c_let(B1) of
                          true ->
                              %% removes the lecrec
                              B1;
                          false ->
-                             %% TODO: throw exception.
-                             Letrec#c_letrec{defs=Fs0,body=B1}
+                             ?CT(["Analysing LetRec: ", Letrec]),
+                             lc_remove_shadow_cases(Letrec)
                      end,
-            %% io:format("End:~n~n~p~n~n", [Result]),
+            ?CT(Result),
             Result;
         _ ->
-            %% io:format("[~p] No changed~n", [?LINE]),
             Letrec
         end.
 
@@ -2022,7 +2025,40 @@ dead_code_unused_branch(#c_var{}=FVarName, #c_case{clauses=Clauses}=BodyFun, _Su
                         C#c_clause{body=LetBody0}
                 end
         end,
-    BodyFun#c_case{clauses=lists:map(F, Clauses1)}.
+    Clauses2 = lists:map(F, Clauses1),
+    %% Clauses3 = remove_shadowing_clauses(Clauses2),
+    BodyFun#c_case{clauses=Clauses2}.
+
+lc_remove_shadow_cases(#c_letrec{defs=[{V, #c_fun{}=Fun}]}=Letrec) ->
+    ?CT(ok),
+    Letrec#c_letrec{defs=[{V, lc_remove_shadow_cases(Fun)}]};
+lc_remove_shadow_cases(#c_fun{body=Body}=Fun) ->
+    Fun#c_fun{body = lc_remove_shadow_cases(Body)};
+lc_remove_shadow_cases(#c_case{clauses=Clauses}=Case) ->
+    Clauses0 = remove_shadowing_clauses(Clauses),
+    ?CT(["Clauses in shadow cases\n~n ", Clauses0]),
+    Case#c_case{clauses=Clauses0};
+lc_remove_shadow_cases(Else) ->
+    Else.
+
+remove_shadowing_clauses(Clauses) ->
+    ?CT({"length0: ", length(Clauses)}),
+    ?CT({"Clauses0: ", Clauses}),
+    {_, Clauses0} =
+        lists:foldl(fun (#c_clause{pats=[Pattern]}=C, {Redundant, Acc}) ->
+                            case Pattern of
+                                #c_cons{hd = #c_var{}, tl = #c_var{}} ->
+                                    case Redundant of
+                                        true -> {true, Acc};
+                                        false -> {true, [C|Acc]}
+                                    end;
+                                _ ->
+                                    {Redundant, [C|Acc]}
+                            end
+                    end, {false, []}, Clauses),
+    ?CT({"length: ", length(Clauses0)}),
+    ?CT({"Clauses: ", Clauses0}),
+    reverse(Clauses0).
 
 
 %% replaces clause apply FVarName by the body of CallbackClause.
@@ -3018,6 +3054,9 @@ add_warning(Core, Term) ->
 		    ok;				%We already have
 						%an identical warning.
 		Ws ->
+            ?CT(Core),
+            ?CT({Term}),
+            ?CT("ENDDDDDDDD"),
 		    put(Key, [{File,[{Location,?MODULE,Term}]}|Ws])
 	    end
     end.
