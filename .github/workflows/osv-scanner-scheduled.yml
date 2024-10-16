@@ -3,6 +3,7 @@ name: OSV-Scanner PR Scan
 on:
   pull_request:
   push:
+  workflow_dispatch:
   schedule:
     - cron: 0 1 * * *
 
@@ -23,6 +24,7 @@ jobs:
   schedule-scan:
     runs-on: ubuntu-latest
     #if: github.event_name == 'schedule'
+    if: github.event_name != 'workflow_dispatch'
     outputs:
        versions: ${{ steps.run.outputs.versions }}
     steps:
@@ -44,7 +46,10 @@ jobs:
         type: ${{ fromJson(needs.schedule-scan.outputs.versions) }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4.1.7
-        with:
-          branch: ${{ matrix.type }}
-      - uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v1.8.5"
+      - run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/erlang/otp/actions/workflows/osv-scanner-scheduled.yml/dispatches \
+            -f "ref=${{ matrix.type }}"
