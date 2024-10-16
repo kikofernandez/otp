@@ -36,7 +36,7 @@ jobs:
             versions="${versions}, \"maint-$vsn\""
           done
           versions="${versions}]"
-          echo "versions='${versions}'" > $GITHUB_OUTPUT
+          echo "versions=${versions}" >> "$GITHUB_OUTPUT"
           cat $GITHUB_OUTPUT
 
   run-scheduled-scan:
