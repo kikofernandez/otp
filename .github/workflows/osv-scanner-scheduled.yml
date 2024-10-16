@@ -47,6 +47,8 @@ jobs:
       matrix:
         type: ${{ fromJson(needs.schedule-scan.outputs.versions) }}
       fail-fast: false
+    permissions:
+      contents: write
     steps:
       - env:
           GH_TOKEN: ${{ github.token }}
