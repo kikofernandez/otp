@@ -48,7 +48,7 @@ jobs:
         type: ${{ fromJson(needs.schedule-scan.outputs.versions) }}
       fail-fast: false
     permissions:
-      contents: write
+      actions: write
     steps:
       - env:
           GH_TOKEN: ${{ github.token }}
