@@ -27,7 +27,7 @@ jobs:
        versions: ${{ steps.run.outputs.versions }}
     steps:
       - uses: actions/checkout@v4.1.7
-        run: |
+      - run: |
           VSNs=$(grep -E 'OTP-[^.]+[.]0 :' otp_versions.table | awk '{ print $1 '} | head -3 | sed 's/[-.]/ /g' | awk '{print $2}')
           versions='["maint", "master"'
           for vsn in $VSNs; do
