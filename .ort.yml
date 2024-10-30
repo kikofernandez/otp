@@ -1,0 +1,823 @@
+# analyzer:
+#   skip_excluded: true
+
+excludes:
+  paths:
+    # - pattern: "**/test/**"
+    #   reason: "TEST_OF"
+    #   comment: "This directory contains test and data which are relevant."
+    - pattern: "lib/compiler/scripts/smoke-build"
+      reason: "TEST_OF"
+      comment: "This directory contains test projects which are not relevant."
+
+# license_choices:
+#     # Given choices, decide to apply one license or another.
+#     repository_license_choices:
+#       - given: "Apache-2.0 OR ErlPL-1.1"
+#         choice: "Apache-2.0"
+
+#       - given: "Apache-2.0 OR BSL-1.0"
+#         choice: "Apache-2.0"
+
+#       - given: "Apache-2.0 OR LGPL-2.1-or-later"
+#         choice: "Apache-2.0"
+
+resolutions:
+    # Rule Violations allows us to argue about why we can skip
+    # the violation or why it does not apply
+    rule_violations:
+      - message: ".*The license GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 is currently not covered by policy rules.*"
+        reason: "PATENT_GRANT_EXCEPTION"
+        comment: "Autoconf-exception-generic-3.0 allows its usage"
+
+      - message: ".*The license LGPL-2.0-or-later WITH WxWindows-exception-3.1 is currently not covered by policy rules.*"
+        reason: "PATENT_GRANT_EXCEPTION"
+        comment: "WxWindows-exception-3.1 allows its usage"
+
+      - message: ".*LicenseRef-scancode-unicode is currently not covered by policy rules.*"
+        reason: "PATENT_GRANT_EXCEPTION"
+        comment: "LicenseRef-scancode-unicode allows its usage"
+
+      - message: ".*Apache-2.0 WITH LLVM-exception.*"
+        reason: "PATENT_GRANT_EXCEPTION"
+        comment: "Apache-2.0 WITH LLVM-exception allows its usage"
+
+      - message: ".*The license LicenseRef-scancode-public-domain.*"
+        reason: "PATENT_GRANT_EXCEPTION"
+        comment: "LicenseRef-scancode-public-domain allows its usage"
+
+      - message: ".*LicenseRef-scancode-pcre.*"
+        reason: "PATENT_GRANT_EXCEPTION"
+        comment: "LicenseRef-scancode-pcre allows its usage"
+
+      - message: ".*The license TCL is currently not.*"
+        reason: "PATENT_GRANT_EXCEPTION"
+        comment: "TCL allows its usage"
+
+# Curations are used to fix wrongly detected licenses
+curations:
+    license_findings:
+      - path: "lib/dialyzer/doc/notes.md"
+        start_lines: "524"
+        line_count: 1
+        detected_license: "GPL-1.0-or-later"
+        reason: "DOCUMENTATION_OF"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/tools/emacs/internal_doc/emacs.sgml"
+        start_lines: "78"
+        line_count: 1
+        detected_license: "GPL-1.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "732"
+        line_count: 1
+        detected_license: "GPL-1.0-or-later"
+        reason: "DATA_OF"
+        comment: "COPYRIGHT of all licenses used in Erlang/OTP"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/edoc/include/edoc_doclet.hrl"
+        start_lines: "16"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc.hrl"
+        start_lines: "16"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_data.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_doclet.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_doclet_chunks.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_extract.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_layout.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_layout_chunks.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_lib.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_macros.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_parser.yrl"
+        start_lines: "20"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_parser.yrl"
+        start_lines: "260"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_refs.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_report.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_run.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_tags.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_types.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_types.hrl"
+        start_lines: "16"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/edoc/src/edoc_wiki.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/include/eunit.hrl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_autoexport.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_data.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_internal.hrl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_lib.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_listener.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+      - path: "lib/eunit/src/eunit_proc.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_serial.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_server.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_striptests.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_surefire.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_test.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+      - path: "lib/eunit/src/eunit_tests.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/src/eunit_tty.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/eunit/test/eunit_test_listener.erl"
+        start_lines: "11"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/epp_dodger.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/erl_comment_scan.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/erl_prettypr.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/erl_recomment.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/erl_syntax.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/erl_syntax_lib.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/merl.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/merl_tests.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/merl_transform.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      - path: "lib/syntax_tools/src/prettypr.erl"
+        start_lines: "12"
+        line_count: 3
+        detected_license: "GPL-2.0-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+
+      # IETF Trust
+
+      - path: "lib/diameter/doc/standard/rfc4740.txt"
+        start_lines: "3987"
+        line_count: 36
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc3124.txt"
+        start_lines: "1187"
+        line_count: 23
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc3539.txt"
+        start_lines: "2251"
+        line_count: 23
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc3588.txt"
+        start_lines: "8187"
+        line_count: 23
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/ftp/doc/archive/rfc2428.txt"
+        start_lines: "403"
+        line_count: 23
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/ftp/doc/archive/rfc2577.txt"
+        start_lines: "401"
+        line_count: 30
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/inets/doc/archive/rfc2616.txt"
+        start_lines: "9809"
+        line_count: 30
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/megaco/doc/standard/rfc3525.txt"
+        start_lines: "11883"
+        line_count: 23
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc4005.txt"
+        start_lines: "4715"
+        line_count: 35
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc4006.txt"
+        start_lines: "6339"
+        line_count: 35
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc4072.txt"
+        start_lines: "1803"
+        line_count: 35
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc4740.txt"
+        start_lines: "3987"
+        line_count: 36
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc5447.txt"
+        start_lines: "36"
+        line_count: 5
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/diameter/doc/standard/rfc6733.txt"
+        start_lines: "68"
+        line_count: 21
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/inets/doc/archive/rfc3986.txt"
+        start_lines: "3371"
+        line_count: 35
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/megaco/doc/standard/rfc4234.txt"
+        start_lines: "851"
+        line_count: 35
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+      - path: "lib/megaco/doc/standard/rfc4566.txt"
+        start_lines: "2699"
+        line_count: 35
+        detected_license: "LicenseRef-scancode-ietf-trust"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a IETF Trust license"
+        concluded_license: "IETF-Trust"
+
+        # ErlPL
+        #
+        #
+      - path: "lib/dialyzer/test/options1_SUITE_data/src/compiler/v3_core.erl"
+        start_lines: "10"
+        line_count: 6
+        detected_license: "ErlPL-1.1"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR ErlPL-1.1"
+
+      - path: "lib/dialyzer/test/options1_SUITE_data/src/compiler/v3_kernel.erl"
+        start_lines: "10"
+        line_count: 6
+        detected_license: "ErlPL-1.1"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR ErlPL-1.1"
+
+      - path: "lib/dialyzer/test/r9c_SUITE_data/src/mnesia/mnesia_log.erl"
+        start_lines: "10"
+        line_count: 6
+        detected_license: "ErlPL-1.1"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR ErlPL-1.1"
+
+        #
+        #
+        # COPYRIGHT
+        #
+        #
+      - path: "system/COPYRIGHT"
+        start_lines: "395"
+        line_count: 1
+        detected_license: "Apache-2.0 OR BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "549"
+        line_count: 1
+        detected_license: "Apache-2.0 OR LGPL-2.1-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "579"
+        line_count: 1
+        detected_license: "Apache-2.0 OR LGPL-2.1-or-later"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "425"
+        line_count: 1
+        detected_license: "Apache-2.0 WITH LLVM-exception"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "438"
+        line_count: 1
+        detected_license: "Apache-2.0 WITH LLVM-exception"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "422"
+        line_count: 1
+        detected_license: "Apache-2.0 WITH LLVM-exception AND BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "410"
+        line_count: 1
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "411"
+        line_count: 1
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "412"
+        line_count: 1
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "425"
+        line_count: 2
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "system/COPYRIGHT"
+        start_lines: "444"
+        line_count: 23
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+        #
+        #
+        # ryu is dual license OR
+        #
+        #
+      - path: "erts/emulator/ryu/common.h"
+        start_lines: "3"
+        line_count: 5
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
+
+      - path: "erts/emulator/ryu/common.h"
+        start_lines: "10"
+        line_count: 3
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
+
+      - path: "erts/emulator/ryu/d2s.c"
+        start_lines: "3"
+        line_count: 5
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "erts/emulator/ryu/d2s.c"
+        start_lines: "10"
+        line_count: 3
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "erts/emulator/ryu/d2s.c"
+        start_lines: "305"
+        line_count: 1
+        detected_license: "NOASSERTION WITH LLVM-exception"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "erts/emulator/ryu/d2s_full_table.h"
+        start_lines: "3"
+        line_count: 5
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
+
+      - path: "erts/emulator/ryu/d2s_full_table.h"
+        start_lines: "10"
+        line_count: 5
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
+
+      - path: "erts/emulator/ryu/d2s_intrinsics.h"
+        start_lines: "3"
+        line_count: 5
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
+
+      - path: "erts/emulator/ryu/d2s_intrinsics.h"
+        start_lines: "10"
+        line_count: 3
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
+
+      - path: "erts/emulator/ryu/digit_table.h"
+        start_lines: "3"
+        line_count: 5
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "erts/emulator/ryu/digit_table.h"
+        start_lines: "10"
+        line_count: 3
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "erts/emulator/ryu/ryu.h"
+        start_lines: "3"
+        line_count: 5
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "erts/emulator/ryu/ryu.h"
+        start_lines: "10"
+        line_count: 3
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0"
+
+      - path: "erts/emulator/test/estone_SUITE.erl"
+        start_lines: "522"
+        line_count: 1
+        detected_license: "BSL-1.0"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
