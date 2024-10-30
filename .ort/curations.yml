@@ -1,0 +1,31 @@
+- id: "Maven:com.example.app:example:0.0.1"
+  curations:
+    comment: "An explanation why the curation is needed or the reasoning for a license conclusion"
+    purl: "pkg:Maven/com.example.app/example@0.0.1?arch=arm64-v8a#src/main"
+    authors:
+    - "Name of one author"
+    - "Name of another author"
+    cpe: "cpe:2.3:a:example-org:example-package:0.0.1:*:*:*:*:*:*:*"
+    concluded_license: "Valid SPDX license expression to override the license findings."
+    declared_license_mapping:
+      "license a": "Apache-2.0"
+    description: "Curated description."
+    homepage_url: "http://example.com"
+    binary_artifact:
+      url: "http://example.com/binary.zip"
+      hash:
+        value: "ddce269a1e3d054cae349621c198dd52"
+        algorithm: "MD5"
+    source_artifact:
+      url: "http://example.com/sources.zip"
+      hash:
+        value: "ddce269a1e3d054cae349621c198dd52"
+        algorithm: "MD5"
+    vcs:
+      type: "Git"
+      url: "http://example.com/repo.git"
+      revision: "1234abc"
+      path: "subdirectory"
+    is_metadata_only: true
+    is_modified: true
+    source_code_origins: [ARTIFACT, VCS]
