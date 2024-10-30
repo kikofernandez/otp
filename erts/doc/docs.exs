@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 Ericsson AB
 [
   annotations_for_docs: fn
     md ->

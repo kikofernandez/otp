@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2024 Erlang/OTP and its contributors -->
+
 # Writing release notes
 
 This HOWTO gives advice on how to write release notes.

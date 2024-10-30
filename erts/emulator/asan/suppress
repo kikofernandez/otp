@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 Ericsson AB
+
 # Block passed to sigaltstack()
 leak:sys_thread_init_signal_stack
 

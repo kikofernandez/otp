@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2024 Ericsson AB -->
+
 All files in this directory except for the README.md files are copies
 of primary files located in the `$ERL_TOP/make/autoconf` directory.
 Files in this directory are updated automatically when executing

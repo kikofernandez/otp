@@ -1,4 +1,8 @@
 <!--
+
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2024 Erlang/OTP and its contributors
+
 %CopyrightBegin%
 
 Copyright Ericsson AB 2023-2024. All Rights Reserved.

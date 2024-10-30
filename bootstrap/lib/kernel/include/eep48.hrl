@@ -1,3 +1,5 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2024 Ericsson AB
 -define(NATIVE_FORMAT,<<"application/erlang+html">>).
 -define(CURR_DOC_VERSION, {1,0,0}).
 -record(docs_v1, {anno,

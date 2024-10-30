@@ -1,3 +1,8 @@
+<!-- 
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: Erlang/OTP and contributors
+-->
+
 # Security Policy
 
 ## Reporting a Vulnerability and/or Security Issues

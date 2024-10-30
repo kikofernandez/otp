@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2024 Erlang/OTP and its contributors -->
+
 # Documentation in Erlang/OTP
 
 This HOWTO describes how documentation of the Erlang/OTP project works. If you

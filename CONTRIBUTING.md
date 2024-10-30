@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: Ericsson and the Erlang/OTP contributors -->
+
 # Contributing to Erlang/OTP
 
 1. [License](#license)

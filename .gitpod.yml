@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Erlang/OTP and contributors
 image:
   file: .github/dockerfiles/Dockerfile.ubuntu-base
   context: .github

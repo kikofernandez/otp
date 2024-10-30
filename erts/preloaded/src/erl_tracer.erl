@@ -1,4 +1,7 @@
 -module(erl_tracer).
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2024 Erlang/OTP and contributors
+
 -moduledoc """
 Erlang tracer behavior.
 

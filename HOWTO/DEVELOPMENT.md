@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2024 Erlang/OTP and its contributors -->
+
 # Developing Erlang/OTP
 
 The Erlang/OTP development repository is quite large and the make system

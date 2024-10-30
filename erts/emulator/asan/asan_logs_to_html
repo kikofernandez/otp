@@ -1,6 +1,9 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
 
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2024 Ericsson AB
+
 %% Parse address sanitizer log files generated from test runs with
 %% with environment variables ASAN_LOG_DIR and TS_RUN_EMU=asan set.
 

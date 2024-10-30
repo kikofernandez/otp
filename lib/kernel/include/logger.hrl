@@ -1,3 +1,5 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2024 Ericsson AB
 -ifndef(LOGGER_HRL).
 -define(LOGGER_HRL,true).
 -define(LOG_EMERGENCY(A),?DO_LOG(emergency,[A])).

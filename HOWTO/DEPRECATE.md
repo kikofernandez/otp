@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-FileCopyrightText: 2024 Erlang/OTP and its contributors -->
+
 # Deprecate
 
 This HOWTO shows how to deprecate functionality from Erlang/OTP.

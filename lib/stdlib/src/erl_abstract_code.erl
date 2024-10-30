@@ -1,3 +1,6 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2024 Ericsson AB
+
 -module(erl_abstract_code).
 -moduledoc false.
 -export([debug_info/4]).

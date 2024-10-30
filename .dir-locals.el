@@ -1,4 +1,7 @@
 ;; Project-wide Emacs settings
+;; SPDX-License-Identifier: Apache-2.0
+;; SPDX-FileCopyrightText: 2016 Magnus Henoch <magnus@erlang-solutions.com>
+
 (
  (erlang-mode (indent-tabs-mode . nil))
  (autoconf-mode (indent-tabs-mode . nil))
