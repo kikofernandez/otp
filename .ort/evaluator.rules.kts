@@ -110,7 +110,7 @@ fun PackageRule.LicenseRule.isOrPermissive() =
                 // Useful only to test locations of licenses
                 resolvedLicense.locations.forEach { resolvedLicenseLocation ->
                   val l = resolvedLicenseLocation?.appliedCuration?.concludedLicense
-                  println("\n\nOriginalExpression: ${resolvedOriginalExpression.expression.toString()}\n  Path: ${resolvedLicenseLocation.location} - ${l}")
+                  println("\n\nOriginalExpression: ${resolvedOriginalExpression.expression.toString()} -- ${resolvedLicenseLocation.location} - ${l}")
                 }
 
                 if (acc == false) {
