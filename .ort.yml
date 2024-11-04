@@ -11,6 +11,10 @@ excludes:
     - pattern: ".ort/evaluator.rules.kts"
       reason: "TEST_OF"
       comment: "This directory is not relevant."    
+
+    - pattern: "HOWTO/**"
+      reason: "OTHER"
+      comment: "This directory is not relevant."    
       
     - pattern: "system/COPYRIGHT"
       reason: "OTHER"
@@ -89,6 +93,42 @@ curations:
         comment: "The scanner incorrectly categorises a dual license"
         concluded_license: "Public-Domain"
 
+      - path: "erts/doc/notes.md"
+        reason: "DOCUMENTATION_OF"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0"
+        
+      - path: "erts/autoconf/config.guess"
+        reason: "DOCUMENTATION_OF"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "GPL-3.0-or-later"
+
+      - path: "lib/common_test/test_server/config.guess"
+        reason: "DOCUMENTATION_OF"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "GPL-3.0-or-later"
+
+      - path: "make/autoconf/config.guess"
+        reason: "DOCUMENTATION_OF"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "GPL-3.0-or-later"
+
+      - path: "make/autoconf/config.sub"
+        reason: "DOCUMENTATION_OF"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "GPL-3.0-or-later"                
+
+      - path: "lib/common_test/test_server/config.sub"
+        reason: "DOCUMENTATION_OF"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "GPL-3.0-or-later"
+        
+
+      - path: "erts/autoconf/config.sub"
+        reason: "DOCUMENTATION_OF"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "GPL-3.0-or-later"        
+        
       - path: "erts/autoconf/install-sh"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
@@ -133,6 +173,16 @@ curations:
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
         concluded_license: "Public-Domain"
+
+      - path: "erts/emulator/zlib/inffast.c"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Zlib"
+
+      - path: "erts/emulator/zlib/zlib.mk"        
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "Apache-2.0"        
 
       - path: "make/autoconf/install-sh"
         reason: "INCORRECT"
@@ -380,6 +430,73 @@ curations:
         concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
 
 
+      - path: "lib/diameter/doc/notes.md"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/ftp/doc/notes.md"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/inets/doc/notes.md"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/kernel/doc/notes.md"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/kernel/test/zlib_SUITE_data/zipdoc"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "UNKNOWN"
+
+      - path: "lib/snmp/mibs/OTP-REG.mib"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/snmp/mibs/OTP-SNMPEA-MIB.mib"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/snmp/mibs/OTP-TC.mib"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/ssh/doc/notes.md"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"        
+
+      - path: "lib/ssl/doc/notes.md"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"
+
+      - path: "lib/stdlib/doc/notes.md"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"        
+        
+      - path: "lib/tftp/doc/notes.md"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"                
+        
+        
+      - path: "lib/wx/api_gen/wx_gen_doc.erl"
+        reason: "INCORRECT"
+        comment: "The scanner assumes NOASSERTION when it is Apache"
+        concluded_license: "Apache-2.0"                              
+      
+        
       # IETF Trust
 
       - path: "lib/diameter/doc/standard/rfc4740.txt"
@@ -508,7 +625,7 @@ curations:
       - path: "erts/emulator/ryu/d2s.c"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
-        concluded_license: "Apache-2.0"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
 
       - path: "erts/emulator/ryu/d2s_full_table.h"
         reason: "INCORRECT"
@@ -523,12 +640,12 @@ curations:
       - path: "erts/emulator/ryu/digit_table.h"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
-        concluded_license: "Apache-2.0"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
 
       - path: "erts/emulator/ryu/ryu.h"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
-        concluded_license: "Apache-2.0"
+        concluded_license: "Apache-2.0 OR BSL-1.0"
 
       - path: "erts/emulator/test/estone_SUITE.erl"
         reason: "INCORRECT"
@@ -550,3 +667,15 @@ curations:
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
         concluded_license: "GPL-3.0-or-later"
+
+      - path: "erts/etc/unix/jit-reader.c"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "GPL-3.0-or-later"
+
+      - path: "erts/lib_src/yielding_c_fun/test/examples/sha256_erlang_nif/c_src/sha-2/README.md"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "Public-Domain"        
+
+        
