@@ -20,6 +20,9 @@ categories:
   description: >-
     A marker category that indicates that the licenses assigned to it require that the source code of the packages
     needs to be provided.
+- name: "exceptions"
+  description: >-
+    Licenses that OTP has checked to be ok.
 
 categorizations:
 - id: "AGPL-1.0"
@@ -53,6 +56,38 @@ categorizations:
   - "include-in-notice-file"
   - "include-source-code-offer-in-notice-file"
 - id: "Apache-2.0"
+  categories:
+  - "permissive"
+  - "include-in-notice-file"
+- id: "TCL"
+  categories:
+  - "permissive"
+  - "include-in-notice-file"
+- id: "LGPL-2.0-or-later WITH WxWindows-exception-3.1"
+  categories:
+  - "exceptions"
+  - "include-in-notice-file"
+- id: "GPL-3.0-or-later WITH Autoconf-exception-generic-3.0"
+  categories:
+  - "exceptions"
+  - "include-in-notice-file"
+- id: "IETF-Trust"
+  categories:
+  - "exceptions"
+  - "include-in-notice-file"
+- id: "ErlPL-1.1"
+  categories:
+  - "exceptions"
+  - "include-in-notice-file"
+- id: "BSL-1.0"
+  categories:
+  - "permissive"
+  - "include-in-notice-file"
+- id: "FSFUL"
+  categories:
+  - "permissive"
+  - "include-in-notice-file"
+- id: "Public-Domain"
   categories:
   - "permissive"
   - "include-in-notice-file"
@@ -335,6 +370,14 @@ categorizations:
   - "permissive"
   - "include-in-notice-file"
 - id: "curl"
+  categories:
+  - "permissive"
+  - "include-in-notice-file"
+- id: "W3C-19980720"
+  categories:
+  - "permissive"
+  - "include-in-notice-file"
+- id: "LicenseRef-scancode-w3c-docs-19990405"
   categories:
   - "permissive"
   - "include-in-notice-file"
