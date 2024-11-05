@@ -291,15 +291,15 @@ categorizations:
   - "include-in-notice-file"
 - id: "MPL-1.0"
   categories:
-  - "copyleft-limited"
+  - "exceptions"
   - "include-in-notice-file"
 - id: "MPL-1.1"
   categories:
-  - "copyleft-limited"
+  - "exceptions"
   - "include-in-notice-file"
 - id: "MPL-2.0"
   categories:
-  - "copyleft-limited"
+  - "exceptions"
   - "include-in-notice-file"
 - id: "MS-PL"
   categories:
@@ -378,6 +378,10 @@ categorizations:
   - "permissive"
   - "include-in-notice-file"
 - id: "LicenseRef-scancode-w3c-docs-19990405"
+  categories:
+  - "permissive"
+  - "include-in-notice-file"
+- id: "LicenseRef-scancode-unicode"
   categories:
   - "permissive"
   - "include-in-notice-file"
