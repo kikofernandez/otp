@@ -100,7 +100,10 @@ fun PackageRule.LicenseRule.isExceptional() =
         override fun matches() = license in exceptionLicenses
     }
 
-// NOT tested
+/**
+ * Policy that ignores copyleft whenever a permissive policy can be applied.
+ * This only happens in cases where authors state 'GPL OR Apache' (e.g.,).
+ */
 fun PackageRule.LicenseRule.isOrPermissive() =
     object : RuleMatcher {
         override val description = "isOrPermissive($license)"
@@ -108,13 +111,12 @@ fun PackageRule.LicenseRule.isOrPermissive() =
         override fun matches() =
             resolvedLicense.originalExpressions.fold(false) { acc, resolvedOriginalExpression ->
                 // Useful only to test locations of licenses
-                resolvedLicense.locations.forEach { resolvedLicenseLocation ->
-                  val l = resolvedLicenseLocation?.appliedCuration?.concludedLicense
-                  println("\n\nOriginalExpression: ${resolvedOriginalExpression.expression.toString()} -- ${resolvedLicenseLocation.location} - ${l}")
-                }
+                // resolvedLicense.locations.forEach { resolvedLicenseLocation ->
+                //   val l = resolvedLicenseLocation?.appliedCuration?.concludedLicense
+                //   println("\n\nOriginalExpression: ${resolvedOriginalExpression.expression.toString()} -- ${resolvedLicenseLocation.location} - ${l}")
+                // }
 
                 if (acc == false) {
-                    // resolvedOriginalExpression.expression
                     val licenses : List<String> = resolvedOriginalExpression.expression.toString().split(" OR ", ignoreCase=true)
                     val permissiveList = permissiveLicenses.map { it.toString() }
                     licenses.any { it in permissiveList }
@@ -201,44 +203,14 @@ fun RuleSet.copyleftInSourceLimitedRule() = packageRule("COPYLEFT_LIMITED_IN_SOU
         require {
             -isExcluded()
             +isCopyleftLimited()
-            +isOrPermissive()
+            -isOrPermissive()
         }
-
-        // // INFO:
-        // // al ortResult: OrtResult,
-        // //     val licenseInfoResolver: LicenseInfoResolver,
-        // //     val resolutionProvider: ResolutionProvider,
-        // //     val projectSourceResolver
-
-        // // works calculating the license OR
-        // val permissiveOrLicense = resolvedLicense.originalExpressions.fold(false) { acc, resolvedOriginalExpression ->
-        //     if (acc == false) {
-        //         resolvedOriginalExpression.expression
-        //         val licenses : List<String> = resolvedOriginalExpression.expression.toString().split(" OR ", ignoreCase=true)
-        //         // val isAllowed = licenses in permissiveLicenses
-        //         // val isAllowed = licenses.any { it in permissiveLicenses }
-        //         val permissiveList = permissiveLicenses.map { it.toString() }
-        //         println("Licenses: ${licenses} -- ${license}")
-        //         // println("Licenses: ${licenses} :: ${licenses::class.simpleName} -- ${license}")
-        //         // println("${permissiveLicenses} :: ${permissiveLicenses::class.simpleName}  -- ${permissiveList} : ${permissiveList.first()::class.simpleName}")
-        //         licenses.any { it in permissiveList }
-        //     } else {
-        //         acc
-        //     }
-        //   }
-
-        // require {
-        //     -permissiveOrLicense
-        // }
-
 
         val licenseSourceName = licenseSource.name.lowercase()
         val message = if (licenseSource == LicenseSource.DETECTED) {
             if (pkg.metadata.id.type == "Unmanaged") {
                 "The ScanCode copyleft-limited categorized license $license was $licenseSourceName in package " +
-                    "${pkg.metadata.id.toCoordinates()}.\n\n Location: ${resolvedLicense.originalExpressions}"
-                // Contains all resolved licenses, including AAA OR BBBB.
-                // ${resolvedLicenseInfo}
+                    "${pkg.metadata.id.toCoordinates()}."
             } else {
                 "The ScanCode copyleft-limited categorized license $license was $licenseSourceName in package " +
                         "${pkg.metadata.id.toCoordinates()}."
@@ -247,12 +219,6 @@ fun RuleSet.copyleftInSourceLimitedRule() = packageRule("COPYLEFT_LIMITED_IN_SOU
             "The package ${pkg.metadata.id.toCoordinates()} has the $licenseSourceName ScanCode copyleft-limited " +
                     "categorized license $license."
         }
-
-        // licenses: List<ResolvedLicense>
-        // resolvedLicenseInfo.licenses.fold(false) { (acc, resolvedLicense) ->
-
-        // }
-        // println("Name: ${name}\n\n\n resolvedLicenseInfo: ${resolvedLicenseInfo}\n\n\n Metadata: ${pkg.metadata} \n\n\n")
         error(message, howToFixDefault())
     }
 }
@@ -461,22 +427,3 @@ val ruleSet = ruleSet(ortResult, licenseInfoResolver, resolutionProvider) {
 
 // Populate the list of policy rule violations to return.
 ruleViolations += ruleSet.violations
-
-
-
-
-
-// locations=[
-//     ResolvedLicenseLocation(
-//           provenance=RepositoryProvenance (vcsInfo=VcsInfo(type=Git, url=git@github.com:kikofernandez/otp.git, revision=7d8b85482f0931e4440ceb391df6ffc8683abc00, path=) , resolvedRevision=7d8b85482f0931e4440ceb391df6ffc8683abc00)
-//         , location=TextLocation(path=lib/edoc/src/edoc_lib.erl, startLine=12, endLine=14)
-//         , appliedCuration=
-//               LicenseFindingCuration( path=lib/edoc/src/edoc_lib.erl
-//                                     , startLines=[12]
-//                                     , lineCount=3
-//                                     , detectedLicense=GPL-2.0-or-later
-//                                     , concludedLicense=Apache-2.0 OR LGPL-2.1-or-later
-//                                     , reason=INCORRECT
-//                                     , comment=The scanner incorrectly categorises a dual license)
-//         , matchingPathExcludes=[], copyrights=[])
-//     , ResolvedLicenseLocation(provenance=RepositoryProvenance(vcsInfo=VcsInfo(type=Git, url=git@github.com:kikofernandez/otp.git, revision=7d8b85482f0931e4440ceb391df6ffc8683abc00, path=), resolvedRevision=7d8b85482f0931e4440ceb391df6ffc8683abc00), location=TextLocation(path=lib/eunit/src/eunit_surefire.erl, startLine=11, endLine=13), appliedCuration=LicenseFindingCuration(path=lib/eunit/src/eunit_surefire.erl, startLines=[11], lineCount=3, detectedLicense=GPL-2.0-or-later, concludedLicense=Apache-2.0 OR LGPL-2.1-or-later, reason=INCORRECT, comment=The scanner incorrectly categorises a dual license), matchingPathExcludes=[], copyrights=[]), ResolvedLicenseLocation(proven

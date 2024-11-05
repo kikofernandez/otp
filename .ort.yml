@@ -8,14 +8,18 @@ excludes:
       reason: "TEST_OF"
       comment: "This directory is not relevant."
 
+    - pattern: ".ort.yml"
+      reason: "OTHER"
+      comment: "This directory is not relevant."
+
     - pattern: ".ort/evaluator.rules.kts"
       reason: "TEST_OF"
-      comment: "This directory is not relevant."    
+      comment: "This directory is not relevant."
 
     - pattern: "HOWTO/**"
       reason: "OTHER"
-      comment: "This directory is not relevant."    
-      
+      comment: "This directory is not relevant."
+
     - pattern: "system/COPYRIGHT"
       reason: "OTHER"
       comment: "This file contains all licenses used in Erlang/OTP. Not relevant"
