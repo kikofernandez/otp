@@ -101,33 +101,6 @@ fun PackageRule.LicenseRule.isExceptional() =
     }
 
 /**
- * Policy that ignores copyleft whenever a permissive policy can be applied.
- * This only happens in cases where authors state 'GPL OR Apache' (e.g.,).
- */
-fun PackageRule.LicenseRule.isOrPermissive() =
-    object : RuleMatcher {
-        override val description = "isOrPermissive($license)"
-
-        override fun matches() =
-            resolvedLicense.originalExpressions.fold(false) { acc, resolvedOriginalExpression ->
-                // Useful only to test locations of licenses
-                // resolvedLicense.locations.forEach { resolvedLicenseLocation ->
-                //   val l = resolvedLicenseLocation?.appliedCuration?.concludedLicense
-                //   println("\n\nOriginalExpression: ${resolvedOriginalExpression.expression.toString()} -- ${resolvedLicenseLocation.location} - ${l}")
-                // }
-
-                if (acc == false) {
-                    val licenses : List<String> = resolvedOriginalExpression.expression.toString().split(" OR ", ignoreCase=true)
-                    val permissiveList = permissiveLicenses.map { it.toString() }
-                    licenses.any { it in permissiveList }
-                } else {
-                    acc
-                }
-            }
-        }
-
-
-/**
  * Example policy rules
  */
 
@@ -203,7 +176,6 @@ fun RuleSet.copyleftInSourceLimitedRule() = packageRule("COPYLEFT_LIMITED_IN_SOU
         require {
             -isExcluded()
             +isCopyleftLimited()
-            -isOrPermissive()
         }
 
         val licenseSourceName = licenseSource.name.lowercase()

@@ -28,7 +28,7 @@ excludes:
       reason: "OTHER"
       comment: "This file contains needs to specify its license"
 
-
+# Applied during 'evaluate'
 license_choices:
     # Given choices, decide to apply one license or another.
     repository_license_choices:
@@ -41,10 +41,8 @@ license_choices:
       - given: "Apache-2.0 OR LGPL-2.1-or-later"
         choice: "Apache-2.0"
 
-      - given: "Apache-2.0 OR BSL-1.0 OR Apache WITH LLVM-exception"
+      - given: "Apache-2.0 OR Apache WITH LLVM-exception"
         choice: "Apache-2.0"
-
-        
 
 # Resolutions are only taken into account by the reporter.
 # analyzer, scanner ignores them
