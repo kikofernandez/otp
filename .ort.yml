@@ -29,17 +29,17 @@ excludes:
       comment: "This file contains needs to specify its license"
 
 # Applied during 'evaluate'
-license_choices:
-    # Given choices, decide to apply one license or another.
-    repository_license_choices:
-      - given: "Apache-2.0 OR ErlPL-1.1"
-        choice: "Apache-2.0"
+# license_choices:
+#     # Given choices, decide to apply one license or another.
+#     repository_license_choices:
+#       - given: "Apache-2.0 OR ErlPL-1.1"
+#         choice: "Apache-2.0"
 
-      - given: "Apache-2.0 OR BSL-1.0"
-        choice: "Apache-2.0"
+#       - given: "Apache-2.0 OR BSL-1.0"
+#         choice: "Apache-2.0"
 
-      - given: "Apache-2.0 OR LGPL-2.1-or-later"
-        choice: "Apache-2.0"
+#       - given: "Apache-2.0 OR LGPL-2.1-or-later"
+#         choice: "Apache-2.0"
 
       # - given: "Apache-2.0 OR Apache WITH LLVM-exception"
       #   choice: "Apache-2.0"
@@ -623,7 +623,7 @@ curations:
       - path: "erts/emulator/ryu/d2s.c"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
-        concluded_license: "Apache-2.0 OR BSL-1.0 OR Apache WITH LLVM-exception"
+        concluded_license: "(Apache-2.0 OR BSL-1.0) AND Apache WITH LLVM-exception"
 
       - path: "erts/emulator/ryu/d2s_full_table.h"
         reason: "INCORRECT"
