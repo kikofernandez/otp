@@ -41,8 +41,8 @@ license_choices:
       - given: "Apache-2.0 OR LGPL-2.1-or-later"
         choice: "Apache-2.0"
 
-      - given: "Apache-2.0 OR Apache WITH LLVM-exception"
-        choice: "Apache-2.0"
+      # - given: "Apache-2.0 OR Apache WITH LLVM-exception"
+      #   choice: "Apache-2.0"
 
 # Resolutions are only taken into account by the reporter.
 # analyzer, scanner ignores them
