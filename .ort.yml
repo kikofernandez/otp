@@ -92,15 +92,24 @@ excludes:
 # Curations are used to fix wrongly detected licenses
 curations:
     license_findings:
-        # Public Domain
+      - path: "lib/stdlib/test/json_SUITE_data/**"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the folder license"
+        concluded_license: "MIT"
+
+      - path: "lib/common_test/priv/jquery.tablesorter.min.js"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises a dual license"
+        concluded_license: "MIT OR GPL-2.0-only"        
+        
       - path: ".ort.yml"
         reason: "DOCUMENTATION_OF"
-        comment: "The scanner incorrectly categorises a dual license"
+        comment: "The scanner incorrectly categorises its license"
         concluded_license: "Public-Domain"
 
       - path: "erts/doc/notes.md"
         reason: "DOCUMENTATION_OF"
-        comment: "The scanner incorrectly categorises a dual license"
+        comment: "The scanner incorrectly categorises its license"
         concluded_license: "Apache-2.0"
         
       - path: "erts/autoconf/config.guess"
@@ -136,7 +145,7 @@ curations:
       - path: "erts/autoconf/install-sh"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
-        concluded_license: "Public-Domain"
+        concluded_license: "MIT"
 
       - path: ".ort/license-classifications.yml"
         reason: "INCORRECT"
@@ -161,7 +170,7 @@ curations:
       - path: "lib/common_test/test_server/install-sh"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
-        concluded_license: "Public-Domain"
+        concluded_license: "MIT"
 
       - path: "lib/inets/examples/server_root/icons/README"
         reason: "INCORRECT"
@@ -186,7 +195,7 @@ curations:
       - path: "make/autoconf/install-sh"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
-        concluded_license: "Public-Domain"
+        concluded_license: "MIT"
 
       - path: "lib/dialyzer/doc/notes.md"
         reason: "DOCUMENTATION_OF"
@@ -648,7 +657,7 @@ curations:
       - path: "erts/emulator/test/estone_SUITE.erl"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
-        concluded_license: "Apache-2.0 OR BSL-1.0"
+        concluded_license: "Apache-2.0"
 
       - path: "erts/emulator/pcre/LICENCE"
         reason: "INCORRECT"
@@ -659,6 +668,11 @@ curations:
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the license"
         concluded_license: "BSD-3-Clause"
+
+      - path: "lib/snmp/mibs/SNMP-USM-HMAC-SHA2-MIB.mib"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the license"
+        concluded_license: "BSD-2-Clause"        
 
       - path: "erts/etc/unix/jit-reader.h"
         reason: "INCORRECT"
