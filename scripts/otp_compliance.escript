@@ -38,7 +38,14 @@ cli() ->
                      arguments => [ input_diff_option(),
                                     output_diff_option(),
                                     base_file() ],
-                     handler => fun diff/1}}}.
+                     handler => fun diff/1},
+             "no_license" =>
+                  #{ help => "Detect files without license.",
+                     arguments => [input_option(),
+                                   output_diff_option(),
+                                   apply_excludes(),
+                                   append_unlicensed() ],
+                     handler => fun detect_no_license/1}}}.
 
 %%
 %% Classification options
@@ -95,6 +102,12 @@ base_file() ->
       default => ?default_classified_result,
       long => "-base-file"}.
 
+append_unlicensed() ->
+    #{name => append_license,
+      type => binary,
+      short => $a,
+      long => "-append-license"}.
+
 %%
 %% Commands
 %%
@@ -103,12 +116,11 @@ classify(#{input_file := Filename,
            output_file := Output,
            exclude := ApplyExclude,
            curations := ApplyCuration}) ->
-    #{<<"scanner">> := #{<<"scan_results">> := [ScanResults]},
-      <<"repository">> :=
-          #{<<"config">> :=
-                #{<<"excludes">> := #{<<"paths">> := Excludes},
-                  <<"curations">> := #{<<"license_findings">> := Curations}}}} = decode(Filename),
-    #{<<"summary">> := #{<<"licenses">> := Licenses}} = ScanResults,
+    Json = decode(Filename),
+    Excludes = excludes(Json),
+    Curations = curations(Json),
+    Licenses = licenses(scan_results(Json)),
+
     Excludes1 = onlyif([], ApplyExclude, fun () -> convert_excludes(Excludes) end),
     Curations1 = onlyif([], ApplyCuration, fun () -> Curations end),
     R = lists:foldl(fun (License, Acc) ->
@@ -124,9 +136,78 @@ diff(#{input_file := InputFile, base_file := BaseFile, output_file := Output}) -
     Data = sets:fold(fun(Key, Acc) -> set_difference(Key, Input, Base, Acc) end, #{}, KeySet),
     file:write_file(Output, json:encode(Data)).
 
+detect_no_license(#{input_file := InputFile,
+                    output_file := Output,
+                    exclude := ApplyExcludes}=Config) ->
+    Input = decode(InputFile),
+    Licenses = licenses(scan_results(Input)),
+
+    PathsWithLicense =
+        lists:foldl(fun (#{<<"location">> := #{<<"path">> := Path}}, Acc) ->
+                            sets:add_element(Path, Acc)
+                    end, sets:new(), Licenses),
+
+    %% Get all files, incluiding those without license
+    Files = files_from_scanner(Input),
+    AllPaths =
+        lists:foldl(fun (#{<<"path">> := Path}, Acc) ->
+                            sets:add_element(Path, Acc)
+                    end, sets:new(), Files),
+
+    %% Paths without license
+    PathsWithoutLicense = sets:to_list(sets:subtract(AllPaths, PathsWithLicense)),
+
+    %% Excluded files that should be ignored
+    Excludes = excludes(Input),
+    ExcludeRegex = onlyif([], ApplyExcludes, fun () -> convert_excludes(Excludes) end),
+    Result = lists:foldl(fun(Path, Acc) ->
+                                 case exclude_path(Path, ExcludeRegex) of
+                                     true ->
+                                         Acc;
+                                     false ->
+                                         [Path | Acc]
+                                 end
+                         end, [], PathsWithoutLicense),
+
+    %% Append license if necessary
+    %% This is an intermediate step, so that all files are curated to some license.
+    %% After this, one can curate files individually or on a per-folder basis
+    case maps:get(append_license, Config, badkey) of
+        badkey ->
+            file:write_file(Output, json:encode(lists:sort(Result)));
+        License ->
+            %% TODO: add configuration file with all files set to this license
+            License
+    end.
+
+
 %%
 %% Helper functions
 %%
+
+excludes(Input) ->
+    #{<<"repository">> :=
+          #{<<"config">> :=
+                #{<<"excludes">> := #{<<"paths">> := Excludes}}}} = Input,
+    Excludes.
+
+curations(Input) ->
+    #{<<"repository">> :=
+          #{<<"config">> :=
+                #{<<"curations">> := #{<<"license_findings">> := Curations}}}} = Input,
+    Curations.
+
+scan_results(Input) ->
+    #{<<"scanner">> := #{<<"scan_results">> := [ScanResults]}} = Input,
+    ScanResults.
+
+licenses(Input) ->
+    #{<<"summary">> := #{<<"licenses">> := Licenses}} = Input,
+    Licenses.
+
+files_from_scanner(Input) ->
+    #{<<"scanner">> := #{<<"files">> := [#{<<"files">> := Files}]}} = Input,
+    Files.
 
 set_difference(Key, Input, Base, Acc) ->
     InputValues = sets:from_list(maps:get(Key, Input, [])),

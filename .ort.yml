@@ -1,10 +1,10 @@
 excludes:
   paths:
-    - pattern: "lib/compiler/scripts/smoke-build"
+    - pattern: "lib/compiler/scripts/smoke-build/**/*"
       reason: "TEST_OF"
       comment: "This directory contains test projects which are not relevant."
 
-    - pattern: ".ort/**"
+    - pattern: ".ort/**/*"
       reason: "TEST_OF"
       comment: "This directory is not relevant."
 
@@ -12,11 +12,15 @@ excludes:
       reason: "OTHER"
       comment: "This directory is not relevant."
 
+    - pattern: ".github/**/*"
+      reason: "OTHER"
+      comment: "This directory is not relevant."      
+
     - pattern: ".ort/evaluator.rules.kts"
       reason: "TEST_OF"
       comment: "This directory is not relevant."
 
-    - pattern: "HOWTO/**"
+    - pattern: "HOWTO/**/*"
       reason: "OTHER"
       comment: "This directory is not relevant."
 
@@ -92,7 +96,14 @@ excludes:
 # Curations are used to fix wrongly detected licenses
 curations:
     license_findings:
-      - path: "lib/stdlib/test/json_SUITE_data/**"
+      # If scanner does not assign a license to a file, this curation does not
+      # get applied in the evaluation nor anywhere.
+      - path: "lib/stdlib/test/json_SUITE_data/**/*"
+        reason: "INCORRECT"
+        comment: "The scanner incorrectly categorises the folder license"
+        concluded_license: "MIT"
+
+      - path: "lib/stdlib/test/re_SUITE_data//**/*"
         reason: "INCORRECT"
         comment: "The scanner incorrectly categorises the folder license"
         concluded_license: "MIT"
