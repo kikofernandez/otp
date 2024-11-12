@@ -3,6 +3,8 @@
 
 -define(default_classified_result, "scan-result-classified.json").
 -define(default_scan_result, "scan-result.json").
+-define(diff_classified_result, "scan-result-diff.json").
+
 
 -mode(compile).
 
@@ -19,6 +21,30 @@
 %%   other classification files. this is useful to guarantee that
 %%   files that had license X had not unexpectedly been reported differently.
 %%
+%% detect:
+%%   given a scan-result from ORT, it detects files without license
+%%   and writes them into disk.
+%%
+%% check:
+%%   given a recent scan-result from ORT (possibly from PR), and an
+%%   existing file with known files without licenses (from prev. commit),
+%%   calculate if new files without licenses have been added to the repo.
+%%
+%%
+%% USE OF COMMANDS
+%%
+%% The commands `classify` and `diff` are useful for exploring the licenses.
+%% ORT does not report in an easy way which files have been attached to which licenses,
+%% unless one generates a report. At the time, we cannot generate an SBOM,
+%% so we are in the dark.
+%%
+%% The commands `detect` and `check` can be used in CI/CD to
+%% prevent entering new files with unknown license. In the normal case,
+%% the `detect` command only needs to be issued once in the repo.
+%% Once we keep track of this file, the command is not needed anymore,
+%% as the list of files with no license should not grow, and only
+%% the `check` command should be executed in the CI/CD.
+%%
 %%
 
 main(Args) ->
@@ -26,42 +52,92 @@ main(Args) ->
 
 cli() ->
     #{ commands =>
-           #{"classify" =>
-                 #{ help => "Classify files by their license group.",
-                    arguments => [ input_option(),
-                                   output_option(),
-                                   apply_excludes(),
-                                   apply_curations() ],
-                    handler => fun classify/1},
-             "diff" =>
-                  #{ help => "Compare against previous license results.",
-                     arguments => [ input_diff_option(),
-                                    output_diff_option(),
-                                    base_file() ],
-                     handler => fun diff/1},
-             "no_license" =>
-                  #{ help => "Detect files without license.",
-                     arguments => [input_option(),
-                                   output_diff_option(),
-                                   apply_excludes(),
-                                   append_unlicensed() ],
-                     handler => fun detect_no_license/1}}}.
+           #{"explore" =>
+                 #{  help => """
+                            Explore license data.
+                            Useful to figure out the mapping files-to-licenses.
+
+                            """,
+                    commands =>
+                        #{"classify" =>
+                              #{ help =>
+                                     """
+                                     Classify files by their license group.
+                                       - Input file expects a scan-result from ORT.
+                                       - Output file shows mapping between licenses and files.
+                                         The output file can be fed to the `explore diff` command.
+
+                                     """,
+                                 arguments => [ input_option(?default_scan_result),
+                                                output_option(?default_classified_result),
+                                                apply_excludes(),
+                                                apply_curations() ],
+                                 handler => fun classify/1},
+                          "diff" =>
+                              #{ help =>
+                                     """
+                                     Compare against previous license results.
+                                       - Input file should be the output of the `classify` command for input and base files.
+                                       - Output returns a summary of additions and deletions per license.
+
+                                     """,
+                                 arguments => [ input_option(?default_classified_result),
+                                                base_file(),
+                                                output_option(?diff_classified_result) ],
+                                 handler => fun diff/1}
+                         }
+                  },
+             "compliance" =>
+                 #{ help => """
+                            Commands to enforce compliance policy towards unlicensed files.
+                            """,
+                    commands =>
+                        #{"detect" =>
+                              #{ help =>
+                                     """
+                                     Detects unlicensed files.
+                                     - Input file expects a scan-result from ORT.
+                                     - Output file is a list of files without license.
+                                       The output file can be fed to the `compliance check` command.
+
+                                     """,
+                                 arguments => [ input_option(?default_scan_result),
+                                                output_option(),
+                                                apply_excludes() ],
+                                 handler => fun detect_no_license/1},
+                          "check" =>
+                              #{ help =>
+                                     """
+                                     Checks that no new unlicensed files have been added.
+                                     - Input file expects scan-result from ORT.
+                                     - Base file expects output file from `no_license` command.
+
+                                     """,
+                                 arguments => [ input_option(?default_scan_result),
+                                                base_file(),
+                                                apply_excludes(),
+                                                output_option() ],
+                                 handler => fun check_no_license/1}}}}}.
 
 %%
-%% Classification options
+%% Options
 %%
-input_option() ->
+input_option(Default) ->
     #{name => input_file,
       type => binary,
-      short => $i,
-      default => ?default_scan_result,
+      default => Default,
       long => "-input-file"}.
+
+output_option(Default) ->
+    #{name => output_file,
+      type => binary,
+      default => Default,
+      long => "-output-file"}.
 
 output_option() ->
     #{name => output_file,
       type => binary,
-      short => $o,
-      default => ?default_classified_result,
+      required => true,
       long => "-output-file"}.
 
 apply_excludes() ->
@@ -78,35 +154,10 @@ apply_curations() ->
       default => true,
       long => "-apply-curations"}.
 
-%%
-%% Diff options
-%%
-input_diff_option() ->
-    #{name => input_file,
-      type => binary,
-      short => $i,
-      required => true,
-      long => "-input-file"}.
-
-output_diff_option() ->
-    #{name => output_file,
-      type => binary,
-      short => $o,
-      required => true,
-      long => "-output-file"}.
-
 base_file() ->
     #{name => base_file,
       type => binary,
-      short => $b,
-      default => ?default_classified_result,
       long => "-base-file"}.
-
-append_unlicensed() ->
-    #{name => append_license,
-      type => binary,
-      short => $a,
-      long => "-append-license"}.
 
 %%
 %% Commands
@@ -137,9 +188,13 @@ diff(#{input_file := InputFile, base_file := BaseFile, output_file := Output}) -
     file:write_file(Output, json:encode(Data)).
 
 detect_no_license(#{input_file := InputFile,
-                    output_file := Output,
-                    exclude := ApplyExcludes}=Config) ->
+                    output_file := OutputFile,
+                    exclude := ApplyExcludes}) ->
     Input = decode(InputFile),
+    SortedResult = compute_unlicense_files(Input, ApplyExcludes),
+    file:write_file(OutputFile, json:encode(SortedResult)).
+
+compute_unlicense_files(Input, ApplyExcludes) ->
     Licenses = licenses(scan_results(Input)),
 
     PathsWithLicense =
@@ -168,17 +223,18 @@ detect_no_license(#{input_file := InputFile,
                                          [Path | Acc]
                                  end
                          end, [], PathsWithoutLicense),
+    lists:sort(Result).
 
-    %% Append license if necessary
-    %% This is an intermediate step, so that all files are curated to some license.
-    %% After this, one can curate files individually or on a per-folder basis
-    case maps:get(append_license, Config, badkey) of
-        badkey ->
-            file:write_file(Output, json:encode(lists:sort(Result)));
-        License ->
-            %% TODO: add configuration file with all files set to this license
-            License
-    end.
+check_no_license(#{input_file := InputFile,
+                   base_file := BaseFile,
+                   exclude := ApplyExcludes,
+                   output_file := OutputFile}) ->
+    UnlicenseNew = compute_unlicense_files(decode(InputFile), ApplyExcludes),
+    Unlicense = decode(BaseFile),
+    UnlicenseSet = sets:from_list(Unlicense),
+    UnlicenseNewSet =  sets:from_list(UnlicenseNew),
+    Result = sets:to_list(sets:subtract(UnlicenseNewSet, UnlicenseSet)),
+    file:write_file(OutputFile, json:encode(Result)).
 
 
 %%
