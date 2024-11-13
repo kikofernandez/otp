@@ -84,7 +84,23 @@ cli() ->
                                  arguments => [ input_option(?default_classified_result),
                                                 base_file(),
                                                 output_option(?diff_classified_result) ],
-                                 handler => fun diff/1}
+                                 handler => fun diff/1},
+
+                          "git-author" =>
+                              #{help => "Track author of the commit",
+                               handler => fun git_author/1},
+
+                          "detect-beam-license" =>
+                              #{help => """
+                                        Detects the license of a beam file, and updates the scan result.
+                                          - Input file expects classified results from `classify` command.
+                                          - Base file expects output file from `no_license` command.
+                                          - Output file expects scan-result file from ORT.
+                                        """,
+                                arguments => [input_option(?default_classified_result),
+                                              base_file(),
+                                              output_option(?default_scan_result)],
+                                handler => fun detect_beam_license/1}
                          }
                   },
              "compliance" =>
@@ -163,6 +179,36 @@ base_file() ->
 %% Commands
 %%
 
+git_author(_) ->
+    File = "no_license.json",
+    Unlicense = decode(File),
+    Result = lists:map(fun (Path) ->
+                      %% https://stackoverflow.com/questions/27028486/how-to-execute-system-command-in-erlang-and-get-results-using-oscmd-1
+                      Command = "git log --reverse --format=format:\"%h -- %an-%as\" -- " ++ binary_to_list(Path) ++ " | head -n1",
+                      Port = open_port({spawn, Command}, [stream, in, eof, hide, exit_status]),
+                      [Path, get_data(Port, [])]
+              end, Unlicense),
+    ok = file:write_file("no_license_with_author.json", Result).
+
+get_data(Port, Sofar) ->
+    receive
+    {Port, {data, Bytes}} ->
+        get_data(Port, [Sofar|Bytes]);
+    {Port, eof} ->
+        Port ! {self(), close},
+        receive
+        {Port, closed} ->
+            true
+        end,
+        receive
+            {'EXIT',  Port,  _} ->
+                ok
+        after 1 ->              % force context switch
+                ok
+        end,
+        lists:flatten(Sofar)
+    end.
+
 classify(#{input_file := Filename,
            output_file := Output,
            exclude := ApplyExclude,
@@ -186,6 +232,59 @@ diff(#{input_file := InputFile, base_file := BaseFile, output_file := Output}) -
     KeySet = sets:from_list(KeyList),
     Data = sets:fold(fun(Key, Acc) -> set_difference(Key, Input, Base, Acc) end, #{}, KeySet),
     file:write_file(Output, json:encode(Data)).
+
+detect_beam_license(#{input_file := ClassifyFile,
+                      base_file := NoLicenseFile,
+                      output_file := _OutputFile}) ->
+    Input = decode(ClassifyFile),
+    NoLicense = decode(NoLicenseFile),   
+    
+    %% Create DB from filename => license
+    DB = maps:fold(fun (License, Files, Acc) ->                      
+                           FileNames = lists:map(fun extract_module_name/1, Files),
+                           M = maps:from_keys(FileNames, License),
+                           maps:merge(M, Acc)
+                   end, #{}, Input),
+
+    %% Returns {detected licenses, new unlicensed}
+    {DB1, Unknown} = 
+        lists:foldl(fun (BinName, {LicenseMap, Unlicensed})
+                          when is_map(LicenseMap), is_list(Unlicensed) ->
+                            Name = extract_module_name(BinName),
+                            Name1 = lists:flatten(string:replace(Name, ".beam", ".erl")),
+                            case maps:get(Name1, DB, badkey) of
+                                badkey ->
+                                    {LicenseMap, [BinName | Unlicensed]};
+                                License ->
+                                    {LicenseMap#{BinName => License}, Unlicensed}
+                            end
+                    end, {#{}, []}, NoLicense),
+    %% updates unlicensed list of files
+    %% file:write_file(NoLicenseFile, json:encode(Unknown)),
+    %% TODO: updates the classify files
+    update_classify_file(Input, DB1),
+    %% TODO: updates the scan files
+    %% io:format("Result: ~p~nCount: ~p~n", [{length(maps:keys(DB1)), maps:keys(DB1)}, length(Unknown)]),
+    ok.
+
+-spec update_classify_file(JSON :: map(), #{Path :: binary() => License :: binary()}) -> ok.
+update_classify_file(Json, DB) ->
+    NewMap = maps:fold(fun (Path, License, Acc) ->
+                               case maps:get(License, Acc, badkey) of
+                                   badkey ->
+                                       Acc#{License => [Path]};
+                                   Value ->
+                                       Acc#{License := [Path | Value]}
+                               end
+                       end, #{}, DB),
+    Result = maps:merge_with(fun (_Key, Val1, Val2) ->
+                                     Val1 ++ Val2
+                             end, Json, NewMap),
+    ok.
+
+extract_module_name(Bin) when is_binary(Bin) ->
+    S = binary_to_list(Bin),    
+    string:reverse(hd(string:split(string:reverse(S), "/"))).
 
 detect_no_license(#{input_file := InputFile,
                     output_file := OutputFile,
