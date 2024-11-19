@@ -126,6 +126,7 @@ execute(Command, Config) ->
     Licenses = fetch_licenses(Json),
 
     Errors = compliance_check(Licenses),
+    io:format("~n~nResuling Errors: ~p~n~n", [Errors]),
     case Errors of
         [] ->
             ok;
