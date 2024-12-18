@@ -1,5 +1,8 @@
-#!/home/erfeafr/Code/otp/bin/escript
+#!/usr/bin/env escript
 %% -*- erlang -*-
+
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2024 Erlang/OTP and its contributors
 
 -define(default_classified_result, "scan-result-classified.json").
 -define(default_scan_result, "scan-result.json").
@@ -9,27 +12,33 @@
 -mode(compile).
 
 %%
-%% These commands generate a classification of files per license.
-%% This output is not shown when using `ort`.
+%% Commands
 %%
-%% classify:
-%%   takes as input a scan of ort and returns a json file containing
-%%   as keys the licenses and as values the files under those licenses.
+%% sbom
 %%
-%% diff:
-%%   performs a diff of existing classification file against
-%%   other classification files. this is useful to guarantee that
-%%   files that had license X had not unexpectedly been reported differently.
+%%    otp-info: given an oss-review-toolkit (ORT) scan result and a
+%%              source SBOM, it populates the fields that ORT can't
+%%              in Unmanaged projects.
 %%
-%% detect:
-%%   given a scan-result from ORT, it detects files without license
-%%   and writes them into disk.
+%% compliance   useful for CI/CD compliance checks.
 %%
-%% check:
-%%   given a recent scan-result from ORT (possibly from PR), and an
-%%   existing file with known files without licenses (from prev. commit),
-%%   calculate if new files without licenses have been added to the repo.
+%%    detect:   given a scan-result from ORT, it detects files without license
+%%              and writes them into disk.
 %%
+%%    check:    given a recent scan-result from ORT (possibly from PR), and an
+%%              existing file with known files without licenses (from prev. commit),
+%%              calculate if new files without licenses have been added to the repo.
+%%
+%% explore
+%%
+%%    classify: takes as input a scan of ort and returns a json file containing
+%%              as keys the licenses and as values the files under those licenses.
+%%
+%%    diff:     performs a diff of existing classification file against
+%%              other classification files. this is useful to guarantee that
+%%              files that had license X had not unexpectedly been reported differently.
+%%
+
 %%
 %% USE OF COMMANDS
 %%
@@ -103,28 +112,13 @@ cli() ->
                                  arguments => [ input_option(?default_classified_result),
                                                 base_file(),
                                                 output_option(?diff_classified_result) ],
-                                 handler => fun diff/1},
-
-                          "git-author" =>
-                              #{help => "Track author of the commit",
-                               handler => fun git_author/1},
-
-                          "detect-beam-license" =>
-                              #{help => """
-                                        Detects the license of a beam file, and updates the scan result.
-                                          - Input file expects classified results from `classify` command.
-                                          - Base file expects output file from `no_license` command.
-                                          - Output file expects scan-result file from ORT.
-                                        """,
-                                arguments => [input_option(?default_classified_result),
-                                              base_file(),
-                                              output_option(?default_scan_result)],
-                                handler => fun detect_beam_license/1}
+                                 handler => fun diff/1}
                          }
                   },
              "compliance" =>
                  #{ help => """
                             Commands to enforce compliance policy towards unlicensed files.
+
                             """,
                     commands =>
                         #{"detect" =>
@@ -204,36 +198,6 @@ base_file() ->
 %% Commands
 %%
 
-git_author(_) ->
-    File = "no_license.json",
-    Unlicense = decode(File),
-    Result = lists:map(fun (Path) ->
-                      %% https://stackoverflow.com/questions/27028486/how-to-execute-system-command-in-erlang-and-get-results-using-oscmd-1
-                      Command = "git log --reverse --format=format:\"%h -- %an-%as\" -- " ++ binary_to_list(Path) ++ " | head -n1",
-                      Port = open_port({spawn, Command}, [stream, in, eof, hide, exit_status]),
-                      [Path, get_data(Port, [])]
-              end, Unlicense),
-    ok = file:write_file("no_license_with_author.json", Result).
-
-get_data(Port, Sofar) ->
-    receive
-    {Port, {data, Bytes}} ->
-        get_data(Port, [Sofar|Bytes]);
-    {Port, eof} ->
-        Port ! {self(), close},
-        receive
-        {Port, closed} ->
-            true
-        end,
-        receive
-            {'EXIT',  Port,  _} ->
-                ok
-        after 1 ->              % force context switch
-                ok
-        end,
-        lists:flatten(Sofar)
-    end.
-
 %% TODO: missing step: yq -p yaml -o json ../otp/bom.spdx.yml > ../otp/bom.spdx.json
 %%       i.e., convert yml to json
 sbom_otp(#{sbom_file  := SbomFile}=Input) ->
@@ -259,6 +223,8 @@ fix_download_location(Url, #{~"packages" := [ Packages ] }=Sbom) ->
     Packages1 = Packages#{~"downloadLocation" := Url },
     Sbom#{~"packages" := [ Packages1 ]}.
 
+%% re-populate licenses to .beam files from their .erl files
+%% e.g., the lists.beam file should have the same license as lists.erl
 fix_beam_licenses(LicensesAndCopyrights,
                   #{ ~"packages" := [Package],
                      ~"files"   := Files}=Sbom) ->
@@ -267,13 +233,6 @@ fix_beam_licenses(LicensesAndCopyrights,
     Files1= lists:map(
               fun (SPDX) ->
                       try
-                          %% _ = case SPDX of
-                          %%     #{~"fileName" := <<"bootstrap/lib/stdlib/ebin/otp_internal.beam">>} ->
-                          %%         X = fix_beam_spdx_license(<<"lib/stdlib/src/otp_internal.erl">>, LicensesAndCopyrights, SPDX),
-                          %%         io:format("~p~n~p~n", [X, LicensesAndCopyrights]);
-                          %%     _ ->
-                          %%         ok
-                          %% end,
                           case SPDX of
                               #{~"fileName" := <<"bootstrap/lib/compiler/ebin/", Filename/binary>>} ->
                                   [File, _] = binary:split(Filename, ~".beam"),
@@ -312,8 +271,6 @@ fix_spdx_license(#{~"licenseInfoInFiles" := [License]}=SPDX) ->
     SPDX#{ ~"licenseConcluded" := License };
 fix_spdx_license(SPDX) ->
     SPDX.
-
-
 
 %% Given an input file, returns a mapping of
 %% #{filepath => license} for each file path towards its license.
@@ -372,59 +329,6 @@ diff(#{input_file := InputFile, base_file := BaseFile, output_file := Output}) -
     KeySet = sets:from_list(KeyList),
     Data = sets:fold(fun(Key, Acc) -> set_difference(Key, Input, Base, Acc) end, #{}, KeySet),
     file:write_file(Output, json:encode(Data)).
-
-detect_beam_license(#{input_file := ClassifyFile,
-                      base_file := NoLicenseFile,
-                      output_file := _OutputFile}) ->
-    Input = decode(ClassifyFile),
-    NoLicense = decode(NoLicenseFile),   
-    
-    %% Create DB from filename => license
-    DB = maps:fold(fun (License, Files, Acc) ->                      
-                           FileNames = lists:map(fun extract_module_name/1, Files),
-                           M = maps:from_keys(FileNames, License),
-                           maps:merge(M, Acc)
-                   end, #{}, Input),
-
-    %% Returns {detected licenses, new unlicensed}
-    {DB1, _Unknown} =
-        lists:foldl(fun (BinName, {LicenseMap, Unlicensed})
-                          when is_map(LicenseMap), is_list(Unlicensed) ->
-                            Name = extract_module_name(BinName),
-                            Name1 = lists:flatten(string:replace(Name, ".beam", ".erl")),
-                            case maps:get(Name1, DB, badkey) of
-                                badkey ->
-                                    {LicenseMap, [BinName | Unlicensed]};
-                                License ->
-                                    {LicenseMap#{BinName => License}, Unlicensed}
-                            end
-                    end, {#{}, []}, NoLicense),
-    %% updates unlicensed list of files
-    %% file:write_file(NoLicenseFile, json:encode(Unknown)),
-    %% TODO: updates the classify files
-    update_classify_file(Input, DB1),
-    %% TODO: updates the scan files
-    %% io:format("Result: ~p~nCount: ~p~n", [{length(maps:keys(DB1)), maps:keys(DB1)}, length(Unknown)]),
-    ok.
-
--spec update_classify_file(JSON :: map(), #{Path :: binary() => License :: binary()}) -> ok.
-update_classify_file(Json, DB) ->
-    NewMap = maps:fold(fun (Path, License, Acc) ->
-                               case maps:get(License, Acc, badkey) of
-                                   badkey ->
-                                       Acc#{License => [Path]};
-                                   Value ->
-                                       Acc#{License := [Path | Value]}
-                               end
-                       end, #{}, DB),
-    Result = maps:merge_with(fun (_Key, Val1, Val2) ->
-                                     Val1 ++ Val2
-                             end, Json, NewMap),
-    ok.
-
-extract_module_name(Bin) when is_binary(Bin) ->
-    S = binary_to_list(Bin),    
-    string:reverse(hd(string:split(string:reverse(S), "/"))).
 
 detect_no_license(#{input_file := InputFile,
                     output_file := OutputFile,
