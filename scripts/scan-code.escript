@@ -137,6 +137,7 @@ scancode_command(#{scan_option   := Options}=Config) ->
 execute(Command, Config) ->
     io:format("Running: ~ts~n", [Command]),
     R = os:cmd(Command),
+    _ = os:cmd("cat scan-results.json"),
     io:format("Result: ~ts~n",[R]),
     ScanResult = scan_result_path(Config),
     Json = decode(ScanResult),
