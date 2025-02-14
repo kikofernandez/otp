@@ -9,7 +9,36 @@
 -define(diff_classified_result, "scan-result-diff.json").
 -define(license_ref_name, "LicenseRef-NOASSERTION").
 -define(license_ref_copyright, "Erlang/OTP contributors").
+-define(erlang_license, "Apache-2.0").
 
+-record(spdx_package, {'SPDXID'           :: unicode:chardata(),
+                       'versionInfo'      :: unicode:chardata(),
+                       'name'             :: unicode:chardata(),
+                       'copyrightText'    :: unicode:chardata(),
+                       'filesAnalyzed'    = false :: boolean(),
+                       'hasFiles'         = [] :: [unicode:chardata()],
+                       'homepage'         :: unicode:chardata(),
+                       'licenseConcluded' :: unicode:chardata(),
+                       'licenseDeclared'  :: unicode:chardata(),
+                       'licenseInfoFromFiles' = [] :: [unicode:chardata()],
+                       'downloadLocation' = ~"https://github.com/erlang/otp/releases" :: unicode:chardata(),
+                       'packageVerificationCode' :: #{ 'packageVerificationCodeValue' => unicode:chardata()},
+                       'supplier' = "Organization: Ericsson AB" :: unicode:chardata()
+                      }).
+-type spdx_package() :: #spdx_package{}.
+
+-record(app_info, { description  :: unicode:chardata(),
+                    id           :: unicode:chardata(),
+                    vsn          :: unicode:chardata(),
+
+                    %% modules can only be included in one app.
+                    %% not_loaded indicates a special handling of this module, e.g., erts.
+                    modules      :: [atom()] | not_loaded,
+                    applications :: [atom()],
+                    included_applications :: [atom()],
+                    optional_applications :: [atom()] }).
+
+-type app_info() :: #app_info{}.
 
 %%
 %% Commands
@@ -237,7 +266,8 @@ sbom_otp(#{sbom_file  := SbomFile}=Input) ->
     Copyrights = path_to_copyright(Input, Licenses),
     Fixes = sbom_fixes(Licenses, Copyrights),
     Spdx = execute_sbom_fixes(Sbom, Fixes),
-    file:write_file(SbomFile, json:encode(Spdx)).
+    package_by_app(Spdx).
+    %% file:write_file(SbomFile, json:encode(Spdx)).
 
 execute_sbom_fixes(Sbom, Fixes) ->
     lists:foldl(fun ({Fun, Data}, Acc) -> Fun(Data, Acc) end, Sbom, Fixes).
@@ -724,3 +754,220 @@ gitignore_files() ->
      "system/doc/general_info/.gitignore",
      "system/doc/installation_guide/.gitignore",
      "system/doc/top/.gitignore"].
+
+%% fixes the Spdx to split Spdx by app
+package_by_app(Spdx) ->
+    AppSrcFiles = find_app_src_files("."),
+
+    %% {Packages, ModulesUsed}
+    PackageTemplates = generate_spdx_mappings(AppSrcFiles),
+    Packages = generate_spdx_packages(PackageTemplates, Spdx),
+    Spdx1 = add_packages(Packages, Spdx),
+    Spdx2  = create_relationships(Packages, Spdx),
+    io:format("Result:~n~p~n", [Packages]),
+    Spdx2.
+
+%% TODO:
+add_packages(Packages, Spdx) ->
+    Spdx.
+
+%% Add relationships as per example:
+%% https://github.com/spdx/tools-java/blob/master/testResources/SPDXJSONExample-v2.2.spdx.json#L240-L275
+%% TODO:
+create_relationships(Packages, Spdx) ->
+    Relationships = [],
+    Spdx#{~"relationships" => Relationships}.
+
+-spec find_app_src_files(Folder :: string()) -> [string()].
+find_app_src_files(Folder) ->
+    S = os:cmd("find "++ Folder ++ " -regex .*.app.src | grep -v test | grep -v smoke-build | cut -d/ -f2-"),
+    lists:map(fun erlang:list_to_binary/1, string:split(S, "\n", all)).
+
+generate_spdx_mappings(AppSrcPath) ->
+    Mappings = lists:foldl(fun (AppSrcPath0, Acc) ->
+                                   DetectedPackages = build_package_location(AppSrcPath0),
+                                   maps:merge(Acc, DetectedPackages)
+                           end, #{}, AppSrcPath),
+    update_erts_mapping(Mappings).
+
+update_erts_mapping(#{~"erts" := {ErtsPath, AppInfo},
+                      ~"stdlib" := {_, AppInfoStdlib}}=Mappings) ->
+    ErtsAppInfo =
+        AppInfo#app_info{ description  = AppInfoStdlib#app_info.description,
+                          id           = [],
+                          vsn          = erlang:list_to_binary(erlang:system_info(version)),
+                          modules      = not_loaded,
+                          applications = [],
+                          included_applications = [],
+                          optional_applications = [] },
+    Mappings#{~"erts" := {ErtsPath, ErtsAppInfo}}.
+
+
+build_package_location(<<>>) -> #{};
+build_package_location(AppSrcPath) ->
+    case string:split(AppSrcPath, "/", all) of
+        [~"lib", App | _] ->
+            AppName = erlang:binary_to_atom(App),
+            _ = case application:load(AppName) of
+                    R when R==ok orelse R=={error, {already_loaded, AppName}} ->
+                        %% somewhat unsafe binary_to_atom/1 but we have guarantees to receive
+                        %% only apps in Erlang/OTP
+                        {ok, AppKey} = application:get_all_key(AppName),
+                        AppKey1 = app_key_to_record(AppKey),
+                        #{App => {<<"lib/", App/binary>>, AppKey1}};
+                    _E ->  % TODO: Remove this case
+                        io:format("[Error] ~p~n", [{AppSrcPath, _E, AppName, App}]),
+                        #{}
+                end;
+        [~"erts"=Erts | _] ->
+            %% TODO: add this special case
+            #{Erts => {Erts, #app_info{}}}
+    end.
+
+app_key_to_record(AppKey) ->
+    [{description, Description}, {id, Id},
+     {vsn, Vsn}, {modules, Modules},
+     {maxP, _}, {maxT, _},
+     {registered, _Registered},
+     {included_applications, Included},
+     {optional_applications, Optional},
+     {applications, Apps},
+     {env, _Env}, {mod, _Mod},
+     {start_phases,_Phases}] = AppKey,
+    #app_info{ description  = erlang:list_to_binary(Description),
+               id           = erlang:list_to_binary(Id),
+               vsn          = erlang:list_to_binary(Vsn),
+               modules      = Modules,
+               applications = Apps,
+               included_applications = Included,
+               optional_applications = Optional }.
+
+
+-spec generate_spdx_packages(PackageMappings, Spdx) -> spdx_package() when
+      PackageMappings :: #{AppName => {AppPath, app_info()}},
+      AppName         :: unicode:chardata(),
+      AppPath         :: unicode:chardata(),
+      Spdx            :: map().
+generate_spdx_packages(PackageMappings, #{~"files" := Files}=_Spdx) ->
+    maps:fold(fun (PackageName, {PrefixPath, AppInfo}, Acc) ->
+                      SpdxPackageFiles = group_files_by_app(Files, PrefixPath),
+                      Package =
+                          #spdx_package {
+                             'SPDXID' = generate_spdxid_name(PackageName),
+                             'versionInfo' = AppInfo#app_info.vsn,
+                             'name' = PackageName,
+                             'copyrightText' = generate_copyright_text(SpdxPackageFiles),
+                             'filesAnalyzed' = true,
+
+                             %% O(n2) complexity... fix if necessary
+                             'hasFiles' = generate_has_files(SpdxPackageFiles),
+
+                             'homepage' = "https://www.erlang.org",
+                             'licenseConcluded' = ?erlang_license,
+                             'licenseDeclared'  = ?erlang_license,
+                             'licenseInfoFromFiles' = generate_license_info_from_files(SpdxPackageFiles),
+                             'packageVerificationCode' = #{ 'packageVerificationCodeValue' => "TODO"}
+                             %% TODO: write the documentation folder, and the BUILD of a Make
+                             %%       and the dependencies between apps.
+                            },
+                      [Package | Acc]
+                      %% {[Package | Acc], Spdx#{~"files" := Files -- SpdxPackageFiles}}
+               end, [], PackageMappings).
+
+generate_spdxid_name(PackageName) ->
+    <<"SPDXRef-otp-", PackageName/binary>>.
+
+generate_license_info_from_files(SpdxPackageFiles) ->
+    lists:foldl(fun (#{~"licenseInfoInFiles" := LicenseInfoInFiles}, AccLicenses) ->
+                        Licenses0 = lists:foldl(fun (L, Acc0) ->
+                                                        string:split(L, ~" OR ") ++ Acc0
+                                                end, [], LicenseInfoInFiles),
+                        Licenses1 = lists:foldl(fun (L, Acc0) ->
+                                                        string:split(L, ~" AND ") ++ Acc0
+                                                end, [], Licenses0),
+                        lists:uniq(lists:map(fun (L) -> string:trim(L) end, Licenses1 ++ AccLicenses))
+                end, [], SpdxPackageFiles).
+
+generate_has_files(SpdxPackageFiles) ->
+    lists:map(fun (#{~"SPDXID" := SpdxId}) -> SpdxId end, SpdxPackageFiles).
+
+generate_copyright_text(SpdxPackageFiles) ->
+    CopyrightText = lists:foldl(fun (#{~"copyrightText" := CopyrightText}, Acc0) ->
+                                        lists:uniq([CopyrightText | Acc0])
+                                end, [], SpdxPackageFiles),
+    lists:foldl(fun (Copyright, Acc0) ->
+                    <<Copyright/binary, "\n", Acc0/binary>>
+                end, <<>>, CopyrightText).
+
+group_files_by_app(Files, PrefixPath) ->
+    lists:filter(fun (#{~"fileName" := Filename}) ->
+                         case string:split(Filename, PrefixPath) of
+                             [_ , _ | _] ->
+                                 true;
+                             _ ->
+                                 false
+                         end
+                 end, Files).
+
+%% spdx_fetch_prefix(PrefixPath, #{"files" := Files}=SPDX) ->
+%%     lists:filter(fun (#{~"fileName" := PrefixPath ++ _=Filename}) ->
+%%                          case string:prefix(Filename, PrefixPath) of
+%%                              nomatch ->
+%%                                  false;
+%%                              _ ->
+%%                                  true
+%%                          end
+%%                  end, List).
+
+%% is_prefix(SPDXFiles, Prefix) ->
+
+
+%% remove_files_from_sbom(_SBOM, _ModulesUsed) ->
+%%     ok.
+
+%% add_packages(_SBOM, _Packages) ->
+%%     ok.
+
+%% Modules: https://erlangforums.com/t/check-if-application-available-in-erlang-vm-how/2983
+%% code:all_available().
+%% pattern match result and
+%% call module_info(attributes)
+%% and filter for all that have {behaviour, [application]}.
+
+%% application:get_all_key(kernel).
+%% we can get the modules, and applications that we rely/need.
+
+%% system_information:applications().
+%%  * kernel-10.2.2
+%%  * stdlib-6.2
+%%  * xmerl-2.1
+%%  * wx-2.4.3
+%%  * tools-4.1.1
+%%  * tftp-1.2.2
+%%  * syntax_tools-3.2.1
+%%  * ssl-11.2.7
+%%  * ssh-5.2.6
+%%  * snmp-5.18
+%%  * sasl-4.2.2
+%%  * runtime_tools-2.1.1
+%%  * reltool-1.0.1
+%%  * public_key-1.17.1
+%%  * parsetools-2.6
+%%  * os_mon-2.10.1
+%%  * observer-2.17
+%%  * mnesia-4.23.3
+%%  * megaco-4.7
+%%  * jinterface-1.14.1
+%%  * inets-9.3.1
+%%  * ftp-1.2.3
+%%  * eunit-2.9.1
+%%  * et-1.7.1
+%%  * erl_interface-5.5.2
+%%  * eldap-1.2.14
+%%  * edoc-1.3.2
+%%  * diameter-2.4.1
+%%  * dialyzer-5.3.1
+%%  * debugger-5.5
+%%  * crypto-5.5.2
+%%  * compiler-8.5.5
+%%  * common_test-1
