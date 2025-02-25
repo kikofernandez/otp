@@ -1,0 +1,24 @@
+SPDXID: "SPDXRef-DOCUMENT"
+spdxVersion: "SPDX-2.2"
+creationInfo:
+  created: "2025-02-25T10:13:22Z"
+  creators:
+  - "Organization: Ericsson AB"
+  licenseListVersion: "3.26"
+name: "Erlang/OTP"
+dataLicense: "Apache-2.0"
+documentNamespace: "http://spdx.org/spdxdocs/spdx-document-erlang-otp"
+documentDescribes:
+- "SPDXRef-Project-Erlang-OTP"
+packages:
+- SPDXID: "SPDXRef-Project-Erlang-OTP"
+  description: "Erlang/OTP programming language"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git"
+  filesAnalyzed: true
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "erlang/otp"
+  versionInfo: "28.1.1"
+  packageFileName: "./"
