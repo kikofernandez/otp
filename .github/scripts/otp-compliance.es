@@ -49,9 +49,6 @@
 %%              source SBOM, it populates the fields that ORT can't
 %%              in Unmanaged projects.
 %%
-%%    fix-licenses: fixes licenses from NOASSERTION to Apache-2.0
-%%              for files that existed since OTP-18.
-%%
 %% compliance   useful for CI/CD compliance checks.
 %%
 %%    detect:   given a scan-result from ORT, it detects files without license
@@ -763,12 +760,12 @@ package_by_app(Spdx) ->
     PackageTemplates = generate_spdx_mappings(AppSrcFiles),
     Packages = generate_spdx_packages(PackageTemplates, Spdx),
     Spdx1 = add_packages(Packages, Spdx),
-    Spdx2  = create_relationships(Packages, Spdx),
+    Spdx2  = create_relationships(Packages, Spdx1),
     io:format("Result:~n~p~n", [Packages]),
     Spdx2.
 
-%% TODO:
-add_packages(Packages, Spdx) ->
+-spec add_packages(Packages :: [spdx_package()], Spdx :: map()) -> SpdxResult :: map().
+add_packages(Packages, #{}=Spdx) ->
     Spdx.
 
 %% Add relationships as per example:
@@ -843,7 +840,7 @@ app_key_to_record(AppKey) ->
                optional_applications = Optional }.
 
 
--spec generate_spdx_packages(PackageMappings, Spdx) -> spdx_package() when
+-spec generate_spdx_packages(PackageMappings, Spdx) -> [spdx_package()] when
       PackageMappings :: #{AppName => {AppPath, app_info()}},
       AppName         :: unicode:chardata(),
       AppPath         :: unicode:chardata(),
@@ -871,7 +868,6 @@ generate_spdx_packages(PackageMappings, #{~"files" := Files}=_Spdx) ->
                              %%       and the dependencies between apps.
                             },
                       [Package | Acc]
-                      %% {[Package | Acc], Spdx#{~"files" := Files -- SpdxPackageFiles}}
                end, [], PackageMappings).
 
 generate_spdxid_name(PackageName) ->
