@@ -364,7 +364,7 @@ curations:
         reason: "DOCUMENTATION_OF"
         comment: >-
           The scanner incorrectly categorises this license
-        concluded_license: "Apache-2.0 OR LGPL-2.1-or-later"
+        concluded_license: "Apache-2.0"
 
       - path: "lib/edoc/include/edoc_doclet.hrl"
         reason: "INCORRECT"
