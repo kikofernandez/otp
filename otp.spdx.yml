@@ -11,6 +11,7 @@ documentNamespace: "http://spdx.org/spdxdocs/spdx-document-erlang-otp"
 documentDescribes:
 - "SPDXRef-Project-Erlang-OTP"
 packages:
+  # PROJECT
 - SPDXID: "SPDXRef-Project-Erlang-OTP"
   description: "Erlang/OTP programming language"
   copyrightText: "Copyright Ericsson AB"
@@ -24,6 +25,437 @@ packages:
   name: "erlang/otp"
   versionInfo: "28.1.1"
   packageFileName: "./"
+
+- SPDXID: "SPDXRef-Package-kernel"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/kernel"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "kernel"
+  versionInfo: "TODO"
+  packageFileName: "./lib/kernel"
+
+- SPDXID: "SPDXRef-Package-stdlib"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/stdlib"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "stdlib"
+  versionInfo: "TODO"
+  packageFileName: "./lib/stdlib"
+
+- SPDXID: "SPDXRef-Package-xmerl"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/xmerl"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "xmerl"
+  versionInfo: "TODO"
+  packageFileName: "./lib/xmerl"
+
+- SPDXID: "SPDXRef-Package-wx"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/wx"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "wx"
+  versionInfo: "TODO"
+  packageFileName: "./lib/wx"
+
+- SPDXID: "SPDXRef-Package-tools"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/tools"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "tools"
+  versionInfo: "TODO"
+  packageFileName: "./lib/tools"
+
+- SPDXID: "SPDXRef-Package-tftp"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/tftp"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "tftp"
+  versionInfo: "TODO"
+  packageFileName: "./lib/tftp"
+
+- SPDXID: "SPDXRef-Package-syntax_tools"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/syntax_tools"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "syntax_tools"
+  versionInfo: "TODO"
+  packageFileName: "./lib/syntax_tools"
+
+- SPDXID: "SPDXRef-Package-ssl"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/ssl"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "ssl"
+  versionInfo: "TODO"
+  packageFileName: "./lib/ssl"
+
+- SPDXID: "SPDXRef-Package-ssh"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/ssh"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "ssh"
+  versionInfo: "TODO"
+  packageFileName: "./lib/ssh"
+
+- SPDXID: "SPDXRef-Package-snmp"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/snmp"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "snmp"
+  versionInfo: "TODO"
+  packageFileName: "./lib/snmp"
+
+- SPDXID: "SPDXRef-Package-sasl"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/sasl"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "sasl"
+  versionInfo: "TODO"
+  packageFileName: "./lib/sasl"
+
+- SPDXID: "SPDXRef-Package-runtime_tools"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/runtime_tools"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "runtime_tools"
+  versionInfo: "TODO"
+  packageFileName: "./lib/runtime_tools"
+
+- SPDXID: "SPDXRef-Package-reltool"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/reltool"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "reltool"
+  versionInfo: "TODO"
+  packageFileName: "./lib/reltool"
+
+- SPDXID: "SPDXRef-Package-public_key"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/public_key"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "public_key"
+  versionInfo: "TODO"
+  packageFileName: "./lib/public_key"
+
+- SPDXID: "SPDXRef-Package-parsetools"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/parsetools"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "parsetools"
+  versionInfo: "TODO"
+  packageFileName: "./lib/parsetools"
+
+- SPDXID: "SPDXRef-Package-os_mon"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/os_mon"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "os_mon"
+  versionInfo: "TODO"
+  packageFileName: "./lib/os_mon"
+
+- SPDXID: "SPDXRef-Package-observer"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/observer"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "observer"
+  versionInfo: "TODO"
+  packageFileName: "./lib/observer"
+
+- SPDXID: "SPDXRef-Package-mnesia"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/mnesia"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "mnesia"
+  versionInfo: "TODO"
+  packageFileName: "./lib/mnesia"
+
+- SPDXID: "SPDXRef-Package-megaco"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/megaco"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "megaco"
+  versionInfo: "TODO"
+  packageFileName: "./lib/megaco"
+
+- SPDXID: "SPDXRef-Package-jinterface"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/jinterface"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "jinterface"
+  versionInfo: "TODO"
+  packageFileName: "./lib/jinterface"
+
+- SPDXID: "SPDXRef-Package-inets"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/inets"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "inets"
+  versionInfo: "TODO"
+  packageFileName: "./lib/inets"
+
+- SPDXID: "SPDXRef-Package-ftp"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/ftp"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "ftp"
+  versionInfo: "TODO"
+  packageFileName: "./lib/ftp"
+
+- SPDXID: "SPDXRef-Package-eunit"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/eunit"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "eunit"
+  versionInfo: "TODO"
+  packageFileName: "./lib/eunit"
+
+- SPDXID: "SPDXRef-Package-et"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/et"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "et"
+  versionInfo: "TODO"
+  packageFileName: "./lib/et"
+
+- SPDXID: "SPDXRef-Package-erl_interface"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/erl_interface"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "erl_interface"
+  versionInfo: "TODO"
+  packageFileName: "./lib/erl_interface"
+
+- SPDXID: "SPDXRef-Package-eldap"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/eldap"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "eldap"
+  versionInfo: "TODO"
+  packageFileName: "./lib/eldap"
+
+- SPDXID: "SPDXRef-Package-edoc"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/edoc"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "edoc"
+  versionInfo: "TODO"
+  packageFileName: "./lib/edoc"
+
+- SPDXID: "SPDXRef-Package-diameter"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/diameter"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "diameter"
+  versionInfo: "TODO"
+  packageFileName: "./lib/diameter"
+
+- SPDXID: "SPDXRef-Package-dialyzer"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/dialyzer"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "dialyzer"
+  versionInfo: "TODO"
+  packageFileName: "./lib/dialyzer"
+
+- SPDXID: "SPDXRef-Package-debugger"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/debugger"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "debugger"
+  versionInfo: "TODO"
+  packageFileName: "./lib/debugger"
+
+- SPDXID: "SPDXRef-Package-crypto"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/crypto"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "crypto"
+  versionInfo: "TODO"
+  packageFileName: "./lib/crypto"
+
+- SPDXID: "SPDXRef-Package-compiler"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/compiler"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "compiler"
+  versionInfo: "TODO"
+  packageFileName: "./lib/compiler"
+
+- SPDXID: "SPDXRef-Package-common_test"
+  copyrightText: "Copyright Ericsson AB"
+  downloadLocation: "git+https://github.com/erlang/otp.git#lib/common_test"
+  filesAnalyzed: false
+  supplier: "Organization: Ericsson AB"
+  originator: "Organization: Ericsson AB"
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "common_test"
+  versionInfo: "TODO"
+  packageFileName: "./lib/common_test"
+
+  # ERTS package top-level
 - SPDXID: "SPDXRef-Package-erts"
   description: "Erlang Runtime System for Erlang/OTP"
   copyrightText: "Copyright Ericsson AB"
@@ -37,6 +469,8 @@ packages:
   name: "erts"
   versionInfo: "28.1.1"
   packageFileName: "./erts"
+
+  # ERTS 3pp vendor
 - SPDXID: "SPDXRef-Package-pcre2"
   description: "PCRE vendor library"
   copyrightText: "NOASSERTION"
@@ -47,38 +481,11 @@ packages:
   licenseDeclared: "BSD-3-Clause"
   name: "pcre2"
   versionInfo: "10.44"
+  comment: "Vendor library/script"
   packageFileName: "./erts/emulator/pcre"
-- SPDXID: "SPDXRef-Package-Autoconf"
-  description: "Autoconf guess and sub config files"
-  copyrightText: "Copyright 1992-2021 Free Software Foundation, Inc."
-  downloadLocation: "https://www.gnu.org/software/autoconf/"
-  filesAnalyzed: false
-  homepage: "https://www.gnu.org/software/autoconf/"
-  licenseConcluded: "GPL-3.0-or-later WITH Autoconf-exception-generic-3.0"
-  licenseDeclared: "GPL-3.0-or-later WITH Autoconf-exception-generic-3.0"
-  name: "autoconf"
-  versionInfo: "2.71"
-- SPDXID: "SPDXRef-Package-Autoconf-installsh"
-  description: "Autoconf install-sh files"
-  copyrightText: "Copyright (C) 1994 X Consortium"
-  downloadLocation: "https://www.gnu.org/software/autoconf/"
-  filesAnalyzed: false
-  homepage: "https://www.gnu.org/software/autoconf/"
-  licenseConcluded: "MIT"
-  licenseDeclared: "MIT"
-  name: "autoconf-install-sh"
-  versionInfo: "2.71"
-- SPDXID: "SPDXRef-Package-TCL"
-  description: "TCL library"
-  copyrightText: |
-    Copyright (c) 1991-1994 The Regents of the University of California.
-    Copyright (c) 1994-1996 Sun Microsystems, Inc.
-  downloadLocation: "https://www.tcl.tk/"
-  homepage: "https://www.tcl.tk/"
-  licenseConcluded: "TCL"
-  licenseDeclared: "TCL"
-  name: "tcl"
-  versionInfo: "7.6"
+  comment: "Vendor library/script"
+
+  # ERTS 3pp vendor
 - SPDXID: "SPDXRef-Package-Asmjit"
   description: "Asmjit"
   copyrightText: "Copyright (c) 2008-2023 The AsmJit Authors"
@@ -90,6 +497,9 @@ packages:
   name: "asmjit"
   versionInfo: "a465fe71ab3d0e224b2b4bd0fac69ae68ab9239d"
   packageFileName: "./erts/emulator/asmjit"
+  comment: "Vendor library/script"
+
+  # ERTS 3pp vendor
 - SPDXID: "SPDXRef-Package-zlib"
   description: "interface of the 'zlib' general purpose compression library"
   copyrightText: "Copyright (C) 1995-2024 Jean-loup Gailly and Mark Adler"
@@ -101,6 +511,9 @@ packages:
   name: "zlib"
   versionInfo: "1.3.1"
   packageFileName: "./erts/emulator/zlib"
+  comment: "Vendor library/script"
+
+  # ERTS 3pp vendor
 - SPDXID: "SPDXRef-Package-ryu"
   description: "ryu library"
   copyrightText: "Copyright 2018 Ulf Adams"
@@ -111,6 +524,9 @@ packages:
   licenseDeclared: "Apache-2.0 OR BSL-1.0"
   name: "ryu"
   versionInfo: "844864ac213bdbf1fb57e6f51c653b3d90af0937"
+  comment: "Vendor library/script"
+
+  # ERTS 3pp vendor
 - SPDXID: "SPDXRef-Package-stl"
   description: "STL"
   copyrightText: |
@@ -133,6 +549,12 @@ packages:
     above.
 
     Original function: https://github.com/microsoft/STL/blob/e745bad3b1d05b5b19ec652d68abb37865ffa454/stl/inc/xcharconv_ryu.h#L1926
+  comment: |
+    Vendor library/script.
+    License only applies to the snippet ./erts/emulator/ryu/d2s.c:to_chars()
+  packageFileName: ./erts/emulator/ryu/d2s.c
+
+  # ERTS 3pp vendor
 - SPDXID: "SPDXRef-Package-FP16"
   description: "FP16"
   copyrightText: |
@@ -147,6 +569,9 @@ packages:
   name: "fp16"
   versionInfo: "0a92994d729ff76a58f692d3028ca1b64b145d91"
   packageFileName: "./erts/emulator/beam/erl_bits_f16.h"
+  comment: "Vendor library/script"
+
+  # ERTS 3pp vendor
 - SPDXID: "SPDXRef-Package-openssl"
   description: "Openssl MD5 implementation"
   copyrightText: "Copyright 1995-2022 The OpenSSL Project Authors. All Rights Reserved."
@@ -157,6 +582,8 @@ packages:
   licenseDeclared: "Apache-2.0"
   name: "openssl"
   versionInfo: "3.1.4"
+  comment: "Vendor library/script"
+
 - SPDXID: "SPDXRef-Package-openssl-erts"
   description: "Openssl MD5 implementation in ERTS"
   copyrightText: "Copyright 1995-2022 The OpenSSL Project Authors. All Rights Reserved."
@@ -168,6 +595,8 @@ packages:
   name: "openssl-erts"
   versionInfo: "3.1.4"
   packageFileName: "./erts/emulator/openssl"
+  comment: "Vendor library/script"
+
 - SPDXID: "SPDXRef-Package-openssl-erlInterface"
   description: "Openssl MD5 implementation in erl_interface"
   copyrightText: "Copyright 1995-2022 The OpenSSL Project Authors. All Rights Reserved."
@@ -179,6 +608,8 @@ packages:
   name: "openssl-erlInterface"
   versionInfo: "3.1.4"
   packageFileName: "./lib/erl_interface/src/openssl"
+  comment: "Vendor library/script"
+
 - SPDXID: "SPDXRef-Package-json-suite"
   description: "JSON Test Suite"
   copyrightText: "Copyright (c) 2016 Nicolas Seriot"
@@ -190,6 +621,8 @@ packages:
   name: "json-test-suite"
   versionInfo: "984defc2deaa653cb73cd29f4144a720ec9efe7c"
   packageFileName: "./lib/stdlib/test/json_SUITE_data"
+  comment: "Vendor library/script"
+
 - SPDXID: "SPDXRef-Package-wx-widgetsdocumentation"
   description: "wxWidgets documentation inserted from original project into Erlang bindings"
   copyrightText: "Copyright (c) 1998 Julian Smart, Robert Roebling et al"
@@ -204,6 +637,8 @@ packages:
   licenseComments: |
     This only applies to the source code of Erlang files in 'src',
     and specifically to the documentation embedded in them
+  comment: "Vendor library/script"
+
 - SPDXID: "SPDXRef-Package-jquery"
   description: "jquery package"
   copyrightText: "Copyright OpenJS Foundation and other contributors"
@@ -215,6 +650,8 @@ packages:
   name: "jquery"
   versionInfo: "3.7.1"
   packageFileName: "./lib/common_test/priv/jquery-latest.js"
+  comment: "Vendor library/script"
+
 - SPDXID: "SPDXRef-Package-tablesorter"
   description: "tablesorter javascript library"
   copyrightText: "Copyright (c) Meta Platforms, Inc. and affiliates. All rights reserved."
@@ -226,6 +663,8 @@ packages:
   name: "tablesorter"
   versionInfo: "2.32"
   packageFileName: "./lib/common_test/priv/jquery.tablesorter.min.js"
+  comment: "Vendor library/script"
+
 - SPDXID: "SPDXRef-Package-zstd"
   description: "zstd"
   copyrightText: "Copyright (c) Meta Platforms, Inc. and affiliates. All rights reserved."
@@ -237,3 +676,122 @@ packages:
   name: "zstd"
   versionInfo: "v1.5.6"
   packageFileName: "./erts/emulator/zstd"
+  comment: "Vendor library/script"
+
+  # ERTS 3pp vendor
+  # TODO: Populate files
+- SPDXID: "SPDXRef-Package-Autoconf"
+  description: "Autoconf guess and sub config files"
+  copyrightText: "Copyright 1992-2021 Free Software Foundation, Inc."
+  downloadLocation: "https://www.gnu.org/software/autoconf/"
+  filesAnalyzed: false
+  homepage: "https://www.gnu.org/software/autoconf/"
+  licenseConcluded: "GPL-3.0-or-later WITH Autoconf-exception-generic-3.0"
+  licenseDeclared: "GPL-3.0-or-later WITH Autoconf-exception-generic-3.0"
+  name: "autoconf"
+  versionInfo: "2.71"
+  comment: "Vendor library/script"
+
+  # ERTS 3pp vendor
+  # TODO: Populate files
+- SPDXID: "SPDXRef-Package-Autoconf-installsh"
+  description: "Autoconf install-sh files"
+  copyrightText: "Copyright (C) 1994 X Consortium"
+  downloadLocation: "https://www.gnu.org/software/autoconf/"
+  filesAnalyzed: false
+  homepage: "https://www.gnu.org/software/autoconf/"
+  licenseConcluded: "MIT"
+  licenseDeclared: "MIT"
+  name: "autoconf-install-sh"
+  versionInfo: "2.72"
+  comment: "Vendor library/script"
+
+  # ERTS 3pp vendor
+  # TODO:
+  # ./erts/emulator/beam/erl_posix_str.c
+  # ./erts/emulator/tcl/erl_posix_str.c
+- SPDXID: "SPDXRef-Package-TCL"
+  description: "TCL library"
+  copyrightText: |
+    Copyright (c) 1991-1994 The Regents of the University of California.
+    Copyright (c) 1994-1996 Sun Microsystems, Inc.
+  downloadLocation: "https://www.tcl.tk/"
+  homepage: "https://www.tcl.tk/"
+  licenseConcluded: "TCL"
+  licenseDeclared: "TCL"
+  name: "tcl"
+  versionInfo: "7.6"
+  comment: "Vendor library/script"
+
+relationships:
+- spdxElementId: "SPDXRef-Project-Erlang-OTP"
+  relatedSpdxElement: "SPDXRef-Package-erts"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-pcre2"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-Asmjit"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-zlib"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-ryu"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-stl"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-FP16"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-openssl"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-openssl"
+  relatedSpdxElement: "SPDXRef-Package-openssl-erts"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-openssl"
+  relatedSpdxElement: "SPDXRef-Package-openssl-erlInterface"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-json-suite"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-wx-widgetsdocumentation"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-jquery"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-tablesorter"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-zstd"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-Autoconf"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-Autoconf-installsh"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+
+- spdxElementId: "SPDXRef-Package-erts"
+  relatedSpdxElement: "SPDXRef-Package-TCL"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
