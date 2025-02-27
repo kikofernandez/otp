@@ -7,9 +7,13 @@
 -define(default_classified_result, "scan-result-classified.json").
 -define(default_scan_result, "scan-result.json").
 -define(diff_classified_result, "scan-result-diff.json").
--define(license_ref_name, "LicenseRef-NOASSERTION").
--define(license_ref_copyright, "Erlang/OTP contributors").
--define(erlang_license, "Apache-2.0").
+-define(erlang_license, ~"Apache-2.0").
+
+%% Add more relations if necessary.
+-type spdx_relations() :: #{ 'DOCUMENTATION_OF' => [],
+                             'CONTAINS' => [],
+                             'TEST_OF' => [],
+                             'PACKAGE_OF' => []}.
 
 -record(spdx_package, {'SPDXID'           :: unicode:chardata(),
                        'versionInfo'      :: unicode:chardata(),
@@ -23,7 +27,11 @@
                        'licenseInfoFromFiles' = [] :: [unicode:chardata()],
                        'downloadLocation' = ~"https://github.com/erlang/otp/releases" :: unicode:chardata(),
                        'packageVerificationCode' :: #{ 'packageVerificationCodeValue' => unicode:chardata()},
-                       'supplier' = "Organization: Ericsson AB" :: unicode:chardata()
+                       'supplier' = ~"Organization: Ericsson AB" :: unicode:chardata(),
+                       'relationships' = #{ 'DOCUMENTATION_OF' => [],
+                                            'CONTAINS' => [],
+                                            'TEST_OF' => [],
+                                            'PACKAGE_OF' => []} :: spdx_relations()
                       }).
 -type spdx_package() :: #spdx_package{}.
 
@@ -141,15 +149,6 @@ cli() ->
                                                 output_option() ],
                                  handler => fun classify_path_license_copyright/1},
 
-                          "reuse-gen-toml" =>
-                              #{ help =>
-                                     """
-                                     Generates a TOML file based on the 'classify-license-copyright' results.
-                                     Files with no license are given LicenseRef-UnknownLicense.txt.
-
-                                     """,
-                                   arguments => [input_option()],
-                                   handler => fun reuse_gen_toml/1},
                           "diff" =>
                               #{ help =>
                                      """
@@ -263,8 +262,9 @@ sbom_otp(#{sbom_file  := SbomFile}=Input) ->
     Copyrights = path_to_copyright(Input, Licenses),
     Fixes = sbom_fixes(Licenses, Copyrights),
     Spdx = execute_sbom_fixes(Sbom, Fixes),
-    package_by_app(Spdx).
-    %% file:write_file(SbomFile, json:encode(Spdx)).
+    Spdx1 = package_by_app(Spdx),
+    %% TODO: file:write_file(SbomFile, json:encode(Spdx1)).
+    file:write_file("otp.spdx.json", json:encode(Spdx1)).
 
 execute_sbom_fixes(Sbom, Fixes) ->
     lists:foldl(fun ({Fun, Data}, Acc) -> Fun(Data, Acc) end, Sbom, Fixes).
@@ -437,46 +437,6 @@ classify_copyright_result(Filename) ->
                         #{<<"path">> := Path, <<"start_line">> := _StartLine, <<"end_line">> := _EndLine} = Location,
                         Acc#{Path => CopyrightSt}
                     end, #{}, Copyrights).
-
-reuse_gen_toml(#{input_file := Input}) ->
-    #{~"files" := Files} = decode(Input),
-    GitIgnore = lists:foldl(fun (Path, Acc) ->
-                        add_annotation(Path, ?license_ref_name, ?license_ref_copyright) ++ Acc
-                end, "", gitignore_files()),
-    Result = lists:foldl(fun(#{~"copyrightText" := C, ~"licenseConcluded" := L, ~"fileName" := Path}, Acc) ->
-                               {LicenseString, CopyrightString}=
-                                   case L of
-                                       ~"NONE"  ->
-                                           {?license_ref_name, "NOASSERTION"};
-                                       ~"NOASSERTION" ->
-                                           {?license_ref_name, "NOASSERTION"};
-                                       _ ->
-                                           case C of
-                                               _ when C == ~"NOASSERTION"; C=="NONE" ->
-                                                   {L, ?license_ref_copyright};
-                                               _ ->
-                                                   {L, C}
-                                           end
-
-                                   end,
-                               add_annotation(Path, LicenseString, CopyrightString) ++ Acc
-                       end, GitIgnore, Files),
-    TOML = "version = 1\n\n" ++ Result,
-    io:format("~ts", [TOML]).
-
-
-add_annotation(Path, License, Copyright) ->
-    LicenseId = io_lib:format("SPDX-License-Identifier = \"~ts\"\n", [License]),
-    CopyrightId = io_lib:format("SPDX-FileCopyrightText = ~p\n", [conversion_from_bin(string:split(Copyright, "\n", all))]),
-    io_lib:format("[[annotations]]\npath = \"~ts\"\n~s~s\n",
-                  [Path, LicenseId, CopyrightId]).
-
-conversion_from_bin([]) -> [];
-conversion_from_bin([Bin | Ls]) when is_binary(Bin) ->
-    [erlang:binary_to_list(Bin) | conversion_from_bin(Ls)];
-conversion_from_bin([NotBin | Ls]) when is_list(NotBin) ->
-    [NotBin | conversion_from_bin(Ls)].
-
 
 group_by_licenses(#{input_file := Filename,
                     exclude := ApplyExclude,
@@ -680,78 +640,6 @@ curated_path_license(_Name, Path, [#{<<"path">> := Path}=Cur | _Curations]) ->
 curated_path_license(Name, Path, [_Cur | Curations]) ->
     curated_path_license(Name, Path, Curations).
 
-gitignore_files() ->
-    [".gitattributes",
-     ".gitignore",
-     "erts/.gitignore",
-     "erts/doc/assets/.gitignore",
-     "erts/doc/src/.gitignore",
-     "erts/emulator/internal_doc/assets/.gitignore",
-     "erts/lib_src/yielding_c_fun/.gitignore",
-     "erts/lib_src/yielding_c_fun/lib/simple_c_gc/.gitignore",
-     "erts/lib_src/yielding_c_fun/test/examples/sha256_erlang_nif/.gitignore",
-     "erts/lib_src/yielding_c_fun/test/examples/sha256_erlang_nif/c_src/sha-2/.gitignore",
-     "erts/preloaded/.gitignore",
-     "erts/preloaded/src/.gitignore",
-     "lib/.gitignore",
-     "lib/asn1/src/.gitignore",
-     "lib/common_test/test_server/.gitignore",
-     "lib/compiler/scripts/.gitignore",
-     "lib/compiler/src/.gitignore",
-     "lib/compiler/test/core_SUITE_data/.gitignore",
-     "lib/dialyzer/doc/.gitignore",
-     "lib/dialyzer/test/incremental_SUITE_data/extra_modules/ebin/.gitignore",
-     "lib/dialyzer/test/options1_SUITE_data/my_include/CVS/Entries",
-     "lib/dialyzer/test/options1_SUITE_data/my_include/CVS/Repository",
-     "lib/dialyzer/test/options1_SUITE_data/my_include/CVS/Root",
-     "lib/diameter/.gitignore",
-     "lib/diameter/doc/.gitignore",
-     "lib/diameter/doc/src/.gitignore",
-     "lib/diameter/ebin/.gitignore",
-     "lib/diameter/examples/.gitignore",
-     "lib/diameter/examples/dict/.gitignore",
-     "lib/diameter/src/.gitignore",
-     "lib/diameter/src/gen/.gitignore",
-     "lib/diameter/test/.gitignore",
-     "lib/edoc/.gitignore",
-     "lib/edoc/doc/assets/.gitignore",
-     "lib/edoc/doc/chunks/.gitignore",
-     "lib/eldap/.gitignore",
-     "lib/eunit/doc/.gitignore",
-     "lib/inets/priv/plt/.gitignore",
-     "lib/jinterface/.gitignore",
-     "lib/jinterface/doc/assets/.gitignore",
-     "lib/jinterface/test/jinterface_SUITE_data/.gitignore",
-     "lib/jinterface/test/nc_SUITE_data/.gitignore",
-     "lib/kernel/doc/src/.gitignore",
-     "lib/kernel/test/interactive_shell_SUITE_data/.gitignore",
-     "lib/megaco/.gitignore",
-     "lib/megaco/doc/specs/.gitignore",
-     "lib/megaco/priv/plt/.gitignore",
-     "lib/mnesia/test/.gitignore",
-     "lib/odbc/doc/specs/.gitignore",
-     "lib/public_key/.gitignore",
-     "lib/sasl/test/.gitignore",
-     "lib/sasl/test/release_handler_SUITE_data/relocatable_release/hello_server/ebin/.gitignore",
-     "lib/sasl/test/release_handler_SUITE_data/relocatable_release/hello_server_new/ebin/.gitignore",
-     "lib/snmp/.gitignore",
-     "lib/snmp/doc/specs/.gitignore",
-     "lib/snmp/include/.gitignore",
-     "lib/snmp/priv/mibs/.gitignore",
-     "lib/snmp/priv/plt/.gitignore",
-     "lib/snmp/test/snmp_test_data/.gitignore",
-     "lib/snmp/test/test_config/.gitignore",
-     "lib/ssh/src/.gitignore",
-     "lib/ssh/test/.gitignore",
-     "lib/ssl/src/.gitignore",
-     "lib/syntax_tools/doc/assets/.gitignore",
-     "lib/wx/.gitignore",
-     "system/doc/.gitignore",
-     "system/doc/assets/.gitignore",
-     "system/doc/general_info/.gitignore",
-     "system/doc/installation_guide/.gitignore",
-     "system/doc/top/.gitignore"].
-
 %% fixes the Spdx to split Spdx by app
 package_by_app(Spdx) ->
     AppSrcFiles = find_app_src_files("."),
@@ -760,26 +648,67 @@ package_by_app(Spdx) ->
     PackageTemplates = generate_spdx_mappings(AppSrcFiles),
     Packages = generate_spdx_packages(PackageTemplates, Spdx),
     Spdx1 = add_packages(Packages, Spdx),
-    Spdx2  = create_relationships(Packages, Spdx1),
-    io:format("Result:~n~p~n", [Packages]),
-    Spdx2.
+    create_relationships(Packages, Spdx1).
+
 
 -spec add_packages(Packages :: [spdx_package()], Spdx :: map()) -> SpdxResult :: map().
-add_packages(Packages, #{}=Spdx) ->
-    Spdx.
+add_packages(Packages, #{~"packages" := [Project]}=Spdx) ->
+    Spdx#{~"packages" := [Project | lists:map(fun create_spdx_package/1, Packages)]}.
 
-%% Add relationships as per example:
+-spec create_spdx_package(Package :: spdx_package()) -> map().
+create_spdx_package(Pkg) ->
+    SPDXID = Pkg#spdx_package.'SPDXID',
+    VersionInfo= Pkg#spdx_package.'versionInfo',
+    Name = Pkg#spdx_package.'name',
+    CopyrightText = Pkg#spdx_package.'copyrightText',
+    FilesAnalyzed = Pkg#spdx_package.'filesAnalyzed',
+    HasFiles = Pkg#spdx_package.'hasFiles',
+    Homepage = Pkg#spdx_package.'homepage',
+    LicenseConcluded = Pkg#spdx_package.'licenseConcluded',
+    LicenseDeclared = Pkg#spdx_package.'licenseDeclared',
+    LicenseInfo = Pkg#spdx_package.'licenseInfoFromFiles',
+    DownloadLocation = Pkg#spdx_package.'downloadLocation',
+    PackageVerification = Pkg#spdx_package.'packageVerificationCode',
+    Supplier = Pkg#spdx_package.'supplier',
+    #{ ~"SPDXID" => SPDXID,
+       ~"versionInfo" => VersionInfo,
+       ~"name" => Name,
+       ~"copyrightText" => CopyrightText,
+       ~"filesAnalyzed" => FilesAnalyzed,
+       ~"hasFiles" => HasFiles,
+       ~"homepage" => Homepage,
+       ~"licenseConcluded" => LicenseConcluded,
+       ~"licenseDeclared" => LicenseDeclared,
+       ~"licenseInfoFromFiles" => LicenseInfo,
+       ~"downloadLocation" => DownloadLocation,
+       ~"packageVerificationCode" => PackageVerification,
+       ~"supplier" => Supplier
+     }.
+
+%% Example:
 %% https://github.com/spdx/tools-java/blob/master/testResources/SPDXJSONExample-v2.2.spdx.json#L240-L275
-%% TODO:
 create_relationships(Packages, Spdx) ->
-    Relationships = [],
+    Relationships =
+        lists:foldl(fun (Pkg, Acc) ->
+                            #{'PACKAGE_OF' := L} = Pkg#spdx_package.'relationships',
+                            lists:foldl(fun ({ElementId, RelatedElement}, Acc1) ->
+                                              [create_spdx_relation('PACKAGE_OF', ElementId, RelatedElement) | Acc1]
+                                      end, Acc, L)
+                    end, [], Packages),
     Spdx#{~"relationships" => Relationships}.
+
+create_spdx_relation('PACKAGE_OF'=Relation, ElementId, RelatedElement) ->
+    #{~"spdxElementId" => ElementId,
+      ~"relatedSpdxElement" => RelatedElement,
+      ~"relationshipType" => Relation}.
 
 -spec find_app_src_files(Folder :: string()) -> [string()].
 find_app_src_files(Folder) ->
     S = os:cmd("find "++ Folder ++ " -regex .*.app.src | grep -v test | grep -v smoke-build | cut -d/ -f2-"),
     lists:map(fun erlang:list_to_binary/1, string:split(S, "\n", all)).
 
+-spec generate_spdx_mappings(Path :: binary()) -> Result when
+      Result :: #{AppName :: binary() => {AppPath :: binary(), AppInfo :: app_info()}}.
 generate_spdx_mappings(AppSrcPath) ->
     Mappings = lists:foldl(fun (AppSrcPath0, Acc) ->
                                    DetectedPackages = build_package_location(AppSrcPath0),
@@ -787,6 +716,8 @@ generate_spdx_mappings(AppSrcPath) ->
                            end, #{}, AppSrcPath),
     update_erts_mapping(Mappings).
 
+-spec update_erts_mapping(Input :: Map) -> Output :: Map when
+      Map :: #{AppName :: binary() => {AppPath :: binary(), AppInfo :: app_info()}}.
 update_erts_mapping(#{~"erts" := {ErtsPath, AppInfo},
                       ~"stdlib" := {_, AppInfoStdlib}}=Mappings) ->
     ErtsAppInfo =
@@ -845,12 +776,14 @@ app_key_to_record(AppKey) ->
       AppName         :: unicode:chardata(),
       AppPath         :: unicode:chardata(),
       Spdx            :: map().
-generate_spdx_packages(PackageMappings, #{~"files" := Files}=_Spdx) ->
+generate_spdx_packages(PackageMappings, #{~"files" := Files,
+                                          ~"documentDescribes" := [ProjectName]}=_Spdx) ->
     maps:fold(fun (PackageName, {PrefixPath, AppInfo}, Acc) ->
                       SpdxPackageFiles = group_files_by_app(Files, PrefixPath),
+                      SpdxPackageName = generate_spdxid_name(PackageName),
                       Package =
                           #spdx_package {
-                             'SPDXID' = generate_spdxid_name(PackageName),
+                             'SPDXID' = SpdxPackageName,
                              'versionInfo' = AppInfo#app_info.vsn,
                              'name' = PackageName,
                              'copyrightText' = generate_copyright_text(SpdxPackageFiles),
@@ -859,13 +792,14 @@ generate_spdx_packages(PackageMappings, #{~"files" := Files}=_Spdx) ->
                              %% O(n2) complexity... fix if necessary
                              'hasFiles' = generate_has_files(SpdxPackageFiles),
 
-                             'homepage' = "https://www.erlang.org",
+                             'homepage' = ~"https://www.erlang.org",
                              'licenseConcluded' = ?erlang_license,
                              'licenseDeclared'  = ?erlang_license,
                              'licenseInfoFromFiles' = generate_license_info_from_files(SpdxPackageFiles),
-                             'packageVerificationCode' = #{ 'packageVerificationCodeValue' => "TODO"}
+                             'packageVerificationCode' = #{ 'packageVerificationCodeValue' => ~"TODO"},
                              %% TODO: write the documentation folder, and the BUILD of a Make
                              %%       and the dependencies between apps.
+                             'relationships' = #{ 'PACKAGE_OF' => [{SpdxPackageName, ProjectName}]}
                             },
                       [Package | Acc]
                end, [], PackageMappings).
