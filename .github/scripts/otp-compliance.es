@@ -8,6 +8,13 @@
 -define(default_scan_result, "scan-result.json").
 -define(diff_classified_result, "scan-result-diff.json").
 -define(erlang_license, ~"Apache-2.0").
+-define(spdxref_project_name, ~"SPDXRef-Project-OTP").
+-define(spdx_project_name, ~"Erlang/OTP").
+-define(spdx_creators_tooling, ~"Tool: otp_compliance").
+-define(spdx_supplier, ~"Organization: Ericsson AB").
+-define(spdx_download_location, ~"https://github.com/erlang/otp/releases").
+-define(spdx_version, ~"SPDX-2.2").
+
 
 %% Add more relations if necessary.
 -type spdx_relations() :: #{ 'DOCUMENTATION_OF' => [],
@@ -114,8 +121,14 @@ cli() ->
 
                                      """,
                                  arguments => [ sbom_option(),
+                                                write_to_file_option(),
                                                 input_option() ],
-                                 handler => fun sbom_otp/1}}},
+                                 handler => fun sbom_otp/1},
+                          "test" =>
+                              #{ help => "Run unit tests",
+                                 arguments => [],
+                                 handler => fun test/1}
+                         }},
              "explore" =>
                  #{  help => """
                             Explore license data.
@@ -214,6 +227,12 @@ sbom_option() ->
       default => "bom.spdx.json",
       long => "-sbom-file"}.
 
+write_to_file_option() ->
+    #{name => write_to_file,
+      type => binary,
+      default => true,
+      long => "-write_to_file"}.
+
 output_option(Default) ->
     #{name => output_file,
       type => binary,
@@ -255,45 +274,68 @@ base_file(DefaultFile) ->
 %% Commands
 %%
 
-sbom_otp(#{sbom_file  := SbomFile}=Input) ->
+sbom_otp(#{sbom_file  := SbomFile, write_to_file := Write, input_file := Input}) ->
     Sbom = decode(SbomFile),
+    ScanResults = decode(Input),
+    {Licenses, Copyrights} = fetch_license_copyrights(ScanResults),
+    Spdx = generate_spdx_fixes(Sbom, Licenses, Copyrights),
+    case Write of
+        true ->
+            Output = json:encode(Spdx),
+            %% TODO: file:write_file(SbomFile, json:encode(Output)).
+            file:write_file("otp.spdx.json", Output);
+        false ->
+            {ok, Spdx}
+    end.
 
-    Licenses = path_to_license(Input),
-    Copyrights = path_to_copyright(Input, Licenses),
+fetch_license_copyrights(Input) ->
+    {path_to_license(Input), path_to_copyright(Input)}.
+
+-spec generate_spdx_fixes(Json :: map(), dynamic(), dynamic()) -> Result :: map().
+generate_spdx_fixes(Input, Licenses, Copyrights) ->
     Fixes = sbom_fixes(Licenses, Copyrights),
-    Spdx = execute_sbom_fixes(Sbom, Fixes),
-    Spdx1 = package_by_app(Spdx),
-    %% TODO: file:write_file(SbomFile, json:encode(Spdx1)).
-    file:write_file("otp.spdx.json", json:encode(Spdx1)).
+    Spdx = execute_sbom_fixes(Input, Fixes),
+    package_by_app(Spdx).
 
 execute_sbom_fixes(Sbom, Fixes) ->
     lists:foldl(fun ({Fun, Data}, Acc) -> Fun(Data, Acc) end, Sbom, Fixes).
 
 sbom_fixes(Licenses, Copyrights) ->
-    [{fun fix_name/2, ~"Erlang/OTP"},
-     {fun fix_creators_tooling/2, ~"Tool: otp_compliance"},
-     {fun fix_supplier/2, ~"Organization: Ericsson AB"},
-     {fun fix_download_location/2, ~"https://github.com/erlang/otp/releases"},
+    [{fun fix_project_name/2, ?spdxref_project_name},
+     {fun fix_name/2, ?spdx_project_name},
+     {fun fix_creators_tooling/2, ?spdx_creators_tooling},
+     {fun fix_supplier/2, ?spdx_supplier},
+     {fun fix_download_location/2, ?spdx_download_location},
      {fun fix_beam_licenses/2, {Licenses, Copyrights}} ].
 
+fix_project_name(ProjectName, Sbom) ->
+    Sbom#{ ~"documentDescribes" := [ ProjectName ]}.
 
 fix_name(Name, Sbom) ->
-    Sbom#{ ~"name" := Name}.
+    Sbom#{ ~"name" => Name}.
 
 fix_creators_tooling(Tool, #{ ~"creationInfo" := #{~"creators" := [ORT | _]}=Creators}=Sbom) ->
     SHA = list_to_binary(string:trim(".sha." ++ os:cmd("git rev-parse HEAD"))),
     Sbom#{~"creationInfo" := Creators#{ ~"creators" := [ORT, <<Tool/binary, SHA/binary>>]}}.
 
+fix_supplier(_Name, #{~"packages" := [ ] }=Sbom) ->
+    io:format("[warn] no packages available!~n"),
+    Sbom;
 fix_supplier(Name, #{~"packages" := [ Packages ] }=Sbom) ->
     Sbom#{~"packages" := [maps:update_with(~"supplier", fun(_) -> Name end, Name, Packages)]}.
 
-
+fix_download_location(_Url, #{~"packages" := [ ] }=Sbom) ->
+    io:format("[warn] no packages available!~n"),
+    Sbom;
 fix_download_location(Url, #{~"packages" := [ Packages ] }=Sbom) ->
     Packages1 = Packages#{~"downloadLocation" := Url },
     Sbom#{~"packages" := [ Packages1 ]}.
 
 %% re-populate licenses to .beam files from their .erl files
 %% e.g., the lists.beam file should have the same license as lists.erl
+fix_beam_licenses(_LicensesAndCopyrights, #{ ~"packages" := []}=Sbom) ->
+    io:format("[warn] no packages available!~n"),
+    Sbom;
 fix_beam_licenses(LicensesAndCopyrights,
                   #{ ~"packages" := [Package],
                      ~"files"   := Files}=Sbom) ->
@@ -391,23 +433,32 @@ fix_spdx_license(#{~"copyrightText" := C}=SPDX) ->
 
 %% Given an input file, returns a mapping of
 %% #{filepath => license} for each file path towards its license.
+-spec path_to_license(Input :: map()) -> #{Path :: binary() => License :: binary()}.
 path_to_license(Input) ->
-    ClassifyInput = Input#{ exclude => true,
-                            curations => false},
-    ClassifyLicense = group_by_licenses(ClassifyInput),
+    match_path_to(Input, fun group_by_licenses/3).
+
+-spec path_to_copyright(Input :: map()) -> #{Path :: binary() => License :: binary()}.
+path_to_copyright(Input) ->
+    match_path_to(Input, fun group_by_copyrights/3).
+
+-spec match_path_to(Input :: map(), GroupFun :: fun()) -> #{ Path :: binary() => Result :: binary() }.
+match_path_to(Json, GroupFun) ->
+    Exclude = true,
+    Curations = false,
+    GroupedResult = GroupFun(Json, Exclude, Curations),
     maps:fold(fun (K, Vs, Acc) ->
                       maps:merge(maps:from_keys(Vs, K), Acc)
-              end, #{}, ClassifyLicense).
+              end, #{}, GroupedResult).
 
-path_to_copyright(Input, _Licenses) ->
-    ClassifyInput = Input#{ exclude => true},
-    ClassifyCopyright = group_by_copyrights(ClassifyInput),
-    maps:fold(fun (K, Vs, Acc) ->
-                      maps:merge(maps:from_keys(Vs, K), Acc)
-              end, #{}, ClassifyCopyright).
-
-classify_license(#{output_file := Output}=Input) ->
-    R = group_by_licenses(Input),
+%%
+%% Explore command
+%%
+classify_license(#{output_file := Output,
+                   input_file := Filename,
+                   exclude := ApplyExclude,
+                   curations := ApplyCuration}) ->
+    Json = decode(Filename),
+    R = group_by_licenses(Json, ApplyExclude, ApplyCuration),
     ok = file:write_file(Output, json:encode(R)).
 
 classify_path_license_copyright(#{output_file := Output,
@@ -438,10 +489,8 @@ classify_copyright_result(Filename) ->
                         Acc#{Path => CopyrightSt}
                     end, #{}, Copyrights).
 
-group_by_licenses(#{input_file := Filename,
-                    exclude := ApplyExclude,
-                    curations := ApplyCuration}) ->
-    Json = decode(Filename),
+-spec group_by_licenses(map(), boolean(), boolean()) -> #{License :: binary() => [Path :: binary()]}.
+group_by_licenses(Json, ApplyExclude, ApplyCuration) ->
     Excludes = apply_excludes(Json, ApplyExclude),
     Curations = apply_curations(Json, ApplyCuration),
 
@@ -450,9 +499,7 @@ group_by_licenses(#{input_file := Filename,
                             group_by_license(Excludes, Curations, License, Acc)
                     end, #{}, Licenses).
 
-group_by_copyrights(#{input_file := Filename,
-                      exclude := ApplyExclude}) ->
-    Json = decode(Filename),
+group_by_copyrights(Json, ApplyExclude, _ApplyCuration) ->
     Excludes = apply_excludes(Json, ApplyExclude),
     Copyrights = copyrights(scan_results(Json)),
     lists:foldl(fun (Copyright, Acc) ->
@@ -652,8 +699,8 @@ package_by_app(Spdx) ->
 
 
 -spec add_packages(Packages :: [spdx_package()], Spdx :: map()) -> SpdxResult :: map().
-add_packages(Packages, #{~"packages" := [Project]}=Spdx) ->
-    Spdx#{~"packages" := [Project | lists:map(fun create_spdx_package/1, Packages)]}.
+add_packages(Packages, #{~"packages" := SpdxPackages}=Spdx) ->
+    Spdx#{~"packages" := SpdxPackages ++ lists:map(fun create_spdx_package/1, Packages)}.
 
 -spec create_spdx_package(Package :: spdx_package()) -> map().
 create_spdx_package(Pkg) ->
@@ -901,3 +948,81 @@ group_files_by_app(Files, PrefixPath) ->
 %%  * crypto-5.5.2
 %%  * compiler-8.5.5
 %%  * common_test-1
+
+empty_sbom() ->
+    #{ ~"SPDXID" => ~"SPDXRef-DOCUMENT",
+       ~"creationInfo" => #{
+                            ~"created" => ~"2025-02-10T15:42:12Z",
+                            ~"creators" => [ ~"Tool"],
+                            ~"licenseListVersion" => ~"3.26"
+                           },
+       ~"dataLicense" => ~"CC0-1.0",
+       ~"name" => ~"foo",
+       ~"documentDescribes" => [ ~"SPDXRef-Project-Unmanaged-otp" ],
+       ~"documentNamespace" => ~"spdx://c3947827-a093-422e-be44-ad5420e1f87c",
+       ~"files" => [],
+       ~"packages" => [],
+       ~"spdxVersion" => ~"SPDX-2.2"
+     }.
+
+test(_) ->
+    ok = test_project(),
+    ok = test_packages(),
+    ok.
+
+test_project() ->
+    Sbom = empty_sbom(),
+    ok = test_project_name(Sbom),
+    ok = test_name(Sbom),
+    ok = test_creators_tooling(Sbom),
+    ok = test_spdx_version(Sbom),
+    ok.
+
+test_packages() ->
+    Sbom = empty_sbom(),
+    ok = test_minimum_apps(Sbom),
+    ok.
+
+test_project_name(Sbom) ->
+    #{~"documentDescribes" := [ProjectName]} = generate_spdx_fixes(Sbom, #{}, #{}),
+    ?spdxref_project_name = ProjectName,
+    ok.
+
+test_name(Sbom) ->
+    #{~"name" := Name} = generate_spdx_fixes(Sbom, #{}, #{}),
+    ?spdx_project_name = Name,
+    ok.
+
+test_creators_tooling(Sbom) ->
+    #{~"creationInfo" := #{~"creators" := Creators}} = generate_spdx_fixes(Sbom, #{}, #{}),
+    true = lists:any(fun (Name) ->
+                             case string:prefix(Name, ?spdx_creators_tooling) of
+                                 nomatch -> false;
+                                 _ -> true
+                             end
+                     end, Creators),
+    ok.
+
+test_spdx_version(Sbom) ->
+    #{~"spdxVersion" := Version} = generate_spdx_fixes(Sbom, #{}, #{}),
+    ?spdx_version = Version,
+    ok.
+
+test_minimum_apps(Sbom) ->
+    #{~"documentDescribes" := [ProjectName], ~"packages" := Packages} = generate_spdx_fixes(Sbom, #{}, #{}),
+    PackageNames = [ProjectName | to_spdx_name(minimum_otp_apps())],
+    SPDXIds = [ProjectName | lists:map(fun (#{~"SPDXID" := SPDXId}) -> SPDXId end, Packages)],
+    io:format("~p~n~p~n", [lists:sort(PackageNames), lists:sort(SPDXIds)]),
+    %% [] = PackageNames -- SPDXIds,
+    [] = SPDXIds -- PackageNames,
+    ok.
+
+to_spdx_name(L) when is_list(L) ->
+    lists:map(fun generate_spdxid_name/1, minimum_otp_apps()).
+
+minimum_otp_apps() ->
+    [~"kernel", ~"stdlib", ~"xmerl", ~"wx", ~"tools", ~"tftp", ~"syntax_tools", ~"ssl",
+     ~"ssh", ~"snmp", ~"sasl", ~"runtime_tools", ~"reltool", ~"public_key", ~"parsetools",
+     ~"os_mon", ~"observer", ~"mnesia", ~"megaco", ~"jinterface", ~"inets", ~"ftp", ~"eunit",
+     ~"et", ~"erl_interface", ~"eldap", ~"edoc", ~"diameter", ~"dialyzer", ~"debugger", ~"crypto",
+     ~"compiler", ~"common_test"].
