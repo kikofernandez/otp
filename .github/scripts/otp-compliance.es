@@ -13,6 +13,7 @@
 -define(spdx_creators_tooling, ~"Tool: otp_compliance").
 -define(spdx_supplier, ~"Organization: Ericsson AB").
 -define(spdx_download_location, ~"https://github.com/erlang/otp/releases").
+-define(spdx_homepage, ~"https://www.erlang.org").
 -define(spdx_version, ~"SPDX-2.2").
 
 
@@ -751,32 +752,16 @@ create_spdx_relation('PACKAGE_OF'=Relation, ElementId, RelatedElement) ->
 
 -spec find_app_src_files(Folder :: string()) -> [string()].
 find_app_src_files(Folder) ->
-    S = os:cmd("find "++ Folder ++ " -regex .*.app.src | grep -v test | grep -v smoke-build | cut -d/ -f2-"),
+    S = os:cmd("find "++ Folder ++ " -regex .*.app.src | grep -v \"/test\" | grep -v smoke-build | cut -d/ -f2-"),
     lists:map(fun erlang:list_to_binary/1, string:split(S, "\n", all)).
 
 -spec generate_spdx_mappings(Path :: binary()) -> Result when
       Result :: #{AppName :: binary() => {AppPath :: binary(), AppInfo :: app_info()}}.
 generate_spdx_mappings(AppSrcPath) ->
-    Mappings = lists:foldl(fun (AppSrcPath0, Acc) ->
-                                   DetectedPackages = build_package_location(AppSrcPath0),
-                                   maps:merge(Acc, DetectedPackages)
-                           end, #{}, AppSrcPath),
-    update_erts_mapping(Mappings).
-
--spec update_erts_mapping(Input :: Map) -> Output :: Map when
-      Map :: #{AppName :: binary() => {AppPath :: binary(), AppInfo :: app_info()}}.
-update_erts_mapping(#{~"erts" := {ErtsPath, AppInfo},
-                      ~"stdlib" := {_, AppInfoStdlib}}=Mappings) ->
-    ErtsAppInfo =
-        AppInfo#app_info{ description  = AppInfoStdlib#app_info.description,
-                          id           = [],
-                          vsn          = erlang:list_to_binary(erlang:system_info(version)),
-                          modules      = not_loaded,
-                          applications = [],
-                          included_applications = [],
-                          optional_applications = [] },
-    Mappings#{~"erts" := {ErtsPath, ErtsAppInfo}}.
-
+    lists:foldl(fun (AppSrcPath0, Acc) ->
+                        DetectedPackages = build_package_location(AppSrcPath0),
+                        maps:merge(Acc, DetectedPackages)
+                end, #{}, AppSrcPath).
 
 build_package_location(<<>>) -> #{};
 build_package_location(AppSrcPath) ->
@@ -790,13 +775,20 @@ build_package_location(AppSrcPath) ->
                         {ok, AppKey} = application:get_all_key(AppName),
                         AppKey1 = app_key_to_record(AppKey),
                         #{App => {<<"lib/", App/binary>>, AppKey1}};
-                    _E ->  % TODO: Remove this case
+                    _E ->
+                        % TODO: Remove this case. useful only for debudding, but any software running
+                        % this script should have all dependencies and never end up here.
                         io:format("[Error] ~p~n", [{AppSrcPath, _E, AppName, App}]),
                         #{}
                 end;
         [~"erts"=Erts | _] ->
-            %% TODO: add this special case
-            #{Erts => {Erts, #app_info{}}}
+            #{Erts => {Erts, #app_info{ description = ~"Erlang Runtime System",
+                                        id           = [],
+                                        vsn          = erlang:list_to_binary(erlang:system_info(version)),
+                                        modules      = not_loaded,
+                                        applications = [],
+                                        included_applications = [],
+                                        optional_applications = [] }}}
     end.
 
 app_key_to_record(AppKey) ->
@@ -839,7 +831,7 @@ generate_spdx_packages(PackageMappings, #{~"files" := Files,
                              %% O(n2) complexity... fix if necessary
                              'hasFiles' = generate_has_files(SpdxPackageFiles),
 
-                             'homepage' = ~"https://www.erlang.org",
+                             'homepage' = ?spdx_homepage,
                              'licenseConcluded' = ?erlang_license,
                              'licenseDeclared'  = ?erlang_license,
                              'licenseInfoFromFiles' = generate_license_info_from_files(SpdxPackageFiles),
@@ -978,9 +970,21 @@ test_project() ->
     ok = test_spdx_version(Sbom),
     ok.
 
+%% TODO: We do not have any files in the Sbom, so the packages have almost all fields empty.
 test_packages() ->
-    Sbom = empty_sbom(),
+    Sbom = generate_spdx_fixes(empty_sbom(), #{}, #{}),
     ok = test_minimum_apps(Sbom),
+    ok = test_copyright_not_empty(Sbom),
+    ok = test_filesAnalised(Sbom),
+    ok = test_hasFiles_not_empty(Sbom),
+    ok = test_homepage(Sbom),
+    ok = test_licenseConcluded_exists(Sbom),
+    ok = test_licenseDeclared_exists(Sbom),
+    ok = test_licenseInfoFromFiles_not_empty(Sbom),
+    ok = test_package_names(Sbom),
+    ok = test_verificationCode(Sbom),
+    ok = test_supplier_Ericsson(Sbom),
+    ok = test_versionInfo_not_empty(Sbom),
     ok.
 
 test_project_name(Sbom) ->
@@ -1008,13 +1012,11 @@ test_spdx_version(Sbom) ->
     ?spdx_version = Version,
     ok.
 
-test_minimum_apps(Sbom) ->
-    #{~"documentDescribes" := [ProjectName], ~"packages" := Packages} = generate_spdx_fixes(Sbom, #{}, #{}),
+test_minimum_apps(#{~"documentDescribes" := [ProjectName], ~"packages" := Packages}=_Sbom) ->
+    _ = lists:foreach(fun (X) -> application:load(erlang:binary_to_atom(X)) end, minimum_otp_apps()),
     PackageNames = [ProjectName | to_spdx_name(minimum_otp_apps())],
     SPDXIds = [ProjectName | lists:map(fun (#{~"SPDXID" := SPDXId}) -> SPDXId end, Packages)],
-    io:format("~p~n~p~n", [lists:sort(PackageNames), lists:sort(SPDXIds)]),
-    %% [] = PackageNames -- SPDXIds,
-    [] = SPDXIds -- PackageNames,
+    true = PackageNames -- SPDXIds == SPDXIds -- PackageNames,
     ok.
 
 to_spdx_name(L) when is_list(L) ->
@@ -1025,4 +1027,53 @@ minimum_otp_apps() ->
      ~"ssh", ~"snmp", ~"sasl", ~"runtime_tools", ~"reltool", ~"public_key", ~"parsetools",
      ~"os_mon", ~"observer", ~"mnesia", ~"megaco", ~"jinterface", ~"inets", ~"ftp", ~"eunit",
      ~"et", ~"erl_interface", ~"eldap", ~"edoc", ~"diameter", ~"dialyzer", ~"debugger", ~"crypto",
-     ~"compiler", ~"common_test"].
+     ~"compiler", ~"common_test", ~"erts", ~"asn1"].
+
+test_copyright_not_empty(#{~"packages" := Packages}) ->
+    io:format("Copyright: ~p~n~n~n", [Packages]),
+    true = lists:all(fun (#{~"copyrightText" := Copyright, ~"name" := Name}=Sbom) ->
+                             Copyright =/= ~""
+                     end, Packages),
+    ok.
+
+test_filesAnalised(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"filesAnalyzed" := Bool}) -> Bool = true end, Packages),
+    ok.
+
+test_hasFiles_not_empty(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"hasFiles" := Files}) -> length(Files) > 0 end, Packages),
+    ok.
+
+test_homepage(#{~"packages" := Packages})->
+    true = lists:all(fun (#{~"homepage" := Homepage}) -> Homepage == ?spdx_homepage end, Packages),
+    ok.
+
+test_licenseConcluded_exists(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"licenseConcluded" := License}) -> License =/= ~"" andalso License =/= ~"NONE" end, Packages),
+    ok.
+
+test_licenseDeclared_exists(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"licenseDeclared" := License}) -> License =/= ~"" andalso License =/= ~"NONE" end, Packages),
+    ok.
+
+test_licenseInfoFromFiles_not_empty(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"licenseInfoInFiles" := [_ | _]}) -> true end, Packages),
+    ok.
+
+test_package_names(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"name" := Name}) -> lists:member(Name, minimum_otp_apps()) end, Packages),
+    ok.
+
+test_verificationCode(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"packageVerificationCode" := #{~"packageVerificationCodeValue" := Value}}) ->
+                             Value =/= ~"TODO" andalso Value =/= ~""
+                     end, Packages),
+    ok.
+
+test_supplier_Ericsson(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"supplier" := Name}) -> Name = ?spdx_supplier end, Packages),
+    ok.
+
+test_versionInfo_not_empty(#{~"packages" := Packages}) ->
+    true = lists:all(fun (#{~"version" := Version}) -> Version =/= ~"" end, Packages),
+    ok.
