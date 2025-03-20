@@ -24,7 +24,7 @@
 	 init_per_testcase/2,end_per_testcase/2,
 	 basic/1,deeply_nested/1,no_generator/1,
 	 empty_generator/1,no_export/1,shadow/1,
-	 effect/1]).
+	 effect/1,singleton/1]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -43,7 +43,8 @@ groups() ->
        empty_generator,
        no_export,
        shadow,
-       effect
+       effect,
+       singleton
       ]}].
 
 init_per_suite(Config) ->
@@ -277,6 +278,19 @@ effect(Config) when is_list(Config) ->
     end,
 
     ok.
+
+singleton(Config) when is_list(Config) ->
+    A = lists:seq(1,10),
+
+    %% test optimisation of singleton list with/without call
+    A = [Res || E <- lists:seq(1,10), Res <- [id(E)]],
+    A = [Res || E <- lists:seq(1,10), Res <- [E]],
+
+    %% test changing order extraction of singleton items
+    true = 100 == length([Res1 + Res2 || E <- lists:seq(1,10), EE <- lists:seq(1,10), Res1 <- [id(E)], Res2 <- [id(EE)]]),
+    true = 100 == length([Res1 + Res2 || E <- lists:seq(1,10), EE <- lists:seq(1,10), Res1 <- [EE], Res2 <- [id(E)]]),
+    A = [Res+E2 || E <- lists:seq(1,10), E2 <- [id(0)], Res <- [E]].
+
 
 do_effect(Lc, L) ->
     put(?MODULE, []),

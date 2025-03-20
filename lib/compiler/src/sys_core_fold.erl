@@ -289,7 +289,8 @@ expr(#c_letrec{defs=Fs0,body=B0}=Letrec, Ctxt, Sub) ->
                       end
 	      end, Fs0),
     B1 = body(B0, Ctxt, Sub),
-    Letrec#c_letrec{defs=Fs1,body=B1};
+    Letrec1 = Letrec#c_letrec{defs=Fs1,body=B1},
+    singleton_optimisation(Letrec1);
 expr(#c_case{}=Case0, Ctxt, Sub) ->
     %% Ideally, the compiler should only emit warnings when there is
     %% a real mistake in the code being compiled. We use the follow
@@ -1803,6 +1804,109 @@ case_expand_var(E, #sub{t=Tdb}) ->
     case Tdb of
         #{Key:=T} -> T;
         _ -> E
+    end.
+
+%% This is applied to the outer letrec
+singleton_optimisation(#c_letrec{defs=[{OuterFunName=#c_var{}, 
+                                        CFun=#c_fun{body=BodyFun0=
+                                                        #c_case{clauses=
+                                                                    [#c_clause{pats=[Pat],
+                                                                               body=#c_letrec{}=Letrec}|_]}}}],
+                                 body=#c_apply{op=#c_var{}}}=OuterLetrec) ->
+    case find_singleton(Letrec) of
+        {FunName1, InnerLet} ->
+            InnerLet1 = lc_rewrite_let(InnerLet, FunName1, OuterFunName, Pat),
+            #c_case{clauses=Clauses0}=BodyFun0,
+            Clauses1 = rewrite_singleton(FunName1, OuterFunName, InnerLet1, reverse(Clauses0), []),
+            BodyFun1 = BodyFun0#c_case{clauses=Clauses1},
+            OuterLetrec#c_letrec{defs=[{OuterFunName,CFun#c_fun{body=BodyFun1}}]};
+        [] ->
+            OuterLetrec
+    end;
+singleton_optimisation(Body) ->
+    Body.
+
+%% This is applied to the inner letrec. If it is a singleton generator, return
+%% the function name and the inner let.
+%% When the singleton generator has this form: Res <- [E], and E is a singleton
+find_singleton(#c_letrec{defs=[{#c_var{name=FunName}, 
+                                #c_fun{body=#c_case{clauses=Cs}}}],
+                         body=#c_apply{args=[Args]}}) ->
+    case cerl:is_c_list(Args) andalso cerl:list_length(Args) =:= 1 of
+        true ->
+            case [Let ||#c_clause{body=#c_let{}=Let} <- Cs] of
+                [] ->
+                    %% This singleton is not the inner most generator
+                    [];
+                [InnerLet] ->
+                    {FunName, InnerLet}
+            end;
+        false ->
+            []
+    end;
+%% When the singleton generator has this form: Res <- [some_function(E)]
+find_singleton(#c_letrec{defs=[{#c_var{name=FunName}, 
+                                #c_fun{body=#c_case{clauses=Cs}}}],
+                         body=#c_let{arg=#c_apply{args=[Args]}}}) ->
+    case cerl:is_c_var(Args) of
+        true ->
+            case [Let ||#c_clause{body=#c_let{}=Let} <- Cs] of
+                [] -> [];
+                [InnerLet] ->
+                    {FunName, InnerLet}
+            end;
+        false ->
+            []
+    end;
+find_singleton(_) ->
+    [].
+
+rewrite_singleton([InnerTailVar,FunName], OuterFunName, InnerLet, 
+                  [C=#c_clause{pats=[Pat],
+                               body=#c_letrec{anno=Anno,
+                                              body=Body=
+                                                  #c_apply{op=#c_var{name=FunName}}}}|_], 
+                  Acc) ->
+    %% Rewrite the Acc Clause
+    #c_let{vars=[#c_var{}=LetVar],body=LetBody} = InnerLet,
+    NewVar = make_var(Anno),
+    NewArg = lc_replace_var(Body, #c_var{name=FunName}, OuterFunName),
+    NewBody = lc_replace_var(LetBody, LetVar, NewVar),
+    NewBody1 = lc_replace_var(NewBody, InnerTailVar, cerl:cons_tl(Pat)),
+    [C#c_clause{body=#c_let{vars=[NewVar], arg=NewArg, body=NewBody1}}|Acc];
+rewrite_singleton(FunName, InnerBody, InnerLet, 
+                  [#c_clause{anno=[compiler_generated|_],
+                             pats=[#c_cons{}=Cons]}=C|Clauses], 
+                  Acc) ->
+    % Assume TailVar is the same in the Skip Clause and the Acc Clause.
+    InnerTailVar = Cons#c_cons.tl,
+    rewrite_singleton([InnerTailVar|FunName], InnerBody, InnerLet,Clauses, [C|Acc]);
+rewrite_singleton(FunName, InnerBody, InnerLet, [C|Clauses], Acc)->
+    rewrite_singleton(FunName, InnerBody, InnerLet, Clauses, [C|Acc]);
+rewrite_singleton(_, _, _, [], Acc) ->
+    Acc.
+
+lc_replace_var(Node, ReplacingVar, NewVar) ->
+    cerl_trees:map(fun (#c_var{}=V) ->
+                           case cerl:var_name(V) == cerl:var_name(ReplacingVar) of
+                               true ->
+                                   NewVar;
+                               _ ->
+                                   V
+                           end;
+                       (Else) ->
+                           Else
+                   end, Node).
+
+lc_rewrite_let(#c_let{vars=[#c_var{}], arg=Arg}=Let, InnerFunName, 
+               OuterFunName, Pat) ->
+    Let1 = lc_replace_var(Let, #c_var{name=InnerFunName}, OuterFunName),
+    Tl = cerl:cons_tl(Pat),
+    case Arg of
+        #c_apply{op=#c_var{}}=CApply ->
+            Let1#c_let{arg=CApply#c_apply{op=OuterFunName,args=[Tl]}};
+        _ ->
+            Let
     end.
 
 %% case_opt_nomatch(E, Clauses, LitExpr) -> Clauses'
