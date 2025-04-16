@@ -1806,13 +1806,19 @@ case_expand_var(E, #sub{t=Tdb}) ->
         _ -> E
     end.
 
-%% This is applied to the outer letrec
-singleton_optimisation(#c_letrec{defs=[{OuterFunName=#c_var{}, 
+
+%% singleton_optimisation(Expr0) -> Expr
+%%  If Expr0 is a letrec that is known to have a singleton
+%% generator (e.g., [X]), remove the intermediate list creation.
+%% Otherwise, return Expr0 unchanged.
+%%
+singleton_optimisation(#c_letrec{defs=[{OuterFunName=#c_var{},
                                         CFun=#c_fun{body=BodyFun0=
                                                         #c_case{clauses=
                                                                     [#c_clause{pats=[Pat],
                                                                                body=#c_letrec{}=Letrec}|_]}}}],
                                  body=#c_apply{op=#c_var{}}}=OuterLetrec) ->
+    %% This function is applied to the outer letrec.
     case find_singleton(Letrec) of
         {FunName1, InnerLet} ->
             InnerLet1 = lc_rewrite_let(InnerLet, FunName1, OuterFunName, Pat),
@@ -1820,46 +1826,46 @@ singleton_optimisation(#c_letrec{defs=[{OuterFunName=#c_var{},
             Clauses1 = rewrite_singleton(FunName1, OuterFunName, InnerLet1, reverse(Clauses0), []),
             BodyFun1 = BodyFun0#c_case{clauses=Clauses1},
             OuterLetrec#c_letrec{defs=[{OuterFunName,CFun#c_fun{body=BodyFun1}}]};
-        [] ->
+        false ->
             OuterLetrec
     end;
 singleton_optimisation(Body) ->
     Body.
 
-%% This is applied to the inner letrec. If it is a singleton generator, return
-%% the function name and the inner let.
-%% When the singleton generator has this form: Res <- [E], and E is a singleton
+%% find_singleton(Expr0) -> Expr | false
+%%  If Expr0 is a letrec where its body is `Res <- [E]` or
+%%  `Res <- [some_function(E)]` (singleton generator), then we extract the inner
+%%  letrec and its function name. Otherwise, return `false`
+%%  to indicate that no singleton pattern was found.
+%%
 find_singleton(#c_letrec{defs=[{#c_var{name=FunName}, 
                                 #c_fun{body=#c_case{clauses=Cs}}}],
-                         body=#c_apply{args=[Args]}}) ->
-    case cerl:is_c_list(Args) andalso cerl:list_length(Args) =:= 1 of
-        true ->
-            case [Let ||#c_clause{body=#c_let{}=Let} <- Cs] of
-                [] ->
-                    %% This singleton is not the inner most generator
-                    [];
-                [InnerLet] ->
-                    {FunName, InnerLet}
-            end;
-        false ->
-            []
-    end;
-%% When the singleton generator has this form: Res <- [some_function(E)]
-find_singleton(#c_letrec{defs=[{#c_var{name=FunName}, 
-                                #c_fun{body=#c_case{clauses=Cs}}}],
-                         body=#c_let{arg=#c_apply{args=[Args]}}}) ->
-    case cerl:is_c_var(Args) of
-        true ->
-            case [Let ||#c_clause{body=#c_let{}=Let} <- Cs] of
-                [] -> [];
-                [InnerLet] ->
-                    {FunName, InnerLet}
-            end;
-        false ->
-            []
+                         body=Body}) ->
+
+    IsSingletonGen = case Body of
+                         #c_apply{args=[Args]} ->
+                             %% When the singleton generator has this form:
+                             %% Res <- [E]
+                             cerl:is_c_list(Args) andalso cerl:list_length(Args) =:= 1;
+                         #c_let{arg=#c_apply{args=[Args]}} ->
+                             %% When the singleton generator has this form:
+                             %% Res <- [some_function(E)]
+                             cerl:is_c_var(Args);
+                         _ ->
+                             false
+                     end,
+
+    case [Let ||#c_clause{body=#c_let{}=Let} <- Cs] of
+        [InnerLet] when IsSingletonGen == true->
+            {FunName, InnerLet};
+        _ when IsSingletonGen == false ->
+            false;
+        [] ->
+            %% This singleton is not the inner most generator
+            false
     end;
 find_singleton(_) ->
-    [].
+    false.
 
 rewrite_singleton([InnerTailVar,FunName], OuterFunName, InnerLet, 
                   [C=#c_clause{pats=[Pat],
