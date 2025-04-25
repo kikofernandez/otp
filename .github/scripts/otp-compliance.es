@@ -385,7 +385,6 @@ get_vendor_dependencies(#{~"packages" := Packages}=Spdx) ->
                              end, Packages),
     Spdx#{~"packages" := Packages1}.
 
-
 sbom_otp(#{sbom_file  := SbomFile, write_to_file := Write, input_file := Input}) ->
     Sbom = decode(SbomFile),
     ScanResults = decode(Input),
