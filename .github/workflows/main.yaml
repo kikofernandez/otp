@@ -862,6 +862,12 @@ jobs:
         with:
             name: ort-results-otp-${{ env.OTP_SBOM_VERSION }}
 
+      - name: Generate Vendor SBOM
+        run: |
+          docker run -v $PWD/:/github -v $HOME:$HOME otp \
+            "/github/.github/scripts/otp-compliance.es sbom vendor \
+              --sbom-file $HOME/bom.spdx.json"
+
       # allows Dependabot to give us alert of the vendor libraries that use semantic versioning
       - name: Upload SBOM to Github Dependency API
         uses: advanced-security/spdx-dependency-submission-action@5530bab9ee4bbe66420ce8280624036c77f89746 # ratchet:advanced-security/spdx-dependency-submission-action@v0.1.1
