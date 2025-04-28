@@ -21,7 +21,7 @@
 ## This workflow will scan pull requests and pushed for files that do not
 ## have the proper license.
 
-name: Check license header
+name: Vendor Analysis
 
 on:
   pull_request:
