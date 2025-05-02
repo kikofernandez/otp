@@ -35,8 +35,8 @@ permissions:
 jobs:
   schedule-scan:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && github.repository == 'erlang/otp'
-    # if: github.event_name != 'workflow_dispatch' # used for testing
+    # if: github.event_name == 'schedule' && github.repository == 'erlang/otp'
+    if: github.event_name != 'workflow_dispatch' # used for testing
     outputs:
        versions: ${{ steps.get-versions.outputs.versions }}
     steps:
@@ -77,16 +77,20 @@ jobs:
             -f "ref=${{ matrix.type }}"
 
   scan-pr:
-    # run-scheduled-scan triggers this job
-    # PRs and pushes trigger this job
+    name: "Upload OSV file to scan"
+    runs-on: ubuntu-latest
     if: github.event_name != 'schedule'
-    permissions:
-        # Require writing security events to upload SARIF file to security tab
-        security-events: write
-        # Required to upload SARIF file to CodeQL.
-        # See: https://github.com/github/codeql-action/issues/2117
-        actions: read
-        contents: read
-    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@e69cc6c86b31f1e7e23935bbe7031b50e51082de" # ratchet:google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.0.2
-    with:
-        upload-sarif: ${{ github.repository == 'erlang/otp' }}
+    env:
+      VERSION: ${{ github.ref }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
+      - uses: ./.github/actions/build-base-image
+      - name: 'Setup repo ${{ github.ref }}'
+        run: |
+          mkdir -p /home/runner/work/otp/otp/.github/scripts/
+          curl -H 'Accept: application/vnd.github.v3.raw' -O \
+               --output-dir /home/runner/work/otp/otp/.github/scripts/ \
+               -L https://api.github.com/repos/erlang/otp/contents/.github/scripts/otp-compliance.es
+          echo [\"$(cat OTP_VERSION)\"] > $HOME/versions.json
+          docker run -v $PWD/:/github -v $HOME:$HOME otp \
+            "/github/.github/scripts/otp-compliance.es sbom osv-scan --versions $HOME/versions.json"
