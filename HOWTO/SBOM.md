@@ -199,7 +199,8 @@ Fields summary:
         - If you are unsure about the name of the `SPDX-TOP-LEVEL-PACKAGE`, take a look at the source SBOM to identify packages (under key `packages` in the SBOM).
 - `description`: a brief description of what this vendor library does.
 - `copyrightText`: copyright text associated with the top-level package/library/3pp using [SPDX License Identifiers](https://spdx.org/licenses/).
-- `downloadLocation`: URI of the vendor library to download.
+- `downloadLocation`: URI of the vendor library to download. If using Github, use preferably `https//` rather than `git+https//` or similars.
+   This is because the download location is used for vulnerability scanning in `.github/scripts/otp-compliance.es`.
 - `homepage`: homepage of the vendor library.
 - `licenseDeclared`: license as declared by the vendor, following a [SPDX license identifier](https://spdx.org/licenses/).
 - `name`: name of the library.
