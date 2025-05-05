@@ -16,6 +16,7 @@
     "name": "pcre2",
     "versionInfo": "10.44",
     "path": "./erts/emulator/pcre",
+    "sha": "1e09555d6950bfcf83bd98fa597b0c6440d43c9c",
     "supplier": "Person: Philip Hazel",
     "purl": "pkg:generic/pcre2"
   }
