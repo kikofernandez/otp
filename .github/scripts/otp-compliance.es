@@ -59,7 +59,7 @@
          test_licenseInfoFromFiles_not_empty/1, test_package_names/1,
          test_package_ids/1, test_verificationCode/1, test_supplier_Ericsson/1,
          test_originator_Ericsson/1, test_versionInfo_not_empty/1, test_package_hasFiles/1,
-         test_project_purl/1, test_packages_purl/1, test_download_location/1, 
+         test_project_purl/1, test_packages_purl/1, test_download_location/1,
          test_package_relations/1, test_has_extracted_licenses/1,
          test_vendor_packages/1, test_erts/1, test_copyright_format/1]).
 
@@ -216,7 +216,18 @@ cli() ->
                                      > .github/scripts/otp-compliance.es sbom vendor --sbom-file otp.spdx.json
                                      """,
                                  arguments => [ sbom_option()],
-                                 handler => fun sbom_vendor/1}
+                                 handler => fun sbom_vendor/1},
+
+                          "osv-scan" =>
+                              #{ help =>
+                                     """
+                                     Performs vulnerability scanning on vendor libraries
+
+                                     Example:
+
+                                     > .github/scripts/otp-compliance.es sbom osv-scan
+                                     """,
+                                 handler => fun osv_scan/1}
                          }},
              "explore" =>
                  #{  help => """
@@ -384,6 +395,7 @@ get_vendor_dependencies(#{~"packages" := Packages}=Spdx) ->
                                      lists:member(Id, VendorPackageIds) andalso not lists:member(Id, OTPPackageIds)
                              end, Packages),
     Spdx#{~"packages" := Packages1}.
+
 
 sbom_otp(#{sbom_file  := SbomFile, write_to_file := Write, input_file := Input}) ->
     Sbom = decode(SbomFile),
@@ -1204,6 +1216,68 @@ generate_vendor_purl(Package) ->
             [create_externalRef_purl(Description, <<Purl/binary, "@", Vsn/binary>>)]
     end.
 
+osv_scan(_) ->
+    application:ensure_all_started([ssl, inets]),
+    URI = "https://api.osv.dev/v1/querybatch",
+    Format = "application/x-www-form-urlencoded",
+
+    VendorSrcFiles = find_vendor_src_files("."),
+    Packages = generate_vendor_info_package(VendorSrcFiles),
+
+    OSVQuery = generate_osv_query(Packages),
+    io:format("[OSV] Information sent~n~s~n", [json:format(OSVQuery)]),
+    OSV = json:encode(OSVQuery),
+
+    Content = {URI, [], Format, OSV},
+    Result = httpc:request(post, Content, [], []),
+    case Result of
+        {ok,{{_, 200,_}, _Headers, Body}} ->
+            #{~"results" := OSVResults} = json:decode(erlang:list_to_binary(Body)),
+            Vulnerabilities = lists:filter(fun (#{~"vulns" := _Ids}) -> true; (_) -> false end, OSVResults),
+            case Vulnerabilities of
+                [] ->
+                    io:format("[OSV] No vulnerabilities found.~n");
+                _ ->
+                    FormatVulns = format_vulnerabilities(OSVQuery, OSVResults),
+                    fail("[OSV] There are existing vulnerabilities:~n~s", [FormatVulns])
+            end;
+        {error, Error} ->
+            fail("[OSV] POST request to ~p errors: ~p", [URI, Error])
+    end.
+
+format_vulnerabilities(OSVQuery, OSVResults) ->
+    NameVulnerabilities = lists:zip(osv_names(OSVQuery), OSVResults),
+    ExistingVulnerabilities = lists:filtermap(fun ({Name, #{~"vulns" := Ids}}) ->
+                                                      {true, {Name, [Id || #{~"id" := Id} <- Ids]}};
+                                                  (_) ->
+                                                      false
+                                              end, NameVulnerabilities),
+    lists:map(fun ({N, Ids}) ->
+                      io_lib:format("- ~s: ~s~n", [N, lists:join(",", Ids)])
+              end, ExistingVulnerabilities).
+
+osv_names(#{~"queries" := Packages}) ->
+    lists:map(fun osv_names/1, Packages);
+osv_names(#{~"package" := #{~"name" := Name }}) ->
+    Name.
+
+generate_osv_query(Packages) ->
+    #{~"queries" => lists:foldl(fun generate_osv_query/2, [], Packages)}.
+generate_osv_query(#{~"versionInfo" := Vsn, ~"ecosystem" := Ecosystem, ~"name" := Name}, Acc) ->
+    Package = #{~"package" => #{~"name" => Name, ~"ecosystem" => Ecosystem}, ~"version" => Vsn},
+    [Package | Acc];
+generate_osv_query(#{~"sha" := SHA, ~"downloadLocation" := Location}, Acc) ->
+    case string:prefix(Location, ~"https://") of
+        nomatch ->
+            Acc;
+        URI ->
+            Package = #{~"package" => #{~"name" => URI}, ~"commit" => SHA},
+            [Package | Acc]
+    end;
+generate_osv_query(_, Acc) ->
+    Acc.
+
+
 cleanup_path(<<"./", Path/binary>>) when is_binary(Path) -> Path;
 cleanup_path(Path) when is_binary(Path) -> Path.
 
@@ -1422,7 +1496,7 @@ test_file(#{sbom_file := SbomFile, ntia_checker := Verification}) ->
     ok.
 
 test_ntia_checker(false, _SbomFile) -> ok;
-test_ntia_checker(true, SbomFile) -> 
+test_ntia_checker(true, SbomFile) ->
     have_tool("ntia-checker"),
     Cmd = "sbomcheck --comply ntia --file " ++ SbomFile,
     io:format("~nRunning: NTIA Compliance Checker~n[~ts]~n", [Cmd]),
@@ -1432,7 +1506,7 @@ test_ntia_checker(true, SbomFile) ->
 
 cmd(Cmd) ->
     string:trim(os:cmd(unicode:characters_to_list(Cmd),
-                       #{ exception_on_failure => true })).    
+                       #{ exception_on_failure => true })).
 
 have_tool(Tool) ->
     case os:find_executable(Tool) of
@@ -1447,27 +1521,27 @@ fail(Fmt, Args) ->
 test_generator(Sbom) ->
     io:format("~nRunning: verification of OTP SBOM integrity~n"),
     ok = project_generator(Sbom),
-    ok = package_generator(Sbom),    
+    ok = package_generator(Sbom),
     ok.
 
--define(CALL_TEST_FUNCTIONS(Tests, Sbom), 
+-define(CALL_TEST_FUNCTIONS(Tests, Sbom),
          (begin
             io:format("[~s]~n", [?FUNCTION_NAME]),
             lists:all(fun (Fun) ->
                               Module = ?MODULE,
                               Result = apply(Module, Fun, [Sbom]),
                               L = length(atom_to_list(Fun)),
-                              io:format("- ~s~s~s~n", [Fun, lists:duplicate(40 - L, "."), Result]),                                                          
+                              io:format("- ~s~s~s~n", [Fun, lists:duplicate(40 - L, "."), Result]),
                               ok == Result
                       end, Tests)
         end)).
 
-project_generator(Sbom) ->    
+project_generator(Sbom) ->
     Tests = [test_project_name,
              test_name,
              test_creators_tooling,
              test_spdx_version],
-    true = ?CALL_TEST_FUNCTIONS(Tests, Sbom),    
+    true = ?CALL_TEST_FUNCTIONS(Tests, Sbom),
     ok.
 
 package_generator(Sbom) ->
@@ -1799,14 +1873,14 @@ test_package_relations(#{~"packages" := Packages}=Spdx) ->
     true = lists:all(fun (#{~"relatedSpdxElement" := Related,
                             ~"relationshipType"   := Relation,
                             ~"spdxElementId" := PackageId}=Rel) ->
-                             Result =   
+                             Result =
                                  lists:member(Relation, [~"PACKAGE_OF", ~"DEPENDS_ON", ~"TEST_OF",
                                                          ~"OPTIONAL_DEPENDENCY_OF", ~"DOCUMENTATION_OF"]) andalso
                                  lists:member(Related, PackageIds) andalso
                                  lists:member(PackageId, PackageIds) andalso
                                  PackageId =/= Related andalso
                                  PackageId =/= ?spdxref_project_name,
-                            case Result of 
+                            case Result of
                                 false ->
                                     io:format("Error in relation: ~p~n", [Rel]),
                                     false;
