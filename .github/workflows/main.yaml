@@ -850,9 +850,9 @@ jobs:
   vendor-vulnerability:
     name: Vendor Vulnerability Scanning
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     needs:
         - pack
-
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
       - uses: ./.github/actions/build-base-image
