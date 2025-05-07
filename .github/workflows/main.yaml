@@ -441,8 +441,8 @@ jobs:
         # test for now only master and maint
         # echo "versions=$(.github/scripts/get-supported-branches.sh)"
         run: |
-          echo "versions=[\"master\"]"
-          echo "versions=[\"master\"]" >> "$GITHUB_OUTPUT"
+          echo "versions=$(.github/scripts/get-supported-branches.sh)"
+          echo "versions=$(.github/scripts/get-supported-branches.sh)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
         with:
@@ -485,13 +485,12 @@ jobs:
       contents: read
 
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@6fc714450122bda9d00e4ad5d639ad6a39eedb1f" # ratchet:google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.0.1
-    env:
-        REF: ${{ matrix.type }}
+
     with:
       download-artifact: converted-OSV-Scanner-deps
       # upload-sarif: ${{ github.repository == 'erlang/otp' }}
       scan-args: |-
-          --lockfile=osv-scanner:osv-scanner-$REF.json
+          --lockfile=osv-scanner:osv-scanner-${{ matrix.type }}.json
 
   build:
     name: Build Erlang/OTP
