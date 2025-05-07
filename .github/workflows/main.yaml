@@ -440,11 +440,11 @@ jobs:
        versions: ${{ steps.get-versions.outputs.versions }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
-        with:
-          ref: "master"
+        # with:
+        #   ref: "master"
       - uses: ./.github/actions/build-base-image
-        with:
-            BASE_BRANCH: "master"
+        # with: # the script needs to be merged with master here. but master currently does not contain this change in otp-compliance.
+        #     BASE_BRANCH: "master"
 
       - id: get-versions
         name: Fetch latest 3 OTP versions
@@ -454,20 +454,33 @@ jobs:
           echo "versions=$(.github/scripts/get-supported-branches.sh)"
           echo "versions=$(.github/scripts/get-supported-branches.sh)" >> "$GITHUB_OUTPUT"
 
-      # check that PRs do not introduce vulnerabilities in vendor dependencies
-      - name: 'Upload Gen Vulnerability Scanning'
-        env:
-          VERSIONS: ${{ steps.get-versions.outputs.versions }}
+  vendor-branch-to-test:
+    runs-on: ubuntu-latest
+    needs: scheduled-vulnerability-versions
+    strategy:
+      matrix:
+        type: ${{ fromJson(needs.scheduled-vulnerability-versions.outputs.versions) }}
+      fail-fast: false
+    env:
+      VERSION: ${{ matrix.type }}
+    steps:
+      - name: 'Setup repo $VERSION'
         run: |
-          echo $VERSIONS > versions.json
-          docker run -v $PWD/:/github otp \
+          git clone -b $VERSION https://github.com/erlang/otp.git $VERSION
+          cp .github/scripts/otp-compliance.es $VERSION/.github/scripts/otp-compliance.es
+          echo [\"$VERSION\"] > $VERSION/versions.json
+
+      # check that PRs do not introduce vulnerabilities in vendor dependencies
+      - name: 'Gen Vulnerability Scanning for $VERSION'
+        run: |
+          docker run -v $PWD/$VERSION/:/github otp \
             "/github/.github/scripts/otp-compliance.es sbom osv-scan"
-          sudo chown `whoami` osv-scanner*.json
+          sudo chown `whoami` $VERSION/osv-scanner-$VERSION.json
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4.6.2
         with:
           name: converted-OSV-Scanner-deps
-          path: /home/runner/work/otp/otp/osv-scanner*.json
+          path: /home/runner/work/otp/otp/$VERSION/osv-scanner-$VERSION.json
           retention-days: 2
 
   vendor-vulnerability-scan:
@@ -484,9 +497,7 @@ jobs:
       # Required to upload SARIF file to CodeQL.
       # See: https://github.com/github/codeql-action/issues/2117
       contents: read
-
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@6fc714450122bda9d00e4ad5d639ad6a39eedb1f" # ratchet:google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.0.1
-
     with:
       download-artifact: converted-OSV-Scanner-deps
       # upload-sarif: ${{ github.repository == 'erlang/otp' }}
