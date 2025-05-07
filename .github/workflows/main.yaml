@@ -442,7 +442,7 @@ jobs:
           echo "versions=[\"master\"]"
           echo "versions=[\"master\"]" >> "$GITHUB_OUTPUT"
 
-  run-scheduled-vulnerability-analysis:
+  gen-vulnerability-files:
     # Fan out and create requests to run OSV on multiple branches.
     # It always succeed: either it sends requests to branches that
     # can run 'scan-pr' (if the repo/branch contains this file) or
@@ -451,6 +451,25 @@ jobs:
       - schedule-scan
       - pack
     runs-on: ubuntu-latest
+
+    # The generation of the vendor vulnerability files do not need to fan out
+    # to each branch we support (e.g., maint-26, maint-27, etc), we use `master`
+    # and hardcode vendor dependencies in otp-compliance. in this way, we only
+    # fan out for the actual osv scanner to run per type
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
+        with:
+          ref: "master"
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
+      - uses: ./.github/actions/build-base-image
+        with:
+            BASE_BRANCH: "master"
+
+  scheduled-vulnerability-scan:
+    needs:
+      - schedule-scan
+      - gen-vulnerability-files
     strategy:
       matrix:
         type: ${{ fromJson(needs.schedule-scan.outputs.versions) }}
@@ -462,17 +481,7 @@ jobs:
       # Required to upload SARIF file to CodeQL.
       # See: https://github.com/github/codeql-action/issues/2117
       contents: read
-
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
-        with:
-          ref: ${{ matrix.type }}
-
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
-      - uses: ./.github/actions/build-base-image
-        with:
-            BASE_BRANCH: ${{ matrix.type }}
-
       # check that PRs do not introduce vulnerabilities in vendor dependencies
       - name: 'Vendor Vulnerability Scanning'
         env:
