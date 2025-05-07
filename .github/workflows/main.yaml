@@ -427,6 +427,8 @@ jobs:
 
   scheduled-vulnerability-versions:
     runs-on: ubuntu-latest
+    needs:
+      - pack
     if: (github.event_name == 'schedule' || github.event_name == 'push')
     # if: (github.event_name == 'schedule' || github.event_name == 'pull_request') && github.repository == 'erlang/otp'
     # if: github.event_name != 'workflow_dispatch' # used for testing
@@ -442,21 +444,6 @@ jobs:
           echo "versions=[\"master\"]"
           echo "versions=[\"master\"]" >> "$GITHUB_OUTPUT"
 
-  gen-vulnerability-files:
-    # Fan out and create requests to run OSV on multiple branches.
-    # It always succeed: either it sends requests to branches that
-    # can run 'scan-pr' (if the repo/branch contains this file) or
-    # skips sending the request.
-    needs:
-      - scheduled-vulnerability-versions
-      - pack
-    runs-on: ubuntu-latest
-
-    # The generation of the vendor vulnerability files do not need to fan out
-    # to each branch we support (e.g., maint-26, maint-27, etc), we use `master`
-    # and hardcode vendor dependencies in otp-compliance. in this way, we only
-    # fan out for the actual osv scanner to run per type
-    steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
         with:
           ref: "master"
@@ -514,7 +501,7 @@ jobs:
 
   vendor-vulnerability-scan:
     # needs: scheduled-vulnerability-scan
-    needs: gen-vulnerability-files
+    needs: scheduled-vulnerability-versions
     strategy:
       matrix:
         type: ${{ fromJson(needs.scheduled-vulnerability-versions.outputs.versions) }}
