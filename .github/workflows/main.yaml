@@ -466,6 +466,16 @@ jobs:
         with:
             BASE_BRANCH: "master"
 
+      # check that PRs do not introduce vulnerabilities in vendor dependencies
+      - name: 'Upload Gen Vulnerability Scanning'
+        env:
+          REF: ${{ matrix.type }}
+        run: |
+          docker run -v $PWD/:/github otp \
+            "/github/.github/scripts/otp-compliance.es sbom osv-scan > /github/osv-scanner.json"
+          sudo chown `whoami` osv-scanner.json
+          mv osv-scanner.json osv-scanner-$REF.json
+
   scheduled-vulnerability-scan:
     needs:
       - schedule-scan
@@ -482,16 +492,6 @@ jobs:
       # See: https://github.com/github/codeql-action/issues/2117
       contents: read
     steps:
-      # check that PRs do not introduce vulnerabilities in vendor dependencies
-      - name: 'Vendor Vulnerability Scanning'
-        env:
-          REF: ${{ matrix.type }}
-        run: |
-          docker run -v $PWD/:/github otp \
-            "/github/.github/scripts/otp-compliance.es sbom osv-scan > /github/osv-scanner.json"
-          sudo chown `whoami` osv-scanner.json
-          mv osv-scanner.json osv-scanner-$REF.json
-
       # Upload the deps
       - name: "upload osv-scanner deps"
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4.6.2
