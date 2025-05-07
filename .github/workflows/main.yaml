@@ -425,17 +425,27 @@ jobs:
                 docker run otp "erl ${OPTION} -noshell -s init stop"
             done
 
+  # TODO this will not work for maint or for cases where one needs to checkout
+  # OTP-28 vs OTP-29. That is, if we are in OTP-29, and we want to check if
+  # OTP-28 is vulnerable, the current approach uses OTP-29 vendor for OTP-28.
+  # We need to create one more matrix to checkout each of the versions,
+  # and then run the script and create a osv-scan-REF.json for each maintained branch.
   scheduled-vulnerability-versions:
     runs-on: ubuntu-latest
     needs:
       - pack
     if: (github.event_name == 'schedule' || github.event_name == 'push')
-    # if: (github.event_name == 'schedule' || github.event_name == 'pull_request') && github.repository == 'erlang/otp'
-    # if: github.event_name != 'workflow_dispatch' # used for testing
+    # if: github.event_name == 'schedule' && github.repository == 'erlang/otp'
     outputs:
        versions: ${{ steps.get-versions.outputs.versions }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
+        with:
+          ref: "master"
+      - uses: ./.github/actions/build-base-image
+        with:
+            BASE_BRANCH: "master"
+
       - id: get-versions
         name: Fetch latest 3 OTP versions
         # test for now only master and maint
@@ -443,15 +453,6 @@ jobs:
         run: |
           echo "versions=$(.github/scripts/get-supported-branches.sh)"
           echo "versions=$(.github/scripts/get-supported-branches.sh)" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
-        with:
-          ref: "master"
-
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
-      - uses: ./.github/actions/build-base-image
-        with:
-            BASE_BRANCH: "master"
 
       # check that PRs do not introduce vulnerabilities in vendor dependencies
       - name: 'Upload Gen Vulnerability Scanning'
