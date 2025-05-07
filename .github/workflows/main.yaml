@@ -464,10 +464,16 @@ jobs:
     env:
       VERSION: ${{ matrix.type }}
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
       - name: 'Setup repo $VERSION'
         run: |
           git clone -b $VERSION https://github.com/erlang/otp.git $VERSION
-          cp .github/scripts/otp-compliance.es $VERSION/.github/scripts/otp-compliance.es
+          echo $PWD > $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+          echo $(ls -la) > $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+          cp /home/runner/work/otp/otp/.github/scripts/otp-compliance.es \
+             /home/runner/work/otp/otp/$VERSION/.github/scripts/otp-compliance.es
           echo [\"$VERSION\"] > $VERSION/versions.json
 
       # check that PRs do not introduce vulnerabilities in vendor dependencies
@@ -485,7 +491,7 @@ jobs:
 
   vendor-vulnerability-scan:
     # needs: scheduled-vulnerability-scan
-    needs: scheduled-vulnerability-versions
+    needs: vendor-branch-to-test
     strategy:
       matrix:
         type: ${{ fromJson(needs.scheduled-vulnerability-versions.outputs.versions) }}
