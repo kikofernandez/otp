@@ -471,10 +471,12 @@ jobs:
         #   ref: "master"
       - name: 'Setup repo ${{ env.VERSION }}'
         run: |
-          echo [\"$VERSION\"] > $HOME/versions.json
+          echo [\"${{ env.VERSION }}\"] > $HOME/versions.json
           FILE="osv-scanner-${{ env.VERSION }}.json"
           docker run -v $PWD/:/github -v $HOME:$HOME otp \
             "/github/.github/scripts/otp-compliance.es sbom osv-scan --versions $HOME/versions.json --output-file $HOME/${FILE}"
+          cat "${HOME}/${FILE}" > $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
           sudo chown `whoami` $HOME/$FILE
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4.6.2
