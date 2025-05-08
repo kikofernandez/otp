@@ -491,8 +491,9 @@ jobs:
       - name: 'Gen Vulnerability Scanning for ${{ env.VERSION }}'
         run: |
           touch $PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json
+          FILE="$PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json"
           docker run -v $PWD/${{ env.VERSION }}/:/github -w /github otp /bin/bash -c \
-            "/github/.github/scripts/otp-compliance.es sbom osv-scan"
+            "/github/.github/scripts/otp-compliance.es sbom osv-scan --output-file ${FILE}"
           sudo chown `whoami` $PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4.6.2
