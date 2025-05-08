@@ -485,7 +485,9 @@ jobs:
 
   vendor-vulnerability-scan:
     # needs: scheduled-vulnerability-scan
-    needs: vendor-branch-to-test
+    needs:
+      - scheduled-vulnerability-versions
+      - vendor-branch-to-test
     strategy:
       matrix:
         type: ${{ fromJson(needs.scheduled-vulnerability-versions.outputs.versions) }}
