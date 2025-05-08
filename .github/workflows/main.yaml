@@ -471,35 +471,16 @@ jobs:
         #   ref: "master"
       - name: 'Setup repo ${{ env.VERSION }}'
         run: |
-          git clone -b $VERSION https://github.com/erlang/otp.git $VERSION
-          cp /home/runner/work/otp/otp/.github/scripts/otp-compliance.es \
-             /home/runner/work/otp/otp/$VERSION/.github/scripts/otp-compliance.es
-          echo [\"$VERSION\"] > /home/runner/work/otp/otp/$VERSION/versions.json
-
-      # - name: 'Print Docker path'
-      #   run: |
-      #     echo $PWD > $GITHUB_OUTPUT
-      #     cat $GITHUB_OUTPUT
-      #     echo "/home/runner/work/otp/otp/$VERSION/versions.json" > $GITHUB_OUTPUT
-      #     cat $GITHUB_OUTPUT
-      #     docker run -v $PWD/${{ env.VERSION }}/:/github --entrypoint "" otp /bin/bash -c "ls -la /github"
-      #     docker run -v $PWD/${{ env.VERSION }}/:/github --entrypoint "" -w /github otp /bin/bash -c "ls -la"
-      #     docker run -v /home/runner/work/otp/otp/${{ env.VERSION }}/:/github --entrypoint "" otp /bin/bash -c "ls -la /github"
-      #     docker run -v /home/runner/work/otp/otp/${{ env.VERSION }}/:/github --entrypoint "" -w /github otp /bin/bash -c "ls -la"
-
-      # check that PRs do not introduce vulnerabilities in vendor dependencies
-      # touch $PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json
-      - name: 'Gen Vulnerability Scanning for ${{ env.VERSION }}'
-        run: |
-          FILE="/github/osv-scanner-${{ env.VERSION }}.json"
-          docker run -v $PWD/${{ env.VERSION }}/:/github -w /github otp /bin/bash -c \
-            "/github/.github/scripts/otp-compliance.es sbom osv-scan --output-file ${FILE} && cat ${FILE}"
-          sudo chown `whoami` $PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json
+          echo [\"$VERSION\"] > $HOME/versions.json
+          FILE="osv-scanner-${{ env.VERSION }}.json"
+          docker run -v $PWD/:/github -v $HOME:$HOME otp \
+            "/github/.github/scripts/otp-compliance.es sbom osv-scan --versions $HOME/versions.json --output-file $HOME/${FILE}"
+          sudo chown `whoami` $HOME/$FILE
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4.6.2
         with:
           name: OSV-Scanner-${{ env.VERSION }}
-          path: /home/runner/work/otp/otp/${{ env.VERSION }}/osv-scanner-${{ env.VERSION }}.json
+          path: $HOME/osv-scanner-${{ env.VERSION }}.json
           retention-days: 2
 
   vendor-vulnerability-scan:
