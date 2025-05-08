@@ -476,16 +476,16 @@ jobs:
              /home/runner/work/otp/otp/$VERSION/.github/scripts/otp-compliance.es
           echo [\"$VERSION\"] > /home/runner/work/otp/otp/$VERSION/versions.json
 
-      - name: 'Print Docker path'
-        run: |
-          echo $PWD > $GITHUB_OUTPUT
-          cat $GITHUB_OUTPUT
-          echo "/home/runner/work/otp/otp/$VERSION/versions.json" > $GITHUB_OUTPUT
-          cat $GITHUB_OUTPUT
-          docker run -v $PWD/${{ env.VERSION }}/:/github --entrypoint "" otp /bin/bash -c "ls -la /github"
-          docker run -v $PWD/${{ env.VERSION }}/:/github --entrypoint "" -w /github otp /bin/bash -c "ls -la"
-          docker run -v /home/runner/work/otp/otp/${{ env.VERSION }}/:/github --entrypoint "" otp /bin/bash -c "ls -la /github"
-          docker run -v /home/runner/work/otp/otp/${{ env.VERSION }}/:/github --entrypoint "" -w /github otp /bin/bash -c "ls -la"
+      # - name: 'Print Docker path'
+      #   run: |
+      #     echo $PWD > $GITHUB_OUTPUT
+      #     cat $GITHUB_OUTPUT
+      #     echo "/home/runner/work/otp/otp/$VERSION/versions.json" > $GITHUB_OUTPUT
+      #     cat $GITHUB_OUTPUT
+      #     docker run -v $PWD/${{ env.VERSION }}/:/github --entrypoint "" otp /bin/bash -c "ls -la /github"
+      #     docker run -v $PWD/${{ env.VERSION }}/:/github --entrypoint "" -w /github otp /bin/bash -c "ls -la"
+      #     docker run -v /home/runner/work/otp/otp/${{ env.VERSION }}/:/github --entrypoint "" otp /bin/bash -c "ls -la /github"
+      #     docker run -v /home/runner/work/otp/otp/${{ env.VERSION }}/:/github --entrypoint "" -w /github otp /bin/bash -c "ls -la"
 
       # check that PRs do not introduce vulnerabilities in vendor dependencies
       - name: 'Gen Vulnerability Scanning for ${{ env.VERSION }}'
