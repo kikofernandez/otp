@@ -491,7 +491,7 @@ jobs:
       - name: 'Gen Vulnerability Scanning for ${{ env.VERSION }}'
         run: |
           touch $PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json
-          FILE="$PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json"
+          FILE="/github/osv-scanner-$VERSION.json"
           docker run -v $PWD/${{ env.VERSION }}/:/github -w /github otp /bin/bash -c \
             "/github/.github/scripts/otp-compliance.es sbom osv-scan --output-file ${FILE}"
           sudo chown `whoami` $PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json
