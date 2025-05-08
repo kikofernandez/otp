@@ -490,7 +490,8 @@ jobs:
       # check that PRs do not introduce vulnerabilities in vendor dependencies
       - name: 'Gen Vulnerability Scanning for ${{ env.VERSION }}'
         run: |
-          docker run -v $PWD/${{ env.VERSION }}/:/github otp /bin/bash -c \
+          touch $PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json
+          docker run -v $PWD/${{ env.VERSION }}/:/github -w /github otp /bin/bash -c \
             "/github/.github/scripts/otp-compliance.es sbom osv-scan"
           sudo chown `whoami` $PWD/${{ env.VERSION }}/osv-scanner-$VERSION.json
 
