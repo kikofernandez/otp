@@ -498,7 +498,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4.6.2
         with:
           name: OSV-Scanner-${{ env.VERSION }}
-          path: /home/runner/work/otp/otp/$VERSION/osv-scanner-$VERSION.json
+          path: /home/runner/work/otp/otp/${{ env.VERSION }}/osv-scanner-${{ env.VERSION }}.json
           retention-days: 2
 
   vendor-vulnerability-scan:
