@@ -887,6 +887,16 @@ jobs:
             path: ${{ env.SCAN_RESULT_CACHE_PATH }}
             key: ${{ steps.ort-cache.outputs.cache-primary-key }}
 
+      - name: Copy PreSBOM
+        run: |
+         cp /home/runner/.ort/ort-results/bom.spdx.json /home/runner/.ort/ort-results/pre-bom.spdx.json
+
+      - name: Upload SPDX SBOM result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4.6.2
+        with:
+          name: spdx-sbom-result
+          path: /home/runner/.ort/ort-results/pre-bom.spdx.json
+
       - name: Process SBOM
         run: |
           docker run -v $PWD/:/github -v $HOME:$HOME otp \
