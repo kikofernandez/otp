@@ -76,6 +76,64 @@ jobs:
             /repos/${{ github.repository }}/actions/workflows/osv-scanner-scheduled.yml/dispatches \
             -f "ref=${{ matrix.type }}"
 
+  # vendor-branch-to-test:
+  #   name: "Upload OSV file to scan"
+  #   runs-on: ubuntu-latest
+  #   needs: scheduled-vulnerability-versions
+  #   strategy:
+  #     matrix:
+  #       type: ${{ fromJson(needs.scheduled-vulnerability-versions.outputs.versions) }}
+  #     fail-fast: false
+  #   env:
+  #     VERSION: ${{ matrix.type }}
+  #   steps:
+  #     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
+  #       # with:
+  #       #   ref: "master"
+  #     - uses: ./.github/actions/build-base-image
+  #       # with:
+  #       #   ref: "master"
+  #     - name: 'Setup repo ${{ env.VERSION }}'
+  #       run: |
+  #         git clone -b $VERSION https://github.com/erlang/otp.git $VERSION
+  #         cp /home/runner/work/otp/otp/.github/scripts/otp-compliance.es \
+  #            /home/runner/work/otp/otp/$VERSION/.github/scripts/otp-compliance.es
+  #         echo [\"$VERSION\"] > $VERSION/versions.json
+
+  #     # check that PRs do not introduce vulnerabilities in vendor dependencies
+  #     - name: 'Gen Vulnerability Scanning for ${{ env.VERSION }}'
+  #       run: |
+  #         docker run -v $PWD/$VERSION/:/github otp \
+  #           "/github/.github/scripts/otp-compliance.es sbom osv-scan"
+  #         sudo chown `whoami` $VERSION/osv-scanner-$VERSION.json
+
+  #     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4.6.2
+  #       with:
+  #         name: OSV-Scanner-${{ env.VERSION }}
+  #         path: /home/runner/work/otp/otp/$VERSION/osv-scanner-$VERSION.json
+  #         retention-days: 2
+
+  # vendor-vulnerability-scan:
+  #   # needs: scheduled-vulnerability-scan
+  #   needs: vendor-branch-to-test
+  #   strategy:
+  #     matrix:
+  #       type: ${{ fromJson(needs.scheduled-vulnerability-versions.outputs.versions) }}
+  #     fail-fast: false
+  #   permissions:
+  #     actions: write
+  #     # Require writing security events to upload SARIF file to security tab
+  #     security-events: write
+  #     # Required to upload SARIF file to CodeQL.
+  #     # See: https://github.com/github/codeql-action/issues/2117
+  #     contents: read
+  #   uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@6fc714450122bda9d00e4ad5d639ad6a39eedb1f" # ratchet:google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.0.1
+  #   with:
+  #     download-artifact: OSV-Scanner-${{ matrix.type }}
+  #     # upload-sarif: ${{ github.repository == 'erlang/otp' }}
+  #     scan-args: |-
+  #         --lockfile=osv-scanner:osv-scanner-${{ matrix.type }}.json
+
   scan-pr:
     # run-scheduled-scan triggers this job
     # PRs and pushes trigger this job
