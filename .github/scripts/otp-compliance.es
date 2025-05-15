@@ -1256,17 +1256,33 @@ osv_scan(#{versions_file := File, output_file := _OutputFile}) ->
                 {error, [URI, Error]}
         end,
     Vulns1 = ignore_vex_cves(Vulns),
-    FormattedVulns = format_vulnerabilities(Vulns),
+    FormattedVulns = format_vulnerabilities(Vulns1),
     report_vulnerabilities(FormattedVulns).
 
 ignore_vex_cves(Vulns) ->
-    ok.
+    lists:foldl(fun ({Name, CVEs}, Acc) ->
+                        case maps:get(Name, non_vulnerable_cves(), not_found) of
+                            not_found ->
+                                [{Name, CVEs} | Acc];
+                            NonCVEs ->
+                                case CVEs -- NonCVEs of
+                                    [] ->
+                                        Acc;
+                                    Vs ->
+                                        [{Name, Vs} | Acc]
+                                end
+                        end
+                end, [], Vulns).
 
 non_vulnerable_cves() ->
-    [{~"github.com/madler/zlib", [~"CVE-2023-45853"]},
-     {~"github.com/openssl/openssl", [~"CVE-2024-12797"]},
-     {"github.com/PCRE2Project/pcre2", [~"OSV-2025-300"]},
-     {~"github.com/wxWidgets/wxWidgets", [~"CVE-2024-58249"]}].
+    #{ ~"github.com/madler/zlib" => [~"CVE-2023-45853"],
+       ~"github.com/openssl/openssl" =>
+           [~"CVE-2024-12797", ~"CVE-2023-6129", ~"CVE-2023-6237", ~"CVE-2024-0727",
+            ~"CVE-2024-13176", ~"CVE-2024-2511", ~"CVE-2024-4603", ~"CVE-2024-4741",
+            ~"CVE-2024-5535", ~"CVE-2024-6119", ~"CVE-2024-9143"],
+       ~"github.com/PCRE2Project/pcre2" => [~"OSV-2025-300"],
+       ~"github.com/wxWidgets/wxWidgets" => [~"CVE-2024-58249"]}.
+
 
 format_vulnerabilities({error, ErrorContext}) ->
     {error, ErrorContext};
