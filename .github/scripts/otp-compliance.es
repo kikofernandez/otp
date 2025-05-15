@@ -1236,31 +1236,51 @@ osv_scan(#{versions_file := File, output_file := _OutputFile}) ->
     URI = "https://api.osv.dev/v1/querybatch",
     Content = {URI, [], Format, OSV},
     Result = httpc:request(post, Content, [], []),
-    case Result of
-        {ok,{{_, 200,_}, _Headers, Body}} ->
-            #{~"results" := OSVResults} = json:decode(erlang:list_to_binary(Body)),
-            Vulnerabilities = lists:filter(fun (#{~"vulns" := _Ids}) -> true; (_) -> false end, OSVResults),
-            case Vulnerabilities of
-                [] ->
-                    io:format("[OSV] No vulnerabilities found.~n");
-                _ ->
-                    FormatVulns = format_vulnerabilities(OSVQuery, OSVResults),
-                    fail("[OSV] There are existing vulnerabilities:~n~s", [FormatVulns])
-            end;
-        {error, Error} ->
-            fail("[OSV] POST request to ~p errors: ~p", [URI, Error])
-    end.
+    Vulns =
+        case Result of
+            {ok,{{_, 200,_}, _Headers, Body}} ->
+                #{~"results" := OSVResults} = json:decode(erlang:list_to_binary(Body)),
+                Vulnerabilities = lists:filter(fun (#{~"vulns" := _Ids}) -> true; (_) -> false end, OSVResults),
+                case Vulnerabilities of
+                    [] ->
+                        [];
+                    _ ->
+                        NameVulnerabilities = lists:zip(osv_names(OSVQuery), OSVResults),
+                        lists:filtermap(fun ({Name, #{~"vulns" := Ids}}) ->
+                                                {true, {Name, [Id || #{~"id" := Id} <- Ids]}};
+                                            (_) ->
+                                                false
+                                        end, NameVulnerabilities)
+                end;
+            {error, Error} ->
+                {error, [URI, Error]}
+        end,
+    Vulns1 = ignore_vex_cves(Vulns),
+    FormattedVulns = format_vulnerabilities(Vulns),
+    report_vulnerabilities(FormattedVulns).
 
-format_vulnerabilities(OSVQuery, OSVResults) ->
-    NameVulnerabilities = lists:zip(osv_names(OSVQuery), OSVResults),
-    ExistingVulnerabilities = lists:filtermap(fun ({Name, #{~"vulns" := Ids}}) ->
-                                                      {true, {Name, [Id || #{~"id" := Id} <- Ids]}};
-                                                  (_) ->
-                                                      false
-                                              end, NameVulnerabilities),
+ignore_vex_cves(Vulns) ->
+    ok.
+
+non_vulnerable_cves() ->
+    [{~"github.com/madler/zlib", [~"CVE-2023-45853"]},
+     {~"github.com/openssl/openssl", [~"CVE-2024-12797"]},
+     {"github.com/PCRE2Project/pcre2", [~"OSV-2025-300"]},
+     {~"github.com/wxWidgets/wxWidgets", [~"CVE-2024-58249"]}].
+
+format_vulnerabilities({error, ErrorContext}) ->
+    {error, ErrorContext};
+format_vulnerabilities(ExistingVulnerabilities) when is_list(ExistingVulnerabilities) ->
     lists:map(fun ({N, Ids}) ->
                       io_lib:format("- ~s: ~s~n", [N, lists:join(",", Ids)])
               end, ExistingVulnerabilities).
+
+report_vulnerabilities([]) ->
+    io:format("[OSV] No vulnerabilities found.~n");
+report_vulnerabilities({error, [URI, Error]}) ->
+    fail("[OSV] POST request to ~p errors: ~p", [URI, Error]);
+report_vulnerabilities(FormatVulns) ->
+    fail("[OSV] There are existing vulnerabilities:~n~s", [FormatVulns]).
 
 osv_names(#{~"queries" := Packages}) ->
     lists:map(fun osv_names/1, Packages);

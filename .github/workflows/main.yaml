@@ -483,29 +483,6 @@ jobs:
           path: /home/runner/osv-scanner-${{ env.VERSION }}.json
           retention-days: 2
 
-  vendor-vulnerability-scan:
-    # needs: scheduled-vulnerability-scan
-    needs:
-      - scheduled-vulnerability-versions
-      - vendor-branch-to-test
-    strategy:
-      matrix:
-        type: ${{ fromJson(needs.scheduled-vulnerability-versions.outputs.versions) }}
-      fail-fast: false
-    permissions:
-      actions: write
-      # Require writing security events to upload SARIF file to security tab
-      security-events: write
-      # Required to upload SARIF file to CodeQL.
-      # See: https://github.com/github/codeql-action/issues/2117
-      contents: read
-    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@6fc714450122bda9d00e4ad5d639ad6a39eedb1f" # ratchet:google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.0.1
-    with:
-      download-artifact: OSV-Scanner-${{ matrix.type }}
-      # upload-sarif: ${{ github.repository == 'erlang/otp' }}
-      scan-args: |-
-          --lockfile=osv-scanner:osv-scanner-${{ matrix.type }}.json
-
   build:
     name: Build Erlang/OTP
     runs-on: ubuntu-latest
