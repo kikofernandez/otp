@@ -429,11 +429,11 @@ jobs:
   pr-vendor-vulnerability-analysis:
     name: "Vulnerability analysis of vendor dependencies on PR"
     runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ github.ref }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
       - uses: ./.github/actions/build-base-image
+        with:
+            BASE_BRANCH: ${{ env.BASE_BRANCH }}
       - name: 'Vulnerability Scan of Vendor Dependencies'
         run: |
           mkdir -p /home/runner/work/otp/otp/.github/scripts/
