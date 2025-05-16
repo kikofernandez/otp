@@ -225,9 +225,9 @@ cli() ->
 
                                      Example:
 
-                                     > .github/scripts/otp-compliance.es sbom osv-scan --output-file versions.
+                                     > .github/scripts/otp-compliance.es sbom osv-scan
                                      """,
-                                 arguments => [ versions_file(), output_option() ],
+                                 arguments => [ versions_file()],
                                  handler => fun osv_scan/1}
                          }},
              "explore" =>
@@ -1223,7 +1223,7 @@ generate_vendor_purl(Package) ->
             [create_externalRef_purl(Description, <<Purl/binary, "@", Vsn/binary>>)]
     end.
 
-osv_scan(#{versions_file := File, output_file := _OutputFile}) ->
+osv_scan(#{versions_file := File}) ->
     application:ensure_all_started([ssl, inets]),
     [Version] = decode(File),
     OSVQuery = vendor_by_version(Version),
