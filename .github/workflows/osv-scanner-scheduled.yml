@@ -80,7 +80,7 @@ jobs:
             --method POST \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ REPO }}/actions/workflows/osv-scanner-scheduled.yml/dispatches \
+            /repos/$REPO/actions/workflows/osv-scanner-scheduled.yml/dispatches \
             -f "ref=${{ matrix.type }}"
 
   # Fails if pack from main.yml did not build a cache.
