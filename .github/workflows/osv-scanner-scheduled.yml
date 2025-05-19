@@ -62,7 +62,7 @@ jobs:
       matrix:
         type: ${{ fromJson(needs.schedule-scan.outputs.versions) }}
       fail-fast: false
-    steps:
-      - uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
-        with:
-          version: ${{ matrix.type }}
+    uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
+    uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
+    with:
+      version: ${{ matrix.type }}
