@@ -62,23 +62,7 @@ jobs:
       matrix:
         type: ${{ fromJson(needs.schedule-scan.outputs.versions) }}
       fail-fast: false
-    permissions:
-      actions: write
-    env:
-      REPO: "kikofernandez/otp" # github.repository
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
+      - uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
         with:
-          ref: ${{ matrix.type }}
-
-      - name: Trigger Vulnerability Scanning
-        env:
-          GH_TOKEN: ${{ github.token }}
-        if: ${{ hashFiles('.github/workflows/osv-scanner-scheduled.yml') != '' }}
-        run: |
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/$REPO/actions/workflows/reusable-vendor-vulnerability-scanner.yml/dispatches \
-            -f "ref=master" -f "inputs[version]=${{ matrix.type }}"
+          version: ${{ matrix.type }}
