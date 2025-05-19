@@ -330,10 +330,9 @@ sbom_option() ->
       long => "-sbom-file"}.
 
 versions_file() ->
-    #{name => versions_file,
+    #{name => version,
       type => binary,
-      default => "versions.json",
-      long => "-versions"}.
+      long => "-version"}.
 
 ntia_checker() ->
     #{name => ntia_checker,
@@ -1225,9 +1224,8 @@ generate_vendor_purl(Package) ->
             [create_externalRef_purl(Description, <<Purl/binary, "@", Vsn/binary>>)]
     end.
 
-osv_scan(#{versions_file := File}) ->
+osv_scan(#{version := Version}) ->
     application:ensure_all_started([ssl, inets]),
-    [Version] = decode(File),
     OSVQuery = vendor_by_version(Version),
 
     io:format("[OSV] Information sent~n~s~n", [json:format(OSVQuery)]),
@@ -1261,8 +1259,13 @@ osv_scan(#{versions_file := File}) ->
     FormattedVulns = format_vulnerabilities(Vulns1),
     report_vulnerabilities(FormattedVulns).
 
+%% TODO: fix by reading VEX files from erlang/vex or repo containing VEX files
 ignore_vex_cves(Vulns) ->
-    lists:foldl(fun ({Name, CVEs}, Acc) ->
+    lists:foldl(fun ({~"github.com/wxWidgets/wxWidgets", _CVEs}, Acc) ->
+                        %% OTP cannot be vulnerable to wxwidgets because
+                        %% we only take documentation.
+                        Acc;
+                    ({Name, CVEs}, Acc) ->
                         case maps:get(Name, non_vulnerable_cves(), not_found) of
                             not_found ->
                                 [{Name, CVEs} | Acc];
@@ -1282,8 +1285,7 @@ non_vulnerable_cves() ->
            [~"CVE-2024-12797", ~"CVE-2023-6129", ~"CVE-2023-6237", ~"CVE-2024-0727",
             ~"CVE-2024-13176", ~"CVE-2024-2511", ~"CVE-2024-4603", ~"CVE-2024-4741",
             ~"CVE-2024-5535", ~"CVE-2024-6119", ~"CVE-2024-9143"],
-       ~"github.com/PCRE2Project/pcre2" => [~"OSV-2025-300"],
-       ~"github.com/wxWidgets/wxWidgets" => [~"CVE-2024-58249"]}.
+       ~"github.com/PCRE2Project/pcre2" => [~"OSV-2025-300"]}.
 
 
 format_vulnerabilities({error, ErrorContext}) ->

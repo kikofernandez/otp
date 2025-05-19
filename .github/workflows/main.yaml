@@ -427,22 +427,22 @@ jobs:
             done
 
   pr-vendor-vulnerability-analysis:
-    name: "Vulnerability analysis of vendor dependencies on PR"
+    name: "OSV Vendor Analysis"
     runs-on: ubuntu-latest
+    needs: pack
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ env.BASE_BRANCH }}
-      - name: 'Vulnerability Scan of Vendor Dependencies'
+      - name: 'Setup repo ${{ github.ref }}'
         run: |
           mkdir -p /home/runner/work/otp/otp/.github/scripts/
           curl -H 'Accept: application/vnd.github.v3.raw' -O \
                --output-dir /home/runner/work/otp/otp/.github/scripts/ \
-               -L https://api.github.com/repos/erlang/otp/contents/.github/scripts/otp-compliance.es
-          echo [\"$(cat OTP_VERSION)\"] > $HOME/versions.json
+               -L https://api.github.com/repos/kikofernandez/otp/contents/.github/scripts/otp-compliance.es
           docker run -v $PWD/:/github -v $HOME:$HOME otp \
-            "/github/.github/scripts/otp-compliance.es sbom osv-scan --versions $HOME/versions.json"
+            "/github/.github/scripts/otp-compliance.es sbom osv-scan --version $(cat OTP_VERSION)"
 
   build:
     name: Build Erlang/OTP
