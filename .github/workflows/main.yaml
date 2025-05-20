@@ -428,12 +428,12 @@ jobs:
 
   # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
-    runs-on: ubuntu-latest
+    name: Vendor Vulnerability Scanning
     needs: pack
-    steps:
-      - uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
-        with:
-          version: ${{ env.BASE_BRANCH }}
+    uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
+    with:
+      version: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+      # equivalent of ${{ env.BASE_BRANCH }} but reusable-workflows do not allow to pass env.
 
   build:
     name: Build Erlang/OTP
