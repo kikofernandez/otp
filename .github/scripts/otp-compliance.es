@@ -1323,112 +1323,116 @@ generate_osv_query(#{~"sha" := SHA, ~"downloadLocation" := Location}, Acc) ->
 generate_osv_query(_, Acc) ->
     Acc.
 
+%% when we no longer need to maintain maint-27, we can remove
+%% this hard-coded commits and versions.
 vendor_by_version(~"maint-25") ->
-    [#{~"package" =>
-           #{~"commit"=> ~"21767c654d31d2dccdde4330529775c6c5fd5389",
-             ~"name"=> ~"github.com/madler/zlib"}},
-     #{~"package" =>
+    #{~"queries" =>
+          [#{~"commit"=> ~"21767c654d31d2dccdde4330529775c6c5fd5389",
+             ~"package" => #{~"name"=> ~"github.com/madler/zlib"}},
+
            #{~"commit"=> ~"23ddf56b00f47d8aa0c82ad225e4b3a92661da7e",
-             ~"name"=> ~"github.com/asmjit/asmjit"}},
-     #{~"package" =>
+             ~"package" => #{~"name"=> ~"github.com/asmjit/asmjit"}},
+
            #{ ~"commit"=> ~"e745bad3b1d05b5b19ec652d68abb37865ffa454",
-              ~"name"=> ~"github.com/microsoft/STL"}},
-     #{~"package" =>
+              ~"package" => #{~"name"=> ~"github.com/microsoft/STL"}},
+
            #{~"commit"=> ~"844864ac213bdbf1fb57e6f51c653b3d90af0937",
-             ~"name"=> ~"github.com/ulfjack/ryu"}},
-     #{~"package"=>
+             ~"package" => #{~"name"=> ~"github.com/ulfjack/ryu"}},
+
            #{ ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-              ~"name"=> ~"github.com/openssl/openssl"
-            }},
-     #{~"package"=> % 8.45, not offial but the official sourceforge is not available
-          #{~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
-            ~"name"=> ~"github.com/nektro/pcre-8.45"}},
-     #{~"package"=> % 3.1.4
-           #{ ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-              ~"name"=> ~"github.com/openssl/openssl"}},
-     #{~"package"=>
-           #{~"ecosystem"=> ~"npm",
-             ~"name"=> ~"tablesorter",
-             ~"version"=> ~"2.32"}},
-     #{~"package"=>
-           #{~"ecosystem"=> ~"npm",
-             ~"name"=> ~"jquery",
-             ~"version"=> ~"3.7.1"}},
-     #{~"package"=> % ok
+              ~"package"=> #{~"name"=> ~"github.com/openssl/openssl"}},
+
+           #{ % 8.45, not offial but the official sourceforge is not available
+             ~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
+             ~"package"=> #{~"name"=> ~"github.com/nektro/pcre-8.45"}},
+
+           #{% 3.1.4
+             ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
+             ~"package"=> #{~"name"=> ~"github.com/openssl/openssl"}},
+
            #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
-             ~"name"=> ~"github.com/wxWidgets/wxWidgets"}}
-    ];
+             ~"package"=> #{~"name"=> ~"github.com/wxWidgets/wxWidgets"}},
+
+           #{~"version"=> ~"2.32",
+             ~"package"=> #{~"ecosystem"=> ~"npm",
+                            ~"name"=> ~"tablesorter"}},
+
+           #{~"version"=> ~"3.7.1",
+             ~"package"=> #{~"ecosystem"=> ~"npm",
+                            ~"name"=> ~"jquery"}}
+          ]};
 vendor_by_version(~"maint-26") ->
-    [#{~"package"=> %% v1.2.13
-           #{~"commit"=> ~"04f42ceca40f73e2978b50e93806c2a18c1281fc",
-             ~"name"=> ~"github.com/madler/zlib"
-            }},
-     #{~"package"=>
+    #{~"queries" =>
+          [#{%% v1.2.13
+             ~"commit"=> ~"04f42ceca40f73e2978b50e93806c2a18c1281fc",
+             ~"package"=> #{~"name"=> ~"github.com/madler/zlib"}},
+
            #{~"commit"=> ~"915186f6c5c2f5a4638e5cb97ccc23d741521a64",
-             ~"name"=> ~"github.com/asmjit/asmjit"
-            }},
-     #{~"package"=>
+             ~"package"=> #{~"name"=> ~"github.com/asmjit/asmjit"}},
+
            #{~"commit"=> ~"e745bad3b1d05b5b19ec652d68abb37865ffa454",
-             ~"name"=> ~"github.com/microsoft/STL"}},
-     #{~"package"=>
+             ~"package"=> #{~"name"=> ~"github.com/microsoft/STL"}},
+
            #{~"commit"=> ~"844864ac213bdbf1fb57e6f51c653b3d90af0937",
-             ~"name"=> ~"github.com/ulfjack/ryu"}},
-     #{~"package"=> % 3.1.4
-         #{~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-           ~"name"=> ~"github.com/openssl/openssl"}},
-    #{~"package"=> % 8.45, not offial but the official sourceforge is not available
-          #{~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
-            ~"name"=> ~"github.com/nektro/pcre-8.45"}},
-    #{~"package"=> % 3.1.4
-          #{~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-            ~"name"=> ~"github.com/openssl/openssl"}},
-    #{~"package"=>
-          #{~"ecosystem"=> ~"npm",
-            ~"name"=> ~"tablesorter",
-            ~"version"=> ~"2.32"}},
-    #{~"package"=>
-          #{~"ecosystem"=> ~"npm",
-            ~"name"=> ~"jquery",
-            ~"version"=> ~"3.7.1"}},
-    #{~"package"=>
-          #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
-            ~"name"=> ~"github.com/wxWidgets/wxWidgets"}}
-    ];
-vendor_by_version(~"maint-27") ->
-    [#{~"package"=> %% v1.2.13
-           #{~"commit"=> ~"04f42ceca40f73e2978b50e93806c2a18c1281fc",
-             ~"name"=> ~"github.com/madler/zlib"}},
-     #{~"package"=>
-           #{~"commit"=> ~"a465fe71ab3d0e224b2b4bd0fac69ae68ab9239d",
-             ~"name"=> ~"github.com/asmjit/asmjit"
-            }},
-     #{~"package"=>
-           #{~"commit"=> ~"e745bad3b1d05b5b19ec652d68abb37865ffa454",
-             ~"name"=> ~"github.com/microsoft/STL"}},
-     #{~"package"=>
-           #{~"commit"=> ~"844864ac213bdbf1fb57e6f51c653b3d90af0937",
-             ~"name"=> ~"github.com/ulfjack/ryu"}},
-     #{~"package"=>  % 3.1.4
-           #{~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-             ~"name"=> ~"github.com/openssl/openssl"}},
-     #{~"package"=> % 8.45, not offial but the official sourceforge is not available
-           #{~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
-             ~"name"=> ~"github.com/nektro/pcre-8.45"}},
-     #{~"package"=> % 3.1.4
-          #{~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-            ~"name"=> ~"github.com/openssl/openssl"}},
-     #{~"package"=>
-          #{~"ecosystem"=> ~"npm",
-            ~"name"=> ~"tablesorter",
-            ~"version"=> ~"2.32"}},
-     #{~"package"=>
-          #{~"ecosystem"=> ~"npm",
-            ~"name"=> ~"jquery",
-            ~"version"=> ~"3.7.1"}},
-     #{~"package"=>
+             ~"package"=> #{~"name"=> ~"github.com/ulfjack/ryu"}},
+
+           #{% 3.1.4
+             ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
+             ~"package"=> #{~"name"=> ~"github.com/openssl/openssl"}},
+
+           #{% 8.45, not offial but the official sourceforge is not available
+             ~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
+             ~"package"=> #{~"name"=> ~"github.com/nektro/pcre-8.45"}},
+
+           #{ % 3.1.4
+             ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
+             ~"package"=> #{~"name"=> ~"github.com/openssl/openssl"}},
+
            #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
-             ~"name"=> ~"github.com/wxWidgets/wxWidgets"}}
-    ];
+             ~"package"=> #{~"name"=> ~"github.com/wxWidgets/wxWidgets"}},
+
+           #{~"version"=> ~"2.32",
+             ~"package"=> #{~"ecosystem"=> ~"npm",
+                            ~"name"=> ~"tablesorter"}},
+
+           #{~"version"=> ~"3.7.1",
+             ~"package"=> #{~"ecosystem"=> ~"npm",
+                            ~"name"=> ~"jquery"}}
+          ]};
+vendor_by_version(~"maint-27") ->
+    #{~"queries" =>
+          [#{ %% v1.2.13
+             ~"commit"=> ~"04f42ceca40f73e2978b50e93806c2a18c1281fc",
+             ~"package"=> #{~"name"=> ~"github.com/madler/zlib"}},
+
+           #{~"commit"=> ~"a465fe71ab3d0e224b2b4bd0fac69ae68ab9239d",
+             ~"package"=> #{ ~"name"=> ~"github.com/asmjit/asmjit"}},
+
+           #{~"commit"=> ~"e745bad3b1d05b5b19ec652d68abb37865ffa454",
+             ~"package"=> #{~"name"=> ~"github.com/microsoft/STL"}},
+
+           #{~"commit"=> ~"844864ac213bdbf1fb57e6f51c653b3d90af0937",
+             ~"package"=>#{~"name"=> ~"github.com/ulfjack/ryu"}},
+
+           #{  % 3.1.4
+             ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
+             ~"package"=> #{~"name"=> ~"github.com/openssl/openssl"}},
+
+           #{% 8.45, not offial but the official sourceforge is not available
+             ~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
+             ~"package"=> #{ ~"name"=> ~"github.com/nektro/pcre-8.45"}},
+
+           #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
+             ~"package"=>#{~"name"=> ~"github.com/wxWidgets/wxWidgets"}},
+
+           #{~"version"=> ~"2.32",
+             ~"package"=> #{~"ecosystem"=> ~"npm",
+                            ~"name"=> ~"tablesorter"}},
+
+           #{~"version"=> ~"3.7.1",
+             ~"package"=> #{~"ecosystem"=> ~"npm",
+                            ~"name"=> ~"jquery"}}
+          ]};
 vendor_by_version(_) ->
     VendorSrcFiles = find_vendor_src_files("."),
     Packages = generate_vendor_info_package(VendorSrcFiles),
