@@ -69,7 +69,16 @@ jobs:
         with:
           ref: ${{ matrix.type }}
 
-      # this is a call to a workflow_dispatch
+      # this is a call to a workflow_dispatch ref=master is important because
+      # using ref={{matrix.type}} woulc trigger the committed version in that
+      # ref that exists for reusable-vendor-vulnerability-scanner.yml. since we
+      # have no such files in maint-25, maint-26, etc, the result would be
+      # ignoring the vulnerability scanning
+      #
+      # During manual testing, triggering this event before the pack job
+      # (main.yml) is finished will result in an error, due to not being able to
+      # fetch from the cache. In the scheduled case (common case), there should
+      # be already a cache build and this is not an issue.
       - name: Trigger Vulnerability Scanning
         env:
           GH_TOKEN: ${{ github.token }}
