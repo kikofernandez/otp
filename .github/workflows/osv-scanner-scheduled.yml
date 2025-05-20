@@ -65,10 +65,6 @@ jobs:
     permissions:
       actions: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
-        with:
-          ref: ${{ matrix.type }}
-
       # this is a call to a workflow_dispatch ref=master is important because
       # using ref={{matrix.type}} woulc trigger the committed version in that
       # ref that exists for reusable-vendor-vulnerability-scanner.yml. since we
@@ -83,7 +79,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO : kikofernandez/otp
-        if: ${{ hashFiles('.github/workflows/osv-scanner-scheduled.yml') != '' }}
         run: |
           gh api \
             --method POST \
