@@ -426,6 +426,7 @@ jobs:
                 docker run otp "erl ${OPTION} -noshell -s init stop"
             done
 
+  # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
     runs-on: ubuntu-latest
     needs: pack
