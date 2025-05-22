@@ -1262,24 +1262,24 @@ osv_scan(#{version := Version, sarif := Sarif}) ->
                 {error, [URI, Error]}
         end,
     Vulns1 = ignore_vex_cves(Vulns),
-    ok = generate_sarif(Sarif, Vulns1),
+    ok = generate_sarif(Version, Sarif, Vulns1),
     FormattedVulns = format_vulnerabilities(Vulns1),
     report_vulnerabilities(FormattedVulns).
 
-generate_sarif(false, _Vulns) ->
+generate_sarif(_, false, _Vulns) ->
     io:format("[SARIF] No sarif file generated~n~n"),
     ok;
-generate_sarif(true, Vulns) ->
+generate_sarif(Branch, true, Vulns) ->
     SarifFilename = "results.sarif",
 
     {ok, Cwd} = file:get_cwd(),
     io:format("[SARIF] Generating Sarif: ~s~n", [Cwd ++ "/" ++ SarifFilename]),
     io:format("ok~n~n"),
 
-    Sarif = json:format(generate_sarif(Vulns)),
+    Sarif = json:format(generate_sarif(Branch, Vulns)),
     file:write_file(SarifFilename, Sarif).
 
-generate_sarif(Vulns) ->
+generate_sarif(Branch, Vulns) ->
     #{ ~"version" => ~"2.1.0",
          ~"$schema" => ~"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
          ~"runs" =>
@@ -1306,13 +1306,15 @@ generate_sarif(Vulns) ->
                          ~"ruleId" => ~"CVE-OTP-VENDOR",
                          ~"ruleIndex" => 0, % matches rule object that should apply
                          ~"level" => ~"warning",
-                         ~"message" => #{ ~"text" => error_to_text({Dependency, CVE}) },
+                         ~"message" => #{
+                                          ~"text" => error_to_text(Branch, Dependency, Version, CVE)
+                                        },
                          ~"locations" =>
                              [ #{ ~"physicalLocation" =>
                                       #{ ~"artifactLocation" =>
                                              #{ ~"uri" => Dependency }}}
                              ]
-                        } || {Dependency, _Version, CVEs} <- Vulns, CVE <- CVEs],
+                        } || {Dependency, Version, CVEs} <- Vulns, CVE <- CVEs],
                  ~"artifacts" =>
                      [ #{ ~"location" => #{ ~"uri" => Dependency},
                           ~"length" => -1
@@ -1320,8 +1322,9 @@ generate_sarif(Vulns) ->
                 }]
        }.
 
-error_to_text({Dependency, Vuln}) ->
-    <<"Dependency ", Dependency/binary, " has ", Vuln/binary>>.
+error_to_text(Branch, Dependency, Version, Vuln) ->
+    <<"[", Branch/binary, "] Dependency ", Dependency/binary, " in commit/version ", Version/binary,
+      " has the following detected vulnerability: ", Vuln/binary>>.
     
 
 %% TODO: fix by reading VEX files from erlang/vex or repo containing VEX files
