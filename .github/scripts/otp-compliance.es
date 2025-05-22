@@ -228,7 +228,7 @@ cli() ->
 
                                      > .github/scripts/otp-compliance.es sbom osv-scan
                                      """,
-                                 arguments => [ versions_file()],
+                                 arguments => [ versions_file(), sarif_option() ],
                                  handler => fun osv_scan/1}
                          }},
              "explore" =>
@@ -333,6 +333,12 @@ versions_file() ->
     #{name => version,
       type => binary,
       long => "-version"}.
+
+sarif_option() ->
+    #{name => sarif,
+      type => boolean,
+      default => true,
+      long => "-sarif"}.
 
 ntia_checker() ->
     #{name => ntia_checker,
@@ -1224,7 +1230,7 @@ generate_vendor_purl(Package) ->
             [create_externalRef_purl(Description, <<Purl/binary, "@", Vsn/binary>>)]
     end.
 
-osv_scan(#{version := Version}) ->
+osv_scan(#{version := Version, sarif := Sarif}) ->
     application:ensure_all_started([ssl, inets]),
     OSVQuery = vendor_by_version(Version),
 
@@ -1256,8 +1262,67 @@ osv_scan(#{version := Version}) ->
                 {error, [URI, Error]}
         end,
     Vulns1 = ignore_vex_cves(Vulns),
+
     FormattedVulns = format_vulnerabilities(Vulns1),
     report_vulnerabilities(FormattedVulns).
+
+generate_sarif(false, _Vulns) ->
+    io:format("[SARIF] No sarif file generated~n~n"),
+    ok;
+generate_sarif(true, _Vulns) ->
+    SarifFilename = "results.sarif",
+
+    io:format("[SARIF] Generating Sarif: ~s~n", [SarifFilename]),
+    io:format("ok~n~n")
+
+    Sarif = json:format(generate_sarif(Vulns)),
+    ok = file:write_file(SarifFilename, Sarif).
+
+generate_sarif(Vulns) ->
+    ErrorTypesIndex = lists:zip(Vulns, lists:seq(0,length(Vulns) - 1)),
+    #{ ~"version" => ~"2.1.0",
+         ~"$schema" => ~"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+         ~"runs" =>
+             [ #{
+                 ~"tool" =>
+                     #{ ~"driver" =>
+                            #{ ~"informationUri" => ~"https://github.com/erlang/otp/scripts/otp-compliance.es",
+                               ~"name" => ~"otp-compliance",
+                               ~"rules" =>
+                                   [ #{ ~"id" => ~"CVE-OTP-VENDOR",
+                                        ~"name" => ~"CVEInDependency",
+                                        ~"shortDescription" =>
+                                            #{ ~"text" => ~"CVE found in dependency" },
+                                        ~"fullDescription" =>
+                                            #{
+                                              ~"text" => ~"CVE found in OTP runtime dependency"
+                                             }
+                                      }],
+                               ~"version" => ~"1.0"
+                             }
+                      },
+                 ~"results" =>
+                     [ #{
+                         ~"ruleId" => ~"CVE-OTP-VENDOR",
+                         ~"ruleIndex" => 0, % matches rule object that should apply
+                         ~"level" => ~"warning",
+                         ~"message" => #{ ~"text" => error_to_text({Dependency, CVE}) },
+                         ~"locations" =>
+                             [ #{ ~"physicalLocation" =>
+                                      #{ ~"artifactLocation" =>
+                                             #{ ~"uri" => Dependency }}}
+                             ]
+                        } || {Dependency, CVEs} <- Vulns, CVE <- CVEs],
+                 ~"artifacts" =>
+                     [ #{ ~"location" => #{ ~"uri" => Dependency},
+                          ~"length" => -1
+                        } || {Dependency, _} <- Vulns]
+                }]
+       }.
+
+error_to_text({Dependency, Vuln}) ->
+    <<"Dependency ", Dependency/binary, " has ", Vuln/binary>>.
+    
 
 %% TODO: fix by reading VEX files from erlang/vex or repo containing VEX files
 ignore_vex_cves(Vulns) ->
@@ -1279,13 +1344,13 @@ ignore_vex_cves(Vulns) ->
                         end
                 end, [], Vulns).
 
-non_vulnerable_cves() ->
-    #{ ~"github.com/madler/zlib" => [~"CVE-2023-45853"],
-       ~"github.com/openssl/openssl" =>
-           [~"CVE-2024-12797", ~"CVE-2023-6129", ~"CVE-2023-6237", ~"CVE-2024-0727",
-            ~"CVE-2024-13176", ~"CVE-2024-2511", ~"CVE-2024-4603", ~"CVE-2024-4741",
-            ~"CVE-2024-5535", ~"CVE-2024-6119", ~"CVE-2024-9143"],
-       ~"github.com/PCRE2Project/pcre2" => [~"OSV-2025-300"]}.
+non_vulnerable_cves() -> #{}.
+    %% #{ ~"github.com/madler/zlib" => [~"CVE-2023-45853"],
+    %%    ~"github.com/openssl/openssl" =>
+    %%        [~"CVE-2024-12797", ~"CVE-2023-6129", ~"CVE-2023-6237", ~"CVE-2024-0727",
+    %%         ~"CVE-2024-13176", ~"CVE-2024-2511", ~"CVE-2024-4603", ~"CVE-2024-4741",
+    %%         ~"CVE-2024-5535", ~"CVE-2024-6119", ~"CVE-2024-9143"],
+    %%    ~"github.com/PCRE2Project/pcre2" => [~"OSV-2025-300"]}.
 
 
 format_vulnerabilities({error, ErrorContext}) ->
@@ -1346,10 +1411,6 @@ vendor_by_version(~"maint-25") ->
              ~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
              ~"package"=> #{~"name"=> ~"github.com/nektro/pcre-8.45"}},
 
-           #{% 3.1.4
-             ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-             ~"package"=> #{~"name"=> ~"github.com/openssl/openssl"}},
-
            #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
              ~"package"=> #{~"name"=> ~"github.com/wxWidgets/wxWidgets"}},
 
@@ -1383,10 +1444,6 @@ vendor_by_version(~"maint-26") ->
            #{% 8.45, not offial but the official sourceforge is not available
              ~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
              ~"package"=> #{~"name"=> ~"github.com/nektro/pcre-8.45"}},
-
-           #{ % 3.1.4
-             ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-             ~"package"=> #{~"name"=> ~"github.com/openssl/openssl"}},
 
            #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
              ~"package"=> #{~"name"=> ~"github.com/wxWidgets/wxWidgets"}},
