@@ -1252,8 +1252,8 @@ osv_scan(#{version := Version, sarif := Sarif}) ->
                         [];
                     _ ->
                         NameVulnerabilities = lists:zip(osv_names(OSVQuery), OSVResults),
-                        lists:filtermap(fun ({Name, #{~"vulns" := Ids}}) ->
-                                                {true, {Name, [Id || #{~"id" := Id} <- Ids]}};
+                        lists:filtermap(fun ({NameVersion, #{~"vulns" := Ids}}) ->
+                                                {true, {NameVersion, [Id || #{~"id" := Id} <- Ids]}};
                                             (_) ->
                                                 false
                                         end, NameVulnerabilities)
@@ -1312,11 +1312,11 @@ generate_sarif(Vulns) ->
                                       #{ ~"artifactLocation" =>
                                              #{ ~"uri" => Dependency }}}
                              ]
-                        } || {Dependency, CVEs} <- Vulns, CVE <- CVEs],
+                        } || {Dependency, _Version, CVEs} <- Vulns, CVE <- CVEs],
                  ~"artifacts" =>
                      [ #{ ~"location" => #{ ~"uri" => Dependency},
                           ~"length" => -1
-                        } || {Dependency, _} <- Vulns]
+                        } || {Dependency, _, _} <- Vulns]
                 }]
        }.
 
@@ -1330,16 +1330,16 @@ ignore_vex_cves(Vulns) ->
                         %% OTP cannot be vulnerable to wxwidgets because
                         %% we only take documentation.
                         Acc;
-                    ({Name, CVEs}, Acc) ->
+                    ({{Name, Version}, CVEs}, Acc) ->
                         case maps:get(Name, non_vulnerable_cves(), not_found) of
                             not_found ->
-                                [{Name, CVEs} | Acc];
+                                [{Name, Version, CVEs} | Acc];
                             NonCVEs ->
                                 case CVEs -- NonCVEs of
                                     [] ->
                                         Acc;
                                     Vs ->
-                                        [{Name, Vs} | Acc]
+                                        [{Name, Version, Vs} | Acc]
                                 end
                         end
                 end, [], Vulns).
@@ -1356,7 +1356,7 @@ non_vulnerable_cves() -> #{}.
 format_vulnerabilities({error, ErrorContext}) ->
     {error, ErrorContext};
 format_vulnerabilities(ExistingVulnerabilities) when is_list(ExistingVulnerabilities) ->
-    lists:map(fun ({N, Ids}) ->
+    lists:map(fun ({N, _, Ids}) ->
                       io_lib:format("- ~s: ~s~n", [N, lists:join(",", Ids)])
               end, ExistingVulnerabilities).
 
@@ -1369,8 +1369,11 @@ report_vulnerabilities(FormatVulns) ->
 
 osv_names(#{~"queries" := Packages}) ->
     lists:map(fun osv_names/1, Packages);
-osv_names(#{~"package" := #{~"name" := Name }}) ->
-    Name.
+osv_names(#{~"package" := #{~"name" := Name }, ~"commit" := Commit}) ->
+    {Name, Commit};
+osv_names(#{~"package" := #{~"name" := Name }, ~"version" := Version}) ->
+    {Name, Version}.
+
 
 generate_osv_query(Packages) ->
     #{~"queries" => lists:foldl(fun generate_osv_query/2, [], Packages)}.
