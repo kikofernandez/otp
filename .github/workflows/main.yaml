@@ -429,9 +429,9 @@ jobs:
   # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
     name: Vendor Vulnerability Scanning
-    needs: pack
     uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
     with:
+      sarif: false
       version: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
       # equivalent of ${{ env.BASE_BRANCH }} but reusable-workflows do not allow to pass env.
 
@@ -891,6 +891,7 @@ jobs:
               --sbom-file /github/bom.spdx.json"
 
       # allows Dependabot to give us alert of the vendor libraries that use semantic versioning
+      # it also allows dependencies to be looked up from github dependencies
       - name: Upload SBOM to Github Dependency API
         if: github.event_name == 'push'
         uses: advanced-security/spdx-dependency-submission-action@5530bab9ee4bbe66420ce8280624036c77f89746 # ratchet:advanced-security/spdx-dependency-submission-action@v0.1.1
