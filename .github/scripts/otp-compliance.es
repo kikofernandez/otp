@@ -1384,7 +1384,7 @@ osv_names(#{~"package" := #{~"name" := Name }, ~"version" := Version}) ->
 
 
 generate_osv_query(Packages) ->
-    #{~"queries" => lists:foldl(fun generate_osv_query/2, [], Packages)}.
+    #{~"queries" => lists:usort(lists:foldl(fun generate_osv_query/2, [], Packages))}.
 generate_osv_query(#{~"versionInfo" := Vsn, ~"ecosystem" := Ecosystem, ~"name" := Name}, Acc) ->
     Package = #{~"package" => #{~"name" => Name, ~"ecosystem" => Ecosystem}, ~"version" => Vsn},
     [Package | Acc];
