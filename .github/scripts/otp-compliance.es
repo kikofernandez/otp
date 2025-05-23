@@ -1313,7 +1313,9 @@ generate_sarif(Branch, Vulns) ->
                              [ #{ ~"physicalLocation" =>
                                       #{ ~"artifactLocation" =>
                                              #{ ~"uri" => Dependency }}}
-                             ]
+                             ],
+                         ~"partialFingerprints" =>
+                             #{ Branch => calculate_fingerprint(Branch, Dependency, Version, CVE)}
                         } || {Dependency, Version, CVEs} <- Vulns, CVE <- CVEs],
                  ~"artifacts" =>
                      [ #{ ~"location" => #{ ~"uri" => Dependency},
@@ -1325,7 +1327,10 @@ generate_sarif(Branch, Vulns) ->
 error_to_text(Branch, Dependency, Version, Vuln) ->
     <<"[", Branch/binary, "] Dependency ", Dependency/binary, " in commit/version ", Version/binary,
       " has the following detected vulnerability: ", Vuln/binary>>.
-    
+
+calculate_fingerprint(Branch, Dependency, Version, CVE) ->
+    Bin = crypto:hash(sha, <<Branch/binary, Dependency/binary, Version/binary, CVE/binary>>),
+    binary:encode_hex(Bin).
 
 %% TODO: fix by reading VEX files from erlang/vex or repo containing VEX files
 ignore_vex_cves(Vulns) ->
