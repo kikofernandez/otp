@@ -228,7 +228,7 @@ cli() ->
 
                                      > .github/scripts/otp-compliance.es sbom osv-scan
                                      """,
-                                 arguments => [ versions_file(), sarif_option(), fail_option() ],
+                                 arguments => [ versions_file(), sarif_option(), fail_option(), gh_alerts() ],
                                  handler => fun osv_scan/1}
                          }},
              "explore" =>
@@ -348,6 +348,11 @@ fail_option() ->
 %% useful for pull requests since we do not want to
 %% add Github Security per found CVE on each PR.
 
+gh_alerts() ->
+    #{name => gh_alerts,
+      type => binary,
+      default => ~"gh_alerts.json",
+      long => "-gh_alerts"}.
 
 ntia_checker() ->
     #{name => ntia_checker,
@@ -1239,7 +1244,10 @@ generate_vendor_purl(Package) ->
             [create_externalRef_purl(Description, <<Purl/binary, "@", Vsn/binary>>)]
     end.
 
-osv_scan(#{version := Version, sarif := Sarif, fail_if_cve := FailIfCVEFound}) ->
+osv_scan(#{version := Version,
+           sarif := Sarif,
+           fail_if_cve := FailIfCVEFound,
+           gh_alerts := Alerts}) ->
     application:ensure_all_started([ssl, inets]),
     OSVQuery = vendor_by_version(Version),
 
@@ -1270,7 +1278,7 @@ osv_scan(#{version := Version, sarif := Sarif, fail_if_cve := FailIfCVEFound}) -
             {error, Error} ->
                 {error, [URI, Error]}
         end,
-    Vulns1 = ignore_vex_cves(Vulns),
+    Vulns1 = ignore_vex_cves(Vulns, Alerts),
     ok = generate_sarif(Version, Sarif, Vulns1),
     FormattedVulns = format_vulnerabilities(Vulns1),
     case FailIfCVEFound of
@@ -1320,6 +1328,10 @@ generate_sarif(Branch, Vulns) ->
                                ~"version" => ~"1.0"
                              }
                       },
+                 ~"automationDetails" =>
+                     #{
+                       ~"id" => Branch
+                      },
                  ~"results" =>
                      [ #{
                          ~"ruleId" => ~"CVE-OTP-VENDOR",
@@ -1328,10 +1340,16 @@ generate_sarif(Branch, Vulns) ->
                          ~"message" => #{
                                           ~"text" => error_to_text(Branch, Dependency, Version, CVE)
                                         },
+                         ~"properties" => #{
+                                            ~"vendor_sha" => Version,
+                                            ~"vulnerability" => CVE,
+                                            ~"base_branch" => Branch,
+                                            ~"vendor" => Dependency
+                                           },
                          ~"locations" =>
                              [ #{ ~"physicalLocation" =>
                                       #{ ~"artifactLocation" =>
-                                             #{ ~"uri" => Dependency }}}
+                                             #{ ~"uri" => <<Dependency/binary, "/commit/", Version/binary>> }}}
                              ],
                          ~"partialFingerprints" =>
                              #{ Branch => calculate_fingerprint(Branch, Dependency, Version, CVE)}
@@ -1352,7 +1370,19 @@ calculate_fingerprint(Branch, Dependency, Version, CVE) ->
     binary:encode_hex(Bin).
 
 %% TODO: fix by reading VEX files from erlang/vex or repo containing VEX files
-ignore_vex_cves(Vulns) ->
+ignore_vex_cves(Vulns, _Alerts) ->
+    Vulns1 = ignore_known_false_positives(Vulns),
+    %% ignore_dismiss_alerts(Alerts, Vulns1)
+    Vulns1.
+
+%% ignore_dismiss_alerts(Alerts, Vulns1) ->
+%%     Dismissed = lists:filter(fun(#{~"state" := ~"dismissed",
+%%                                    ~"rule"  := #{~"id" := ~"CVE-OTP-VENDOR"}) -> true;
+%%                                 (_) -> false
+%%                              end, Alerts),
+
+
+ignore_known_false_positives(Vulns) ->
     lists:foldl(fun ({~"github.com/wxWidgets/wxWidgets", _CVEs}, Acc) ->
                         %% OTP cannot be vulnerable to wxwidgets because
                         %% we only take documentation.
