@@ -398,10 +398,6 @@ base_file(DefaultFile) ->
       long => "-base-file"}.
 
 
-%%
-%% Commands
-%%
-
 sbom_vendor(#{sbom_file  := SbomFile}) ->
     Sbom = decode(SbomFile),
     Spdx = get_vendor_dependencies(Sbom),
