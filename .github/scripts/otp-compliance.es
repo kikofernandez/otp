@@ -351,7 +351,7 @@ fail_option() ->
 gh_alerts() ->
     #{name => gh_alerts,
       type => binary,
-      default => ~"gh_alerts.json",
+      default => ~"undefined",
       long => "-gh_alerts"}.
 
 ntia_checker() ->
@@ -1247,7 +1247,7 @@ generate_vendor_purl(Package) ->
 osv_scan(#{version := Version,
            sarif := Sarif,
            fail_if_cve := FailIfCVEFound,
-           gh_alerts := Alerts}) ->
+           gh_alerts := Alerts0}) ->
     application:ensure_all_started([ssl, inets]),
     OSVQuery = vendor_by_version(Version),
 
@@ -1278,8 +1278,17 @@ osv_scan(#{version := Version,
             {error, Error} ->
                 {error, [URI, Error]}
         end,
-    Vulns1 = ignore_vex_cves(Vulns, Alerts),
-    ok = generate_sarif(Version, Sarif, Vulns1),
+    Alerts = case Alerts0 of
+                 ~"undefined" ->
+                     [];
+                 _ ->
+                     decode(Alerts0)
+             end,
+    Vulns1 = ignore_vex_cves(Version, Vulns, Alerts),
+    %% sarif should still contain issues with CVEs
+    ok = generate_sarif(Version, Sarif, Vulns),
+
+    %% vulnerability reporting can fail if new issues appear
     FormattedVulns = format_vulnerabilities(Vulns1),
     case FailIfCVEFound of
         false ->
@@ -1353,34 +1362,53 @@ generate_sarif(Branch, Vulns) ->
                              ],
                          ~"partialFingerprints" =>
                              #{ Branch => calculate_fingerprint(Branch, Dependency, Version, CVE)}
-                        } || {Dependency, Version, CVEs} <- Vulns, CVE <- CVEs],
+                        } || {{Dependency, Version}, CVEs} <- Vulns, CVE <- CVEs],
                  ~"artifacts" =>
                      [ #{ ~"location" => #{ ~"uri" => Dependency},
                           ~"length" => -1
-                        } || {Dependency, _, _} <- Vulns]
+                        } || {{Dependency, _}, _} <- Vulns]
                 }]
        }.
 
 error_to_text(Branch, Dependency, Version, Vuln) ->
-    <<"[", Branch/binary, "] Dependency ", Dependency/binary, " in commit/version ", Version/binary,
+    BranchHeader = error_to_text_header(Branch),
+    <<BranchHeader/binary, "Dependency ", Dependency/binary, " in commit/version ", Version/binary,
       " has the following detected vulnerability: ", Vuln/binary>>.
+
+error_to_text_header(Branch) ->
+    <<"[", Branch/binary, "] ">>.
 
 calculate_fingerprint(Branch, Dependency, Version, CVE) ->
     Bin = crypto:hash(sha, <<Branch/binary, Dependency/binary, Version/binary, CVE/binary>>),
     binary:encode_hex(Bin).
 
 %% TODO: fix by reading VEX files from erlang/vex or repo containing VEX files
-ignore_vex_cves(Vulns, _Alerts) ->
+ignore_vex_cves(Branch, Vulns, Alerts) ->
     Vulns1 = ignore_known_false_positives(Vulns),
-    %% ignore_dismiss_alerts(Alerts, Vulns1)
-    Vulns1.
+    ignore_dismiss_alerts(Branch, Alerts, Vulns1).
 
-%% ignore_dismiss_alerts(Alerts, Vulns1) ->
-%%     Dismissed = lists:filter(fun(#{~"state" := ~"dismissed",
-%%                                    ~"rule"  := #{~"id" := ~"CVE-OTP-VENDOR"}) -> true;
-%%                                 (_) -> false
-%%                              end, Alerts),
+ignore_dismiss_alerts(Branch, Alerts, Vulns) ->
+    FilterBranch = fun (Text) -> string:find(Text, ~"Dependency", trailing) end,
+    CVEsTexts =
+        lists:map(fun (#{ ~"most_recent_instance" := #{~"message" := #{ ~"text":= Text }}}) ->
+                          %% BranchHeader = error_to_text_header(Branch),
+                          FilterBranch(Text)
+                  end, Alerts),
 
+    lists:foldl(
+      fun ({{Name, Version}, CVEs}, Acc) ->
+              L = lists:filter(
+                    fun(CVE) ->
+                            T = FilterBranch(error_to_text(Branch, Name, Version, CVE)),
+                            not lists:member(T, CVEsTexts)
+                    end, CVEs),
+              case L of
+                  [] ->
+                      Acc;
+                  _ ->
+                      [{{Name, Version}, L} | Acc]
+              end
+      end, [], Vulns).
 
 ignore_known_false_positives(Vulns) ->
     lists:foldl(fun ({~"github.com/wxWidgets/wxWidgets", _CVEs}, Acc) ->
@@ -1390,13 +1418,13 @@ ignore_known_false_positives(Vulns) ->
                     ({{Name, Version}, CVEs}, Acc) ->
                         case maps:get(Name, non_vulnerable_cves(), not_found) of
                             not_found ->
-                                [{Name, Version, CVEs} | Acc];
+                                [{{Name, Version}, CVEs} | Acc];
                             NonCVEs ->
                                 case CVEs -- NonCVEs of
                                     [] ->
                                         Acc;
                                     Vs ->
-                                        [{Name, Version, Vs} | Acc]
+                                        [{{Name, Version}, Vs} | Acc]
                                 end
                         end
                 end, [], Vulns).
@@ -1413,12 +1441,12 @@ non_vulnerable_cves() -> #{}.
 format_vulnerabilities({error, ErrorContext}) ->
     {error, ErrorContext};
 format_vulnerabilities(ExistingVulnerabilities) when is_list(ExistingVulnerabilities) ->
-    lists:map(fun ({N, _, Ids}) ->
+    lists:map(fun ({{N, _}, Ids}) ->
                       io_lib:format("- ~s: ~s~n", [N, lists:join(",", Ids)])
               end, ExistingVulnerabilities).
 
 report_vulnerabilities([]) ->
-    io:format("[OSV] No vulnerabilities found.~n");
+    io:format("[OSV] No new vulnerabilities reported.~n");
 report_vulnerabilities({error, [URI, Error]}) ->
     fail("[OSV] POST request to ~p errors: ~p", [URI, Error]);
 report_vulnerabilities(FormatVulns) ->
