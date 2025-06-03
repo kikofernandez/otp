@@ -438,7 +438,7 @@ jobs:
       - name: Get modified vendor files
         id: vendor-files
         run: |
-          echo "MODIFIED_FILES=$(git diff --name-only '${{ github.event.pull_request.base.sha }}' '${{ github.event.pull_request.head.sha }}' | grep 'vendor\.info$' | wc -l || 0)"
+          echo "MODIFIED_FILES=$(git diff --name-only '${{ github.event.pull_request.base.sha }}' '${{ github.event.pull_request.head.sha }}' | grep 'vendor\.info$' | wc -l || 1)"
 
   # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
