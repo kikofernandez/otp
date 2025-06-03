@@ -430,7 +430,7 @@ jobs:
     name: Check if vendor files changed
     runs-on: ubuntu-latest
     outputs:
-      vendor-files: ${{ steps.vendor-files.outputs.MODIFIED_FILES }}
+      vendor-files: ${{ steps.vendor-files.outputs.MODIFIED_FILES != '0' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4.2.2
         with:
@@ -443,7 +443,7 @@ jobs:
   # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
     needs: modified-vendor-files
-    if: ${{ needs.modified-vendor-files.outputs.vendor-files != '0' }}
+    if: ${{ needs.modified-vendor-files.outputs.vendor-files }}
     permissions:
       security-events: write
     name: Vendor Vulnerability Scanning
