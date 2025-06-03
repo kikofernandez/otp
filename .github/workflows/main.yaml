@@ -426,8 +426,29 @@ jobs:
                 docker run otp "erl ${OPTION} -noshell -s init stop"
             done
 
+  modified-vendor-files:
+    runs-on: ubuntu-latest
+    outputs:
+      vendor-files: ${{ steps.vendor-files.outputs.MODIFIED_FILES }}
+    steps:
+      - name: Get modified vendor files
+        id: vendor-files
+        run: |
+          echo "MODIFIED_FILES=$(git diff --name-only '${{ github.event.pull_request.base.sha }}' '${{ github.event.pull_request.head.sha }}' | grep 'vendor\.info$' | wc -l || 0)"
+
+  test-output:
+    needs: modified-vendor-files
+    runs-on: ubuntu-latest
+    if: ${{ needs.modified-vendor-files.outputs.vendor-files != 0 }}
+    steps:
+      - name: Test
+        run: echo '${{ needs.modified-vendor-files.outputs.vendor-files }}'
+
+
   # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
+    needs: modified-vendor-files
+    if: ${{ needs.modified-vendor-files.outputs.vendor-files != 0  }}
     permissions:
       security-events: write
     name: Vendor Vulnerability Scanning
