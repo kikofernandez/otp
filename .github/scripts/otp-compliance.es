@@ -1285,6 +1285,13 @@ osv_scan(#{version := Version,
                      decode(Alerts0)
              end,
     Vulns1 = ignore_vex_cves(Version, Vulns, Alerts),
+
+    %% Vulnerabilities already open that do not needto be reported again
+    %% in text or make the build fail, but the SARIF file should continue
+    %% reporting until we mark as fixed.
+    io:format("Exiting known vulnerabilities already open:~n~s~n~n",
+              [format_vulnerabilities(Vulns -- Vulns1)]),
+
     %% sarif should still contain issues with CVEs
     ok = generate_sarif(Version, Sarif, Vulns),
 
