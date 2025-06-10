@@ -1492,7 +1492,7 @@ ignore_dismiss_alerts(Branch, Alerts, Vulns) ->
       end, [], Vulns).
 
 ignore_known_false_positives(Vulns) ->
-    lists:foldl(fun ({~"github.com/wxWidgets/wxWidgets", _CVEs}, Acc) ->
+    lists:foldl(fun ({{~"github.com/wxWidgets/wxWidgets", _}, _CVEs}, Acc) ->
                         %% OTP cannot be vulnerable to wxwidgets because
                         %% we only take documentation.
                         Acc;
@@ -1515,9 +1515,8 @@ non_vulnerable_cves() ->
        ~"github.com/openssl/openssl" =>
            [~"CVE-2024-12797", ~"CVE-2023-6129", ~"CVE-2023-6237", ~"CVE-2024-0727",
             ~"CVE-2024-13176", ~"CVE-2024-2511", ~"CVE-2024-4603", ~"CVE-2024-4741",
-            ~"CVE-2024-5535", ~"CVE-2024-6119", ~"CVE-2024-9143"],
+            ~"CVE-2024-5535", ~"CVE-2024-6119", ~"CVE-2024-9143", ~"CVE-2025-4575"],
        ~"github.com/PCRE2Project/pcre2" => [~"OSV-2025-300"]}.
-
 
 format_vulnerabilities({error, ErrorContext}) ->
     {error, ErrorContext};
