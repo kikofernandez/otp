@@ -443,6 +443,7 @@ jobs:
     if: ${{ needs.modified-vendor-files.outputs.vendor-files }}
     permissions:
       security-events: write
+      contents: write
     name: Vendor Vulnerability Scanning
     uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
     with:
