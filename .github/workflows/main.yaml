@@ -905,6 +905,8 @@ jobs:
       # it also allows dependencies to be looked up from github dependencies
       #
       # trigger the upload only on merged pull requests
+      #
+      #
       - name: Upload SBOM to Github Dependency API
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
         uses: advanced-security/spdx-dependency-submission-action@5530bab9ee4bbe66420ce8280624036c77f89746 # ratchet:advanced-security/spdx-dependency-submission-action@v0.1.1
