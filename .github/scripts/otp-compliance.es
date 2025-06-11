@@ -1424,9 +1424,27 @@ osv_scan(#{version := Version,
                 [] ->
                     report_vulnerabilities(FormattedVulns);
                 _ ->
-                    fail("[FAILURE]~n~s~n", [FormattedVulns])
+                    OTP = case Version of
+                              <<"maint", Rest/binary>> -> <<"otp", Rest/binary>>;
+                              _ -> <<"otp-28">>
+                          end,
+                    Ps = [begin
+                              case Name of
+                                  <<"github.com", Pkg/binary>> ->
+                                      under_investigation(<<"pkg:github", Pkg/binary, "@", Commit/binary>>, CVE)
+                              end
+                          end || {{Name, Commit}, CVEs} <- Vulns1, CVE <- CVEs],
+                    OpenVexFilePath="make/openvex.table",
+                    #{OTP := L}=OpenVexTable = decode(OpenVexFilePath),
+                    file:write_file(OpenVexFilePath, json:format(OpenVexTable#{OTP := L ++ Ps })),
+
+                    os:cmd(".github/scripts/otp-compliance.es vex run -b "++ erlang:binary_to_list(OTP) ++ " | bash")
             end
     end.
+
+under_investigation(Purl, CVE) ->
+    #{Purl => CVE,
+      ~"status" => ~"under_investigation"}.
 
 generate_sarif(_, false, _Vulns) ->
     io:format("[SARIF] No sarif file generated~n~n"),
@@ -1544,7 +1562,7 @@ non_vulnerable_cves() ->
        ~"github.com/openssl/openssl" =>
            [~"CVE-2024-12797", ~"CVE-2023-6129", ~"CVE-2023-6237", ~"CVE-2024-0727",
             ~"CVE-2024-13176", ~"CVE-2024-2511", ~"CVE-2024-4603", ~"CVE-2024-4741",
-            ~"CVE-2024-5535", ~"CVE-2024-6119", ~"CVE-2024-9143", ~"CVE-2025-4575"],
+            ~"CVE-2024-5535", ~"CVE-2024-6119", ~"CVE-2024-9143"],
        ~"github.com/PCRE2Project/pcre2" => [~"OSV-2025-300"]}.
 
 format_vulnerabilities({error, ErrorContext}) ->

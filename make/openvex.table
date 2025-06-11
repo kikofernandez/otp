@@ -157,10 +157,6 @@
   ],
   "otp-28": [
     {
-      "pkg:github/openssl/openssl@636dfadc70ce26f2473870570bfd9ec352806b1d": "CVE-2025-4575",
-      "status": { "not_affected": "vulnerable_code_not_present" }
-    },
-    {
       "pkg:github/PCRE2Project/pcre2@2dce7761b1831fd3f82a9c2bd5476259d945da4d": "OSV-2025-300",
       "status": { "not_affected": "vulnerable_code_not_present" }
     },
