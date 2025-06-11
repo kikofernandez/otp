@@ -1514,29 +1514,30 @@ calculate_fingerprint(Branch, Dependency, Version, CVE) ->
 
 ignore_vex_cves(Branch, Vulns, Alerts) ->
     Vulns1 = ignore_known_false_positives(Vulns),
-    ignore_dismiss_alerts(Branch, Alerts, Vulns1).
+    Vulns.
+    %% ignore_dismiss_alerts(Branch, Alerts, Vulns1).
 
-ignore_dismiss_alerts(Branch, Alerts, Vulns) ->
-    FilterBranch = fun (Text) -> string:find(Text, ~"Dependency", trailing) end,
-    CVEsTexts =
-        lists:map(fun (#{ ~"most_recent_instance" := #{~"message" := #{ ~"text":= Text }}}) ->
-                          FilterBranch(Text)
-                  end, Alerts),
+%% ignore_dismiss_alerts(Branch, Alerts, Vulns) ->
+%%     FilterBranch = fun (Text) -> string:find(Text, ~"Dependency", trailing) end,
+%%     CVEsTexts =
+%%         lists:map(fun (#{ ~"most_recent_instance" := #{~"message" := #{ ~"text":= Text }}}) ->
+%%                           FilterBranch(Text)
+%%                   end, Alerts),
 
-    lists:foldl(
-      fun ({{Name, Version}, CVEs}, Acc) ->
-              L = lists:filter(
-                    fun(CVE) ->
-                            T = FilterBranch(error_to_text(Branch, Name, Version, CVE)),
-                            not lists:member(T, CVEsTexts)
-                    end, CVEs),
-              case L of
-                  [] ->
-                      Acc;
-                  _ ->
-                      [{{Name, Version}, L} | Acc]
-              end
-      end, [], Vulns).
+%%     lists:foldl(
+%%       fun ({{Name, Version}, CVEs}, Acc) ->
+%%               L = lists:filter(
+%%                     fun(CVE) ->
+%%                             T = FilterBranch(error_to_text(Branch, Name, Version, CVE)),
+%%                             not lists:member(T, CVEsTexts)
+%%                     end, CVEs),
+%%               case L of
+%%                   [] ->
+%%                       Acc;
+%%                   _ ->
+%%                       [{{Name, Version}, L} | Acc]
+%%               end
+%%       end, [], Vulns).
 
 ignore_known_false_positives(Vulns) ->
     lists:foldl(fun ({{~"github.com/wxWidgets/wxWidgets", _}, _CVEs}, Acc) ->
