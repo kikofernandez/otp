@@ -1398,6 +1398,7 @@ osv_scan(#{version := Version,
             %% All Vulns are new and not documented in Vex statements
             ok;
         _ ->
+            io:format("-----| ~p~n", [format_vulnerabilities(VexKnownVulns)]),
             io:format("Exiting known vulnerabilities already declared in OpenVex files:~n~s~n~n",
                       [format_vulnerabilities(VexKnownVulns)])
     end,
