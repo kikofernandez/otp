@@ -1412,6 +1412,12 @@ osv_scan(#{version := Version,
 ignore_vex_cves(Branch, Vulns) ->
     OpenVex = get_otp_openvex_file(Branch),
     OpenVex1 = format_vex_statements(OpenVex),
+    case OpenVex1 of
+        [] ->
+            [];
+        _ when is_list(OpenVex1) ->
+            io:format("Ignoring vulnerabilities already present in OpenVex file.~n~n")
+    end,
     lists:foldl(fun({Purl, CVEs}, Acc) ->
                         CVEsMatches = proplists:get_all_values(Purl, OpenVex1),
                         case CVEs -- lists:flatten(CVEsMatches) of
