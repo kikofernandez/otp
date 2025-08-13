@@ -35,7 +35,7 @@ permissions:
 jobs:
   schedule-scan:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && github.repository == 'erlang/otp'
+    if: github.event_name == 'schedule' && github.repository == 'kikofernandez/otp'
     # if: github.event_name != 'workflow_dispatch' # used for testing
     outputs:
        versions: ${{ steps.get-versions.outputs.versions }}
@@ -73,7 +73,7 @@ jobs:
       - name: Trigger Vulnerability Scanning
         env:
           GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }} # in testing cases, this is your fork, e.g., kikofernandez/otp
+          REPO: kikofernandez/otp # in testing cases, this is your fork, e.g., kikofernandez/otp
         run: |
           gh api \
             --method POST \
