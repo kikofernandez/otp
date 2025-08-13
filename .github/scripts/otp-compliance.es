@@ -1389,18 +1389,6 @@ osv_scan(#{version := Version,
     %% Result Vulns1 are vulnerabilities not yet covered in OpenVex statements
     Vulns1 = ignore_vex_cves(Version, Vulns),
 
-    %% Exising Vex vulnerabilities that are dealt with in Vulns
-    VexKnownVulns = Vulns -- Vulns1,
-
-    %% OpenVex declared vulnerabilities that exist in Vulns
-    case VexKnownVulns of
-        [] ->
-            %% All Vulns are new and not documented in Vex statements
-            ok;
-        _ ->
-            io:format("Exiting known vulnerabilities already declared in OpenVex files")
-    end,
-
     %% vulnerability reporting can fail if new issues appear
     FormattedVulns = format_vulnerabilities(Vulns1),
     case FailIfCVEFound of
@@ -1464,7 +1452,7 @@ get_otp_openvex_file(Branch) ->
             os:cmd(Command),
             decode(OpenVexStr);
         E ->
-            io:format("[ErrorCode=~p] No OpenVex file found.~n~n", [E]),
+            io:format("[~p] No OpenVex file found.~n~n", [E]),
             #{}
     end.
 
