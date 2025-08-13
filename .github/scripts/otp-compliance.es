@@ -1365,6 +1365,7 @@ generate_vendor_purl(Package) ->
 osv_scan(#{version := Version,
            fail_if_cve := FailIfCVEFound}) ->
     application:ensure_all_started([ssl, inets]),
+    _ = valid_scan_branches(Version),
     OSVQuery = vendor_by_version(Version),
 
     io:format("[OSV] Information sent~n~s~n", [json:format(OSVQuery)]),
@@ -1404,6 +1405,8 @@ osv_scan(#{version := Version,
                         [Vulnerability] Contact OTP team.
                         The following CVEs must be checked in OpenVex statements for ~s:
                         ~s
+                        Please follow instructions from:
+                          https://github.com/erlang/otp/blob/master/HOWTO/SBOM.md#vex
                         """,
                     fail(Failure, [Version, FormattedVulns])
             end
@@ -1463,6 +1466,7 @@ get_otp_openvex_file(Branch) ->
     end.
 
 fetch_openvex_filename(Branch) ->
+    _ = valid_scan_branches(Branch),
     Version = case Branch of
                   ~"master" ->
                       %% Master corresponds to possible patched versions of OTP_VERSION-1.
@@ -1473,6 +1477,16 @@ fetch_openvex_filename(Branch) ->
                       <<"otp-", Vers/binary>>
               end,
     vex_path(Version).
+
+valid_scan_branches(Branch) ->
+    case Branch of
+        ~"master" ->
+            ok;
+        <<"maint-", _Vers/binary>> ->
+            ok;
+        _ ->
+            fail("[ERROR] Valid branch names are `master` or `maint-XX`.~n'~s' is neither of them", [Branch])
+    end.
 
 format_vulnerabilities({error, ErrorContext}) ->
     {error, ErrorContext};
@@ -2379,7 +2393,8 @@ calculate_statements(VexStmts, VexTableFile, Branch, VexPath) ->
     VexTable = decode(VexTableFile),
     case maps:get(Branch, VexTable, error) of
         error ->
-            fail("Could not find '~ts' in file '~ts'~n", [Branch, VexTableFile]);
+            fail("Could not find '~ts' in file '~ts'.~nDid you forget to add an entry with name '~ts' into 'openvex.table'?",
+                 [Branch, VexTableFile, Branch]);
         CVEs ->
             calculate_statements_from_cves(VexStmts, CVEs, Branch, VexPath)
     end.
