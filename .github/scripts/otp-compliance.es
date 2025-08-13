@@ -1458,14 +1458,14 @@ get_otp_openvex_file(Branch) ->
     io:format("Checking OpenVex statements in '~s' from~n'~s'...~n", [OpenVexPath, GithubURI]),
 
     ValidURI = "curl -I -Lj --silent " ++ GithubURI ++ " | head -n1 | cut -d' ' -f2",
-    case os:cmd(ValidURI) of
+    case string:trim(os:cmd(ValidURI)) of
         "200" ->
             io:format("OpenVex file found.~n~n"),
             Command = "curl -LJ " ++ GithubURI ++ " --output " ++ OpenVexStr,
             os:cmd(Command),
             decode(OpenVexStr);
         E ->
-            io:format("[~p] No OpenVex file found.~n~n", [E]),
+            io:format("[ErrorCode=~p] No OpenVex file found.~n~n", [E]),
             #{}
     end.
 
