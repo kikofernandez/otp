@@ -470,7 +470,7 @@ jobs:
   # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
     needs: modified-vendor-files
-    if: ${{ needs.modified-vendor-files.outputs.vendor-files != 0 }}
+    if: ${{ needs.modified-vendor-files.outputs.vendor-files != 0 }} && ${{ github.event_name == 'pull_request'}}
     permissions:
       security-events: read
     name: Vendor Vulnerability Scanning
