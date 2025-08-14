@@ -24,7 +24,6 @@ name: Open Source Vulnerabilities Scanner
 
 on:
   pull_request:
-  push:
   workflow_dispatch:
   schedule:
     - cron: 0 1 * * *
