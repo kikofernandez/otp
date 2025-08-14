@@ -246,15 +246,15 @@ Delete the proper sections in [`renovate.json5`](../renovate.json5).
 
 VEX files allow to communicate which vulnerabilities are false positives and which ones are actual vulnerabilities. VEX files are important to explicitly state that some vendor dependencies are (not) vulnerabilities in your software.
 
-Erlang/OTP has chosen to communicate VEX information using the OpenVex implementation.
+Erlang/OTP has chosen to communicate VEX information using the OpenVEX implementation.
 
 ### HOW-TO
 
 Erlang/OTP will maintain VEX files for the latests three releases.
 Because of this, Erlang/OTP will always contain the latest information in the `master` branch.
-Any OpenVex file in other branches is considered outdated.
+Any OpenVEX file in other branches is considered outdated.
 
-The OpenVex files are located in `vex/otp-26.openvex.json`, `vex/otp-27.openvex.json`, and `vex/otp-28.openvex.json` (e.g.). These files are generated from the `make/openvex.table` and the script `.github/scripts/otp-compliance.es`.
+The OpenVEX files are located in `vex/otp-26.openvex.json`, `vex/otp-27.openvex.json`, and `vex/otp-28.openvex.json` (e.g.). These files are generated from the `make/openvex.table` and the script `.github/scripts/otp-compliance.es`.
 
 - `make/openvex.table` contains all known CVEs on a per release basis, with top-level objects for `otp-XX` branches, where each `otp-XX` object has as value a list of dependencies with their CVE and the status.
 
@@ -276,7 +276,7 @@ The OpenVex files are located in `vex/otp-26.openvex.json`, `vex/otp-27.openvex.
       ]
   ```
 
-The `status` corresponds to the possible status from the [OpenVex specification](https://github.com/openvex/spec/blob/main/OPENVEX-SPEC.md).
+The `status` corresponds to the possible status from the [OpenVEX specification](https://github.com/openvex/spec/blob/main/OPENVEX-SPEC.md).
 In case of `not_affected`, a reason must be provided (similar to the [specification](https://github.com/openvex/spec/blob/main/OPENVEX-SPEC.md)).
 **The `make/openvex.table` is considered to be an append-only structure, where one should not do modifications to existing data nor removal**.
 Changes should be done via `.github/scripts/otp-compliance.es` applied on the `openvex.table`. The main reason is to use
@@ -285,7 +285,7 @@ must express range versions for a vulnerability.
 
 ### Further Format Details of openvex.table
 
-The file `openvex.table` is a subset of fields of the OpenVex specification.
+The file `openvex.table` is a subset of fields of the OpenVEX specification.
 The format is a JSON object that contains OTP VEX statements. A top-level valid field is the
 OTP version key (e.g., `otp-29`), followed by a list of objects. Each JSON object can have the following structure.
 
@@ -360,7 +360,7 @@ instead of writing the vendor library and its sha1 vulnerability.
 
 This will only be needed once, but if you need to initialize and provide existing known CVEs, you can use `.github/scripts/otp-compliance.es`.
 
-The first time that we generate OpenVex statements we call `.github/scripts/otp-compliance.es vex init --input-file make/openvex.table -b otp-28`. This init script outputs instructions to execute in the shell, which invokes commands from `vexctl` ([Installation steps here](https://github.com/openvex/vexctl)). You can run and execute the scripts as follows, `.github/scripts/otp-compliance.es vex init --input-file make/openvex.table -b otp-28 | bash` (if you use bash).
+The first time that we generate OpenVEX statements we call `.github/scripts/otp-compliance.es vex init --input-file make/openvex.table -b otp-28`. This init script outputs instructions to execute in the shell, which invokes commands from `vexctl` ([Installation steps here](https://github.com/openvex/vexctl)). You can run and execute the scripts as follows, `.github/scripts/otp-compliance.es vex init --input-file make/openvex.table -b otp-28 | bash` (if you use bash).
 
 The script is idempotent, meaning that running consecutive times the script will not change its input, modulo the time field.
 Because of this, you run this command only for a new OTP release, and for coming CVEs you use `.github/scripts/otp-compliance.es vex run ...`.
@@ -474,7 +474,7 @@ in OTP but the vulnerable code is not present.
 }
 ```
 
-To update the OpenVex statements, run:
+To update the OpenVEX statements, run:
 
 ```bash
 .github/scripts/otp-compliance.es vex run --input-file make/openvex.table -b otp-29 | bash
