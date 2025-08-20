@@ -1429,7 +1429,7 @@ ignore_vex_cves(Branch, Vulns) ->
         _ when is_list(OpenVex1) ->
             io:format("Ignoring vulnerabilities already present in OpenVex file.~n~n")
     end,
-    lists:foldl(fun({{Purl, _CommitId}, CVEs}, Acc) ->
+    lists:foldl(fun({{Purl, _CommitId}=Package, CVEs}, Acc) ->
                         %% Ignore commit id when an OpenVEX statement exists.
                         %% OSV will report a vulnerability as long as Erlang/OTP does not
                         %% update its vendor.info file for openssl. we can only do this
@@ -1448,7 +1448,7 @@ ignore_vex_cves(Branch, Vulns) ->
                             [] ->
                                 Acc;
                             Ls ->
-                                [{Purl, Ls} | Acc]
+                                [{Package, Ls} | Acc]
                         end
                 end, [], Vulns).
 
