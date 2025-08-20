@@ -1456,7 +1456,7 @@ format_vex_statements(OpenVex) ->
 get_otp_openvex_file(Branch) ->
     OpenVexPath = fetch_openvex_filename(Branch),
     OpenVexStr = erlang:binary_to_list(OpenVexPath),
-    GithubURI = "https://raw.githubusercontent.com/erlang/otp/refs/heads/master/" ++ OpenVexStr,
+    GithubURI = "https://raw.githubusercontent.com/kikofernandez/otp/refs/heads/master/" ++ OpenVexStr,
 
     io:format("Checking OpenVex statements in '~s' from~n'~s'...~n", [OpenVexPath, GithubURI]),
 
