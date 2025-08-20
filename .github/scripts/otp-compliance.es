@@ -1422,14 +1422,28 @@ osv_scan(#{version := Version,
 ignore_vex_cves(Branch, Vulns) ->
     OpenVex = get_otp_openvex_file(Branch),
     OpenVex1 = format_vex_statements(OpenVex),
+
     case OpenVex1 of
         [] ->
             [];
         _ when is_list(OpenVex1) ->
             io:format("Ignoring vulnerabilities already present in OpenVex file.~n~n")
     end,
-    lists:foldl(fun({Purl, CVEs}, Acc) ->
-                        CVEsMatches = proplists:get_all_values(Purl, OpenVex1),
+    lists:foldl(fun({{Purl, _CommitId}, CVEs}, Acc) ->
+                        %% Ignore commit id when an OpenVEX statement exists.
+                        %% OSV will report a vulnerability as long as Erlang/OTP does not
+                        %% update its vendor.info file for openssl. we can only do this
+                        %% when we actually vendor a different version of openssl, thus
+                        %% the commit ids do not match. instead of basing vendor CVE checks
+                        %% on commit id, if OTP adds an OpenVEX statement in which it claims
+                        %% that there is no vulnerability, then there is no vulnerability.
+                        %% If there is a vulnerability, then OTP must update the vendor file
+                        %% to remove the vulnerability.
+                        CVEsMatches = lists:filtermap(fun ({{PurlX, _}, CVEList}) when Purl == PurlX ->
+                                                              {true, CVEList};
+                                                          (_) ->
+                                                              false
+                                                      end, OpenVex1),
                         case CVEs -- lists:flatten(CVEsMatches) of
                             [] ->
                                 Acc;
