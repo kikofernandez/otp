@@ -2,15 +2,15 @@
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "https://openvex.dev/docs/public/otp/vex-otp-28",
   "author": "vexctl",
-  "timestamp": "2025-06-18T13:02:23.3714+02:00",
-  "last_updated": "2025-08-18T18:54:36.389902721+02:00",
+  "timestamp": "2025-08-20T10:53:57.239473+02:00",
+  "last_updated": "2025-08-20T10:53:57.331341913+02:00",
   "version": 6,
   "statements": [
     {
       "vulnerability": {
         "name": "OSV-2025-300"
       },
-      "timestamp": "2025-06-18T13:02:28.144803363+02:00",
+      "timestamp": "2025-08-20T10:53:57.265795236+02:00",
       "products": [
         {
           "@id": "pkg:github/PCRE2Project/pcre2@2dce7761b1831fd3f82a9c2bd5476259d945da4d"
@@ -23,7 +23,7 @@
       "vulnerability": {
         "name": "CVE-2023-45853"
       },
-      "timestamp": "2025-06-18T13:02:28.161425525+02:00",
+      "timestamp": "2025-08-20T10:53:57.280896466+02:00",
       "products": [
         {
           "@id": "pkg:github/madler/zlib@1a8db63788c34a50e39e273d39b7e1033208aea2"
@@ -36,7 +36,7 @@
       "vulnerability": {
         "name": "CVE-2024-58249"
       },
-      "timestamp": "2025-06-18T13:02:28.182323853+02:00",
+      "timestamp": "2025-08-20T10:53:57.297064032+02:00",
       "products": [
         {
           "@id": "pkg:github/wxWidgets/wxWidgets@dc585039bbd426829e3433002023a93f9bedd0c2"
@@ -49,30 +49,24 @@
       "vulnerability": {
         "name": "CVE-2025-4748"
       },
-      "timestamp": "2025-08-18T18:54:36.370699882+02:00",
+      "timestamp": "2025-08-20T10:53:57.314151378+02:00",
       "products": [
         {
           "@id": "pkg:otp/erlang@28.0"
         },
         {
-          "@id": "pkg:otp/erlang@28.0.2"
-        },
-        {
           "@id": "pkg:otp/stdlib@7.0"
-        },
-        {
-          "@id": "pkg:otp/stdlib@7.0.2"
         }
       ],
       "status": "affected",
       "action_statement": "Mitigation: Update to pkg:otp/stdlib@7.0.1",
-      "action_statement_timestamp": "2025-08-18T18:54:36.370699882+02:00"
+      "action_statement_timestamp": "2025-08-20T10:53:57.314151378+02:00"
     },
     {
       "vulnerability": {
         "name": "CVE-2025-4748"
       },
-      "timestamp": "2025-08-18T18:54:36.389903135+02:00",
+      "timestamp": "2025-08-20T10:53:57.331342342+02:00",
       "products": [
         {
           "@id": "pkg:otp/erlang@28.0.1"
