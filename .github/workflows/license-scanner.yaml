@@ -17,10 +17,6 @@
 ## limitations under the License.
 ##
 ## %CopyrightEnd%
-
-## This workflow will scan pull requests and pushed for files that do not
-## have the proper license.
-
 name: Check license header
 
 on:
