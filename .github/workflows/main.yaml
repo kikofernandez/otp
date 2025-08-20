@@ -960,7 +960,7 @@ jobs:
     needs:
         - sbom
         - pack
-    if: github.repository == 'erlang/otp'
+    if: github.repository == 'kikofernandez/otp'
     ## Needed to use Github Dependency API
     permissions:
       contents: write
