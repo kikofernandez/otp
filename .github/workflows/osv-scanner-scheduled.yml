@@ -47,6 +47,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          git push -d origin vex
           git checkout -b vex
           touch TEST.md
           git config user.name "github-actions[bot]"
@@ -54,7 +55,7 @@ jobs:
           git add TEST.md
           git commit -m "test"
           git push origin vex
-          # gh pr create -B master --title "Test" --body "Created by GH Action"
+          gh pr create -B master --title "Test" --body "Created by GH Action"
 
   schedule-scan:
     runs-on: ubuntu-latest
