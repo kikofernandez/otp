@@ -41,7 +41,10 @@ jobs:
       - name: create PR
         run: |
           touch TEST.md
-          git commit -am "test"
+          git config --global user.email "bot@erlang.org"
+          git config --global user.name "Erlang Bot"
+          git add TEST.md
+          git commit -m "test"
           gh pr create -B master --title "Test" --body "Created by GH Action"
 
   schedule-scan:
