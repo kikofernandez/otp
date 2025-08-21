@@ -42,17 +42,18 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: kikofernandez/otp
+          ref: master
       - name: create PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          git checkout -b vex
           touch TEST.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b vex
           git add TEST.md
           git commit -m "test"
-          git push --set-upstream origin vex
+          git push origin vex
           # gh pr create -B master --title "Test" --body "Created by GH Action"
 
   schedule-scan:
