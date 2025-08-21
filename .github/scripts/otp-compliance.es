@@ -2236,7 +2236,7 @@ test_package_hasFiles(#{~"packages" := Packages}) ->
 test_project_purl(#{~"documentDescribes" := [ProjectName], ~"packages" := Packages}=_Sbom) ->
     [#{~"externalRefs" := [Purl], ~"versionInfo" := VersionInfo}] = lists:filter(fun (#{~"SPDXID" := Id}) -> ProjectName == Id end, Packages),
     RefLoc = ?spdx_project_purl,
-    true = Purl == RefLoc#{ ~"referenceLocator" := <<"pkg:github/erlang/otp@", VersionInfo/binary>> },
+    true = Purl == RefLoc#{ ~"referenceLocator" := <<?ErlangPURL, "@", VersionInfo/binary>> },
     ok.
 
 test_packages_purl(#{~"documentDescribes" := [ProjectName], ~"packages" := Packages}=_Sbom) ->
