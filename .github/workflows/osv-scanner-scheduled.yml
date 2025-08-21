@@ -45,6 +45,7 @@ jobs:
           touch TEST.md
           git config --global user.email "bot@erlang.org"
           git config --global user.name "Erlang Bot"
+          git checkout -b new-branch-name
           git add TEST.md
           git commit -m "test"
           gh pr create -B master --title "Test" --body "Created by GH Action"
