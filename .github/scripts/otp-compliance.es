@@ -1550,38 +1550,6 @@ generate_osv_query(_, Acc) ->
 
 %% when we no longer need to maintain maint-27, we can remove
 %% this hard-coded commits and versions.
-vendor_by_version(~"maint-25") ->
-    #{~"queries" =>
-          [#{~"commit"=> ~"21767c654d31d2dccdde4330529775c6c5fd5389",
-             ~"package" => #{~"name"=> ~"github.com/madler/zlib"}},
-
-           #{~"commit"=> ~"23ddf56b00f47d8aa0c82ad225e4b3a92661da7e",
-             ~"package" => #{~"name"=> ~"github.com/asmjit/asmjit"}},
-
-           #{ ~"commit"=> ~"e745bad3b1d05b5b19ec652d68abb37865ffa454",
-              ~"package" => #{~"name"=> ~"github.com/microsoft/STL"}},
-
-           #{~"commit"=> ~"844864ac213bdbf1fb57e6f51c653b3d90af0937",
-             ~"package" => #{~"name"=> ~"github.com/ulfjack/ryu"}},
-
-           #{ ~"commit"=> ~"01d5e2318405362b4de5e670c90d9b40a351d053",
-              ~"package"=> #{~"name"=> ~"github.com/openssl/openssl"}},
-
-           #{ % 8.45, not offial but the official sourceforge is not available
-             ~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
-             ~"package"=> #{~"name"=> ~"github.com/nektro/pcre-8.45"}},
-
-           #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
-             ~"package"=> #{~"name"=> ~"github.com/wxWidgets/wxWidgets"}},
-
-           #{~"version"=> ~"2.32",
-             ~"package"=> #{~"ecosystem"=> ~"npm",
-                            ~"name"=> ~"tablesorter"}},
-
-           #{~"version"=> ~"3.7.1",
-             ~"package"=> #{~"ecosystem"=> ~"npm",
-                            ~"name"=> ~"jquery"}}
-          ]};
 vendor_by_version(~"maint-26") ->
     #{~"queries" =>
           [#{%% v1.2.13
@@ -1604,9 +1572,6 @@ vendor_by_version(~"maint-26") ->
            #{% 8.45, not offial but the official sourceforge is not available
              ~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
              ~"package"=> #{~"name"=> ~"github.com/nektro/pcre-8.45"}},
-
-           #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
-             ~"package"=> #{~"name"=> ~"github.com/wxWidgets/wxWidgets"}},
 
            #{~"version"=> ~"2.32",
              ~"package"=> #{~"ecosystem"=> ~"npm",
@@ -1639,9 +1604,6 @@ vendor_by_version(~"maint-27") ->
              ~"commit"=> ~"3934406b50b8c2a4e2fc7362ed8026224ac90828",
              ~"package"=> #{ ~"name"=> ~"github.com/nektro/pcre-8.45"}},
 
-           #{~"commit"=> ~"dc585039bbd426829e3433002023a93f9bedd0c2",
-             ~"package"=>#{~"name"=> ~"github.com/wxWidgets/wxWidgets"}},
-
            #{~"version"=> ~"2.32",
              ~"package"=> #{~"ecosystem"=> ~"npm",
                             ~"name"=> ~"tablesorter"}},
@@ -1653,7 +1615,18 @@ vendor_by_version(~"maint-27") ->
 vendor_by_version(_) ->
     VendorSrcFiles = find_vendor_src_files("."),
     Packages = generate_vendor_info_package(VendorSrcFiles),
-    generate_osv_query(Packages).
+    Packages1 = ignore_non_vulnerable_vendors(Packages),
+    generate_osv_query(Packages1).
+
+%% OTP only vendors the documentation from wx, so we can ignore
+%% any vulnerability. The user should still look into possible
+%% issues with wx if they link to it.
+non_vulnerable_vendor_packages() ->
+    [~"wx"].
+
+ignore_non_vulnerable_vendors(Packages) ->
+    lists:filter(fun (#{~"ID" := Id}) -> not lists:member(Id, non_vulnerable_vendor_packages())
+                 end, Packages).
 
 cleanup_path(<<"./", Path/binary>>) when is_binary(Path) -> Path;
 cleanup_path(Path) when is_binary(Path) -> Path.
