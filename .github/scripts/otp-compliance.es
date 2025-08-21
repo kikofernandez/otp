@@ -87,6 +87,7 @@
                               ~"referenceLocator" => ~"pkg:github/erlang/otp",
                               ~"referenceType" => ~"purl"}).
 -define(VexPath, ~"vex/").
+-define(ErlangPURL, "pkg:github/otp/erlang").
 
 %% Add more relations if necessary.
 -type spdx_relations() :: #{ 'DOCUMENTATION_OF' => [],
@@ -2441,7 +2442,7 @@ calculate_statements_from_cves(VexStmts, CVEs, Branch, VexPath) ->
                              FixedStatus = maps:is_key(~"fixed", Status),
                              AffectedStatus = maps:is_key(~"affected", Status),
                              case Purl of
-                                 <<"pkg:otp/erlang", _/binary>> ->
+                                 <<?ErlangPURL, _/binary>> ->
                                      case {FixedStatus, AffectedStatus} of
                                          {true, true} ->
                                              throw("Erlang/OTP release versions, (e.g.) OTP-26.1 do not support fixed and affected status");
@@ -2525,7 +2526,7 @@ format_vexctl(VexPath, Versions, CVE, S) when S =:= ~"fixed";
 
 
 -spec fetch_otp_purl_versions(OTP :: binary(), FixedVersions :: [binary()] ) -> OTPAppVersions :: binary().
-fetch_otp_purl_versions(<<"pkg:otp/erlang", _/binary>>, _FixedVersions) ->
+fetch_otp_purl_versions(<<?ErlangPURL, _/binary>>, _FixedVersions) ->
     %% ignore
     false;
 fetch_otp_purl_versions(<<"pkg:otp/", OTPApp/binary>>, all=_FixedVersions) ->
@@ -2558,7 +2559,7 @@ fetch_otp_purl_versions(<<"pkg:otp/", OTPApp/binary>>, FixedVersions) ->
     % Proceed to figure out OTP affected versions
     AffectedOTPVersionsInTree = calculate_otp_range_versions(AffectedVersions, FixedRangeVersions),
     OTPVersions = build_erlang_version_from_list(AffectedOTPVersionsInTree),
-    OTPPurls = lists:map(fun (X) -> "pkg:otp/erlang@"++X end, OTPVersions),
+    OTPPurls = lists:map(fun (X) -> ?ErlangPURL++"@"++X end, OTPVersions),
     AppVersions = lists:uniq(
                     lists:flatmap(fun (V) ->
                                           Apps = fetch_app_from_table(V, OTPApp),
@@ -2568,7 +2569,7 @@ fetch_otp_purl_versions(<<"pkg:otp/", OTPApp/binary>>, FixedVersions) ->
     AffectedPurls = erlang:list_to_binary(lists:join(",", OTPPurls ++ AppVersions)),
 
     % Proceed to create fixed versions
-    FixedOTPVersions = lists:map(fun (X) -> "pkg:otp/erlang@"++X end,
+    FixedOTPVersions = lists:map(fun erlang_purl/1,
                                  build_erlang_version_from_list(otp_version_to_number(FixedRangeVersions))),
     FixedAppVersions = lists:map(fun erlang:binary_to_list/1, FixedVersions),
     FixedPurls = erlang:list_to_binary(lists:join(",", FixedOTPVersions ++ FixedAppVersions)),
@@ -2576,6 +2577,9 @@ fetch_otp_purl_versions(<<"pkg:otp/", OTPApp/binary>>, FixedVersions) ->
     {AffectedPurls, FixedPurls};
 fetch_otp_purl_versions(_, _) ->
     false.
+
+erlang_purl(Release) when is_list(Release) ->
+    ?ErlangPURL ++ "@" ++ Release.
 
 take_otp_versions_from(Versions, AffectedVersions) ->
     F = fun (OTPRel) -> not lists:member(OTPRel, AffectedVersions) end,

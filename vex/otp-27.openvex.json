@@ -2,111 +2,111 @@
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "https://openvex.dev/docs/public/otp/vex-otp-27",
   "author": "vexctl",
-  "timestamp": "2025-08-20T12:52:33.736095+02:00",
-  "last_updated": "2025-08-20T12:53:13.241467237+02:00",
+  "timestamp": "2025-08-21T10:07:45.368359+02:00",
+  "last_updated": "2025-08-21T10:08:27.189710713+02:00",
   "version": 38,
   "statements": [
     {
       "vulnerability": {
         "name": "CVE-2023-45853"
       },
-      "timestamp": "2025-08-20T12:53:12.632947528+02:00",
+      "timestamp": "2025-08-21T10:08:26.57697628+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
           "@id": "pkg:otp/erts@15.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
           "@id": "pkg:otp/erts@15.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
           "@id": "pkg:otp/erts@15.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
           "@id": "pkg:otp/erts@15.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
           "@id": "pkg:otp/erts@15.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
           "@id": "pkg:otp/erts@15.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
           "@id": "pkg:otp/erts@15.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
           "@id": "pkg:otp/erts@15.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
           "@id": "pkg:otp/erts@15.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
           "@id": "pkg:otp/erts@15.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
           "@id": "pkg:otp/erts@15.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
           "@id": "pkg:otp/erts@15.2.5"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
           "@id": "pkg:otp/erts@15.2.6"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
           "@id": "pkg:otp/erts@15.2.7"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erts@15.2.7.1"
@@ -119,7 +119,7 @@
       "vulnerability": {
         "name": "CVE-2023-45853"
       },
-      "timestamp": "2025-08-20T12:53:12.6494676+02:00",
+      "timestamp": "2025-08-21T10:08:26.598129322+02:00",
       "products": [
         {
           "@id": "pkg:github/madler/zlib@04f42ceca40f73e2978b50e93806c2a18c1281fc"
@@ -132,7 +132,7 @@
       "vulnerability": {
         "name": "CVE-2024-58249"
       },
-      "timestamp": "2025-08-20T12:53:12.666450741+02:00",
+      "timestamp": "2025-08-21T10:08:26.617726718+02:00",
       "products": [
         {
           "@id": "pkg:github/wxWidgets/wxWidgets@dc585039bbd426829e3433002023a93f9bedd0c2"
@@ -145,61 +145,61 @@
       "vulnerability": {
         "name": "CVE-2023-6129"
       },
-      "timestamp": "2025-08-20T12:53:12.684416724+02:00",
+      "timestamp": "2025-08-21T10:08:26.634773208+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -257,7 +257,7 @@
       "vulnerability": {
         "name": "CVE-2023-6129"
       },
-      "timestamp": "2025-08-20T12:53:12.702616024+02:00",
+      "timestamp": "2025-08-21T10:08:26.651214371+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -270,61 +270,61 @@
       "vulnerability": {
         "name": "CVE-2023-6237"
       },
-      "timestamp": "2025-08-20T12:53:12.71845918+02:00",
+      "timestamp": "2025-08-21T10:08:26.665910093+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -382,7 +382,7 @@
       "vulnerability": {
         "name": "CVE-2023-6237"
       },
-      "timestamp": "2025-08-20T12:53:12.735957932+02:00",
+      "timestamp": "2025-08-21T10:08:26.682371214+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -395,61 +395,61 @@
       "vulnerability": {
         "name": "CVE-2024-0727"
       },
-      "timestamp": "2025-08-20T12:53:12.751228315+02:00",
+      "timestamp": "2025-08-21T10:08:26.697616405+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -507,7 +507,7 @@
       "vulnerability": {
         "name": "CVE-2024-0727"
       },
-      "timestamp": "2025-08-20T12:53:12.767937733+02:00",
+      "timestamp": "2025-08-21T10:08:26.712692382+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -520,61 +520,61 @@
       "vulnerability": {
         "name": "CVE-2024-13176"
       },
-      "timestamp": "2025-08-20T12:53:12.784395783+02:00",
+      "timestamp": "2025-08-21T10:08:26.727599752+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -632,7 +632,7 @@
       "vulnerability": {
         "name": "CVE-2024-13176"
       },
-      "timestamp": "2025-08-20T12:53:12.801360186+02:00",
+      "timestamp": "2025-08-21T10:08:26.743071231+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -645,61 +645,61 @@
       "vulnerability": {
         "name": "CVE-2024-2511"
       },
-      "timestamp": "2025-08-20T12:53:12.817265908+02:00",
+      "timestamp": "2025-08-21T10:08:26.757627341+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -757,7 +757,7 @@
       "vulnerability": {
         "name": "CVE-2024-2511"
       },
-      "timestamp": "2025-08-20T12:53:12.833788265+02:00",
+      "timestamp": "2025-08-21T10:08:26.773737053+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -770,61 +770,61 @@
       "vulnerability": {
         "name": "CVE-2024-4603"
       },
-      "timestamp": "2025-08-20T12:53:12.85105444+02:00",
+      "timestamp": "2025-08-21T10:08:26.789810225+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -882,7 +882,7 @@
       "vulnerability": {
         "name": "CVE-2024-4603"
       },
-      "timestamp": "2025-08-20T12:53:12.867151629+02:00",
+      "timestamp": "2025-08-21T10:08:26.807140811+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -895,61 +895,61 @@
       "vulnerability": {
         "name": "CVE-2024-4741"
       },
-      "timestamp": "2025-08-20T12:53:12.884476815+02:00",
+      "timestamp": "2025-08-21T10:08:26.824419937+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -1007,7 +1007,7 @@
       "vulnerability": {
         "name": "CVE-2024-4741"
       },
-      "timestamp": "2025-08-20T12:53:12.900713522+02:00",
+      "timestamp": "2025-08-21T10:08:26.841339073+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -1020,61 +1020,61 @@
       "vulnerability": {
         "name": "CVE-2024-5535"
       },
-      "timestamp": "2025-08-20T12:53:12.917733014+02:00",
+      "timestamp": "2025-08-21T10:08:26.85823711+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -1132,7 +1132,7 @@
       "vulnerability": {
         "name": "CVE-2024-5535"
       },
-      "timestamp": "2025-08-20T12:53:12.933685062+02:00",
+      "timestamp": "2025-08-21T10:08:26.873574407+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -1145,61 +1145,61 @@
       "vulnerability": {
         "name": "CVE-2024-6119"
       },
-      "timestamp": "2025-08-20T12:53:12.950130188+02:00",
+      "timestamp": "2025-08-21T10:08:26.892510957+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -1257,7 +1257,7 @@
       "vulnerability": {
         "name": "CVE-2024-6119"
       },
-      "timestamp": "2025-08-20T12:53:12.966386368+02:00",
+      "timestamp": "2025-08-21T10:08:26.910662307+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -1270,61 +1270,61 @@
       "vulnerability": {
         "name": "CVE-2024-9143"
       },
-      "timestamp": "2025-08-20T12:53:12.983646558+02:00",
+      "timestamp": "2025-08-21T10:08:26.928025344+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -1382,7 +1382,7 @@
       "vulnerability": {
         "name": "CVE-2024-9143"
       },
-      "timestamp": "2025-08-20T12:53:13.000029569+02:00",
+      "timestamp": "2025-08-21T10:08:26.94601743+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -1395,61 +1395,61 @@
       "vulnerability": {
         "name": "CVE-2025-4575"
       },
-      "timestamp": "2025-08-20T12:53:13.017866566+02:00",
+      "timestamp": "2025-08-21T10:08:26.96307108+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4.2"
+          "@id": "pkg:github/otp/erlang@27.3.4.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.5.2"
@@ -1507,7 +1507,7 @@
       "vulnerability": {
         "name": "CVE-2025-4575"
       },
-      "timestamp": "2025-08-20T12:53:13.034618956+02:00",
+      "timestamp": "2025-08-21T10:08:26.978703417+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
@@ -1520,37 +1520,37 @@
       "vulnerability": {
         "name": "CVE-2025-26618"
       },
-      "timestamp": "2025-08-20T12:53:13.051781161+02:00",
+      "timestamp": "2025-08-21T10:08:26.99902498+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
           "@id": "pkg:otp/ssh@5.2"
@@ -1576,16 +1576,16 @@
       ],
       "status": "affected",
       "action_statement": "Update to the next version",
-      "action_statement_timestamp": "2025-08-20T12:53:13.051781161+02:00"
+      "action_statement_timestamp": "2025-08-21T10:08:26.99902498+02:00"
     },
     {
       "vulnerability": {
         "name": "CVE-2025-26618"
       },
-      "timestamp": "2025-08-20T12:53:13.067708482+02:00",
+      "timestamp": "2025-08-21T10:08:27.023710857+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
           "@id": "pkg:otp/ssh@5.2.7"
@@ -1597,13 +1597,13 @@
       "vulnerability": {
         "name": "CVE-2025-32433"
       },
-      "timestamp": "2025-08-20T12:53:13.08515237+02:00",
+      "timestamp": "2025-08-21T10:08:27.041509681+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
           "@id": "pkg:otp/ssh@5.2.9"
@@ -1611,16 +1611,16 @@
       ],
       "status": "affected",
       "action_statement": "A temporary workaround involves disabling the SSH server or to prevent access via firewall rules.",
-      "action_statement_timestamp": "2025-08-20T12:53:13.08515237+02:00"
+      "action_statement_timestamp": "2025-08-21T10:08:27.041509681+02:00"
     },
     {
       "vulnerability": {
         "name": "CVE-2025-32433"
       },
-      "timestamp": "2025-08-20T12:53:13.102495064+02:00",
+      "timestamp": "2025-08-21T10:08:27.058545959+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
           "@id": "pkg:otp/ssh@5.2.10"
@@ -1632,52 +1632,52 @@
       "vulnerability": {
         "name": "CVE-2025-46712"
       },
-      "timestamp": "2025-08-20T12:53:13.119037523+02:00",
+      "timestamp": "2025-08-21T10:08:27.075987324+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
           "@id": "pkg:otp/ssh@5.2"
@@ -1715,16 +1715,16 @@
       ],
       "status": "affected",
       "action_statement": "Update to ssh@5.2.11",
-      "action_statement_timestamp": "2025-08-20T12:53:13.119037523+02:00"
+      "action_statement_timestamp": "2025-08-21T10:08:27.075987324+02:00"
     },
     {
       "vulnerability": {
         "name": "CVE-2025-46712"
       },
-      "timestamp": "2025-08-20T12:53:13.136393606+02:00",
+      "timestamp": "2025-08-21T10:08:27.091734807+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
           "@id": "pkg:otp/ssh@5.2.11"
@@ -1736,55 +1736,55 @@
       "vulnerability": {
         "name": "CVE-2025-4748"
       },
-      "timestamp": "2025-08-20T12:53:13.152925589+02:00",
+      "timestamp": "2025-08-21T10:08:27.108374118+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.3"
+          "@id": "pkg:github/otp/erlang@27.3.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.4"
+          "@id": "pkg:github/otp/erlang@27.3.4"
         },
         {
           "@id": "pkg:otp/stdlib@6.0"
@@ -1813,16 +1813,16 @@
       ],
       "status": "affected",
       "action_statement": "Mitigation: Update to pkg:otp/stdlib@6.2.2.1",
-      "action_statement_timestamp": "2025-08-20T12:53:13.152925589+02:00"
+      "action_statement_timestamp": "2025-08-21T10:08:27.108374118+02:00"
     },
     {
       "vulnerability": {
         "name": "CVE-2025-4748"
       },
-      "timestamp": "2025-08-20T12:53:13.170496234+02:00",
+      "timestamp": "2025-08-21T10:08:27.124539661+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.3.4.1"
+          "@id": "pkg:github/otp/erlang@27.3.4.1"
         },
         {
           "@id": "pkg:otp/stdlib@6.2.2.1"
@@ -1834,43 +1834,43 @@
       "vulnerability": {
         "name": "CVE-2025-30211"
       },
-      "timestamp": "2025-08-20T12:53:13.187114211+02:00",
+      "timestamp": "2025-08-21T10:08:27.141111076+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2"
+          "@id": "pkg:github/otp/erlang@27.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.1"
+          "@id": "pkg:github/otp/erlang@27.2.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.2"
+          "@id": "pkg:github/otp/erlang@27.2.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.3"
+          "@id": "pkg:github/otp/erlang@27.2.3"
         },
         {
-          "@id": "pkg:otp/erlang@27.2.4"
+          "@id": "pkg:github/otp/erlang@27.2.4"
         },
         {
-          "@id": "pkg:otp/erlang@27.3"
+          "@id": "pkg:github/otp/erlang@27.3"
         },
         {
           "@id": "pkg:otp/ssh@5.2"
@@ -1902,19 +1902,19 @@
       ],
       "status": "affected",
       "action_statement": "Workaround: set option `parallel_login` to false. Reduce `max_sessions` option.",
-      "action_statement_timestamp": "2025-08-20T12:53:13.187114211+02:00"
+      "action_statement_timestamp": "2025-08-21T10:08:27.141111076+02:00"
     },
     {
       "vulnerability": {
         "name": "CVE-2025-30211"
       },
-      "timestamp": "2025-08-20T12:53:13.205565659+02:00",
+      "timestamp": "2025-08-21T10:08:27.156231328+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.3.2"
+          "@id": "pkg:github/otp/erlang@27.3.2"
         },
         {
-          "@id": "pkg:otp/erlang@27.3.1"
+          "@id": "pkg:github/otp/erlang@27.3.1"
         },
         {
           "@id": "pkg:otp/ssh@5.2.9"
@@ -1926,22 +1926,22 @@
       "vulnerability": {
         "name": "CVE-2025-53846"
       },
-      "timestamp": "2025-08-20T12:53:13.224043629+02:00",
+      "timestamp": "2025-08-21T10:08:27.172929706+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.0"
+          "@id": "pkg:github/otp/erlang@27.0"
         },
         {
-          "@id": "pkg:otp/erlang@27.0.1"
+          "@id": "pkg:github/otp/erlang@27.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1"
+          "@id": "pkg:github/otp/erlang@27.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.1"
+          "@id": "pkg:github/otp/erlang@27.1.1"
         },
         {
-          "@id": "pkg:otp/erlang@27.1.2"
+          "@id": "pkg:github/otp/erlang@27.1.2"
         },
         {
           "@id": "pkg:otp/ssl@11.2"
@@ -1961,16 +1961,16 @@
       ],
       "status": "affected",
       "action_statement": "Update to ssl@11.2.5",
-      "action_statement_timestamp": "2025-08-20T12:53:13.224043629+02:00"
+      "action_statement_timestamp": "2025-08-21T10:08:27.172929706+02:00"
     },
     {
       "vulnerability": {
         "name": "CVE-2025-53846"
       },
-      "timestamp": "2025-08-20T12:53:13.241467683+02:00",
+      "timestamp": "2025-08-21T10:08:27.189711551+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@27.1.3"
+          "@id": "pkg:github/otp/erlang@27.1.3"
         },
         {
           "@id": "pkg:otp/ssl@11.2.5"

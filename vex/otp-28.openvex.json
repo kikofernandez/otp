@@ -2,30 +2,30 @@
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "https://openvex.dev/docs/public/otp/vex-otp-28",
   "author": "vexctl",
-  "timestamp": "2025-08-20T12:53:19.493909+02:00",
-  "last_updated": "2025-08-20T12:53:19.824656672+02:00",
+  "timestamp": "2025-08-21T10:27:07.765086+02:00",
+  "last_updated": "2025-08-21T10:27:08.083410653+02:00",
   "version": 9,
   "statements": [
     {
       "vulnerability": {
         "name": "OSV-2025-300"
       },
-      "timestamp": "2025-08-20T12:53:19.712938265+02:00",
+      "timestamp": "2025-08-21T10:27:07.978996997+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@28.0"
+          "@id": "pkg:github/otp/erlang@28.0"
         },
         {
           "@id": "pkg:otp/erts@16.0"
         },
         {
-          "@id": "pkg:otp/erlang@28.0.1"
+          "@id": "pkg:github/otp/erlang@28.0.1"
         },
         {
           "@id": "pkg:otp/erts@16.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@28.0.2"
+          "@id": "pkg:github/otp/erlang@28.0.2"
         },
         {
           "@id": "pkg:otp/erts@16.0.2"
@@ -38,7 +38,7 @@
       "vulnerability": {
         "name": "OSV-2025-300"
       },
-      "timestamp": "2025-08-20T12:53:19.728681583+02:00",
+      "timestamp": "2025-08-21T10:27:07.993773355+02:00",
       "products": [
         {
           "@id": "pkg:github/PCRE2Project/pcre2@2dce7761b1831fd3f82a9c2bd5476259d945da4d"
@@ -51,7 +51,7 @@
       "vulnerability": {
         "name": "CVE-2023-45853"
       },
-      "timestamp": "2025-08-20T12:53:19.745078706+02:00",
+      "timestamp": "2025-08-21T10:27:08.008759355+02:00",
       "products": [
         {
           "@id": "pkg:github/madler/zlib@1a8db63788c34a50e39e273d39b7e1033208aea2"
@@ -64,7 +64,7 @@
       "vulnerability": {
         "name": "CVE-2024-58249"
       },
-      "timestamp": "2025-08-20T12:53:19.76068325+02:00",
+      "timestamp": "2025-08-21T10:27:08.023570898+02:00",
       "products": [
         {
           "@id": "pkg:github/wxWidgets/wxWidgets@dc585039bbd426829e3433002023a93f9bedd0c2"
@@ -77,10 +77,10 @@
       "vulnerability": {
         "name": "CVE-2025-4748"
       },
-      "timestamp": "2025-08-20T12:53:19.777774339+02:00",
+      "timestamp": "2025-08-21T10:27:08.038417267+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@28.0"
+          "@id": "pkg:github/otp/erlang@28.0"
         },
         {
           "@id": "pkg:otp/stdlib@7.0"
@@ -88,16 +88,16 @@
       ],
       "status": "affected",
       "action_statement": "Mitigation: Update to pkg:otp/stdlib@7.0.1",
-      "action_statement_timestamp": "2025-08-20T12:53:19.777774339+02:00"
+      "action_statement_timestamp": "2025-08-21T10:27:08.038417267+02:00"
     },
     {
       "vulnerability": {
         "name": "CVE-2025-4748"
       },
-      "timestamp": "2025-08-20T12:53:19.793032303+02:00",
+      "timestamp": "2025-08-21T10:27:08.053959019+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@28.0.1"
+          "@id": "pkg:github/otp/erlang@28.0.1"
         },
         {
           "@id": "pkg:otp/stdlib@7.0.1"
@@ -109,16 +109,16 @@
       "vulnerability": {
         "name": "CVE-2025-4575"
       },
-      "timestamp": "2025-08-20T12:53:19.808497906+02:00",
+      "timestamp": "2025-08-21T10:27:08.068208778+02:00",
       "products": [
         {
-          "@id": "pkg:otp/erlang@28.0"
+          "@id": "pkg:github/otp/erlang@28.0"
         },
         {
-          "@id": "pkg:otp/erlang@28.0.1"
+          "@id": "pkg:github/otp/erlang@28.0.1"
         },
         {
-          "@id": "pkg:otp/erlang@28.0.2"
+          "@id": "pkg:github/otp/erlang@28.0.2"
         },
         {
           "@id": "pkg:otp/erl_interface@5.6"
@@ -140,7 +140,7 @@
       "vulnerability": {
         "name": "CVE-2025-4575"
       },
-      "timestamp": "2025-08-20T12:53:19.824657145+02:00",
+      "timestamp": "2025-08-21T10:27:08.083411287+02:00",
       "products": [
         {
           "@id": "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053"
