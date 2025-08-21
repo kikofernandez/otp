@@ -47,12 +47,12 @@ jobs:
         run: |
           touch TEST.md
           git config --global user.email "361993+kikofernandez@@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
+          git config --global user.name "Kiko Fernandez"
           git checkout -b vex
           git add TEST.md
           git commit -m "test"
           git push --set-upstream origin vex
-          gh pr create -B master --title "Test" --body "Created by GH Action"
+          # gh pr create -B master --title "Test" --body "Created by GH Action"
 
   schedule-scan:
     runs-on: ubuntu-latest
