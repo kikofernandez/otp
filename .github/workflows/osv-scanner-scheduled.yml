@@ -36,18 +36,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: kikofernandez/otp
       - name: create PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           touch TEST.md
-          git config --global user.email "bot@erlang.org"
-          git config --global user.name "Erlang Bot"
-          git checkout -b new-branch-name
+          git config --global user.email "361993+kikofernandez@@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git checkout -b vex
           git add TEST.md
           git commit -m "test"
+          git push
           gh pr create -B master --title "Test" --body "Created by GH Action"
 
   schedule-scan:
