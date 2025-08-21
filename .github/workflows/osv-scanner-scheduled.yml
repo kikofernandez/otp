@@ -51,7 +51,7 @@ jobs:
           git checkout -b vex
           git add TEST.md
           git commit -m "test"
-          git push
+          git push --set-upstream origin vex
           gh pr create -B master --title "Test" --body "Created by GH Action"
 
   schedule-scan:
