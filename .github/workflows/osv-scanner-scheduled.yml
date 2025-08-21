@@ -32,6 +32,18 @@ permissions:
   contents: read
 
 jobs:
+  pr-test:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: create PR
+        run: |
+          touch TEST.md
+          git commit -am "test"
+          gh pr create -B master --title "Test" --body "Created by GH Action"
+
   schedule-scan:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' && github.repository == 'kikofernandez/otp'
