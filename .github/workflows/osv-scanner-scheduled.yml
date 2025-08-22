@@ -34,7 +34,7 @@ permissions:
 jobs:
   schedule-scan:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && github.repository == 'kikofernandez/otp'
+    if: github.repository == 'kikofernandez/otp'
     # if: github.event_name != 'workflow_dispatch' # used for testing
     outputs:
        versions: ${{ steps.get-versions.outputs.versions }}
@@ -75,4 +75,4 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/${{ github.repository }}/actions/workflows/reusable-vendor-vulnerability-scanner.yml/dispatches \
-            -f "checkout=true" -f "inputs[version]=${{ matrix.type }}" -f "inputs[fail_if_cve]=true"
+            -f 'ref=master' -f "inputs[checkout]=true" -f "inputs[version]=${{ matrix.type }}" -f "inputs[fail_if_cve]=true"
