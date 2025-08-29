@@ -298,7 +298,7 @@ cli() ->
                                     Checks that those are present in OpenVEX statements.
                                     Creates PR for any non-present Github Advisory.
                                     """,
-                                arguments => [branch_option(), vex_path_option()],
+                                arguments => [branch_option(), vex_path_option(), create_pr()],
                                 handler => fun verify_openvex/1
                               },
 
@@ -479,6 +479,13 @@ vex_path_option() ->
       default => ?VexPath,
       help => "Path to folder containing openvex statements, e.g., `vex/`",
       long => "-vex-path"}.
+
+create_pr() ->
+    #{name => create_pr,
+      short => $p,
+      type => boolean,
+      default => false,
+      help => "Indicates if missing OpenVEX statements create and submit a PR"}.
 
 %%
 %% Commands
@@ -2467,15 +2474,26 @@ run_openvex1(VexStmts, VexTableFile, Branch, VexPath) ->
     Statements = calculate_statements(VexStmts, VexTableFile, Branch, VexPath),
     lists:foreach(fun (St) -> io:format("~ts", [St]) end, Statements).
 
-verify_openvex(#{branch := Branch, vex_path := VexPath}) ->
+verify_openvex(#{branch := Branch, vex_path := VexPath, create_pr := PR}) ->
     UpdatedBranch = maint_to_otp_conversion(Branch),
     OpenVEX = read_openvex(VexPath, UpdatedBranch),
     Advisory = download_advisory_from_branch(UpdatedBranch),
     case verify_advisory_against_openvex(OpenVEX, Advisory) of
         [] ->
             ok;
-        MissingAdvisories when is_list(MissingAdvisories) ->
-            create_advisory(MissingAdvisories)
+        MissingAdvisories when PR == false ->
+            io:format("Missing:~n~p~n~n", [MissingAdvisories]),
+            io:format("To automatically update openvex.table and create a PR run:~n" ++
+                          ".github/scripts/otp-compliance.es vex verify -b ~s -p~n~n", [Branch]),
+            ok;
+        MissingAdvisories when is_list(MissingAdvisories),
+                               PR == true ->
+            Advs = create_advisory(MissingAdvisories),
+            _ = update_openvex_otp_table(UpdatedBranch, Advs),
+            BranchStr = erlang:binary_to_list(UpdatedBranch),
+            _ = os:cmd(".github/scripts/otp-compliance.es vex init -b "++ BranchStr ++ " | bash",
+                   #{ exception_on_failure => true }),
+            os:cmd(".github/scripts/create-openvex-pr.sh", #{ exception_on_failure => true })
     end.
 
 read_openvex(VexPath, Branch) ->
@@ -2489,7 +2507,36 @@ read_openvex(VexPath, Branch) ->
 
 create_advisory(Advisories) ->
     io:format("Missing:~n~p~n~n", [Advisories]),
-    throw(no_advisory_created).
+    lists:foldl(fun (Adv, Acc) ->
+                        create_openvex_otp_entries(Adv) ++ Acc
+                end, [], Advisories).
+
+create_openvex_otp_entries(#{'CVE' := CVEId,
+                             'appName' := AppName,
+                             'affectedVersions' := AffectedVersions,
+                             'fixedVersions' := FixedVersions}) ->
+    AppFixedVersions = lists:map(fun (Ver) -> create_app_purl(AppName, Ver) end, FixedVersions),
+    lists:map(fun (Affected) ->
+                      Purl = create_app_purl(AppName, Affected),
+                      create_openvex_app_entry(Purl, CVEId, AppFixedVersions)
+              end, AffectedVersions).
+
+create_app_purl(AppName, Version) when is_binary(AppName), is_binary(Version) ->
+    <<"pkg:otp/", AppName/binary, "@", Version/binary>>.
+
+create_openvex_app_entry(Purl, CVEId, FixedVersions) ->
+    #{Purl => CVEId,
+      ~"status" =>
+          #{ ~"affected" => iolist_to_binary(io_lib:format("Update to any of the following versions: ~s", [FixedVersions])),
+             ~"fixed" => FixedVersions}}.
+
+update_openvex_otp_table(Branch, Advs) ->
+    Path = "make/openvex.table",
+    io:format("OpenVEX Statements:~n~p~n~n", [Advs]),
+    #{Branch := Statements}=Table = decode(Path),
+    UpdatedTable = Table#{Branch := Advs ++ Statements},
+    file:write_file(Path, json:format(UpdatedTable)).
+
 
 generate_gh_link(Part) ->
     "\"/repos/erlang/otp/security-advisories?" ++ Part ++ "\"".
@@ -2880,7 +2927,8 @@ format_vexctl(VexPath, Versions, CVE, S) when S =:= ~"fixed";
               [VexPath, Versions, CVE, S]).
 
 
--spec fetch_otp_purl_versions(OTP :: binary(), FixedVersions :: [binary()] ) -> OTPAppVersions :: binary().
+-spec fetch_otp_purl_versions(OTP :: binary(), FixedVersions :: [binary()] ) ->
+          {AffectedPurls :: binary(), FixedPurls :: binary()} | false.
 fetch_otp_purl_versions(<<?ErlangPURL, _/binary>>, _FixedVersions) ->
     %% ignore
     false;
