@@ -34,7 +34,7 @@ permissions:
 jobs:
   schedule-scan:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && github.repository == 'erlang/otp'
+    # if: github.event_name == 'schedule' && github.repository == 'erlang/otp'
     # if: github.event_name != 'workflow_dispatch' # used for testing
     outputs:
        versions: ${{ steps.get-versions.outputs.versions }}

@@ -116,7 +116,7 @@
 %% Sets end point account to fetch information from GH
 %% used by `gh` command-line tool.
 %% change to your fork for testing, e.g., `kikofernandez/otp`
--define(GH_ACCOUNT, "erlang/otp").
+-define(GH_ACCOUNT, "kikofernandez/otp").
 %%
 %%
 
