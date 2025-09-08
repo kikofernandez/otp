@@ -2205,7 +2205,7 @@ display_string(String) ->
 -doc false.
 -spec display_string(Device, P1) -> true when
       Device :: stdin | stdout | stderr,
-      P1 :: string().
+      P1 :: string() | binary().
 display_string(_Stream,_P1) ->
     erlang:nif_error(undefined).
 
@@ -6360,10 +6360,10 @@ The second argument is a list of monitoring options to enable:
 For more detailed descriptions about the monitoring options, see
 `trace:system/3`.
 
-Unlink `trace:system/3`, the arguments to
-[`system_monitor/2`](`system_monitor/2`) specifies how all system monitoring
-should be set, not how it should be changed. This means only one process
-at a time (`MonitorPid`) can be the receiver of messages from system monitoring set
+Unlike `trace:system/3`, the arguments to
+[`system_monitor/2`](`system_monitor/2`) specify how all system monitoring
+should be set, not how it should be changed. This means only one process at a
+time (`MonitorPid`) can be the receiver of messages from system monitoring set
 with this function. Also, the way to clear a specific monitor option is to not
 include it in the list `Options`. All system monitoring will, however, be
 cleared if the process identified by `MonitorPid` terminates.
@@ -6503,7 +6503,7 @@ catch
 end
 ```
 
-Failure: `nocatch` if not caught by an exception handler.
+If `throw/1` is not evaluated within a catch, a `nocatch` run-time error occurs.
 
 See the guide about [errors and error handling](`e:system:errors.md`) for
 additional information.
