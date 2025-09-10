@@ -364,15 +364,6 @@
       "status": { "not_affected": "vulnerable_code_not_present" }
     },
     {
-      "pkg:otp/stdlib@7.0": "CVE-2025-4748",
-      "status": {
-        "affected": "Mitigation: Update to pkg:otp/stdlib@7.0.1",
-        "fixed": [
-          "pkg:otp/stdlib@7.0.1"
-        ]
-      }
-    },
-    {
       "pkg:github/openssl/openssl@01d5e2318405362b4de5e670c90d9b40a351d053": "CVE-2025-4575",
       "status": {
         "apps": [
