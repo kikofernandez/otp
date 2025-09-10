@@ -3,8 +3,8 @@
   "@id": "https://openvex.dev/docs/public/otp/vex-otp-28",
   "author": "vexctl",
   "timestamp": "2025-08-21T10:55:45.714759+02:00",
-  "last_updated": "2025-09-04T09:25:22.570231325+02:00",
-  "version": 9,
+  "last_updated": "2025-09-10T20:46:50.774121691Z",
+  "version": 11,
   "statements": [
     {
       "vulnerability": {
@@ -115,6 +115,38 @@
         }
       ],
       "status": "under_investigation"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-4748"
+      },
+      "timestamp": "2025-09-10T20:46:50.757803393Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0"
+        },
+        {
+          "@id": "pkg:otp/stdlib@7.0"
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Update to any of the following versions: pkg:otp/stdlib@7.0.1",
+      "action_statement_timestamp": "2025-09-10T20:46:50.757803393Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-4748"
+      },
+      "timestamp": "2025-09-10T20:46:50.774122132Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.1"
+        },
+        {
+          "@id": "pkg:otp/stdlib@7.0.1"
+        }
+      ],
+      "status": "fixed"
     }
   ]
 }

@@ -351,6 +351,15 @@
   ],
   "otp-28": [
     {
+      "pkg:otp/stdlib@7.0": "CVE-2025-4748",
+      "status": {
+        "affected": "Update to any of the following versions: pkg:otp/stdlib@7.0.1",
+        "fixed": [
+          "pkg:otp/stdlib@7.0.1"
+        ]
+      }
+    },
+    {
       "pkg:github/PCRE2Project/pcre2@2dce7761b1831fd3f82a9c2bd5476259d945da4d": "OSV-2025-300",
       "status": {
         "apps": [
