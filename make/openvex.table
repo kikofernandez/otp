@@ -351,6 +351,60 @@
   ],
   "otp-28": [
     {
+      "pkg:otp/stdlib@7.0": "CVE-2025-4748",
+      "status": {
+        "affected": "Update to any of the following versions: pkg:otp/stdlib@7.0.1",
+        "fixed": [
+          "pkg:otp/stdlib@7.0.1"
+        ]
+      }
+    },
+    {
+      "pkg:otp/erts@16.0": "CVE-2025-58050",
+      "status": {
+        "affected": "Update to any of the following versions: pkg:otp/erts@16.0.3",
+        "fixed": [
+          "pkg:otp/erts@16.0.3"
+        ]
+      }
+    },
+    {
+      "pkg:otp/ssh@5.3": "CVE-2025-48038",
+      "status": {
+        "affected": "Update to any of the following versions: pkg:otp/ssh@5.3.3",
+        "fixed": [
+          "pkg:otp/ssh@5.3.3"
+        ]
+      }
+    },
+    {
+      "pkg:otp/ssh@5.3": "CVE-2025-48039",
+      "status": {
+        "affected": "Update to any of the following versions: pkg:otp/ssh@5.3.3",
+        "fixed": [
+          "pkg:otp/ssh@5.3.3"
+        ]
+      }
+    },
+    {
+      "pkg:otp/ssh@5.3": "CVE-2025-48040",
+      "status": {
+        "affected": "Update to any of the following versions: pkg:otp/ssh@5.3.3",
+        "fixed": [
+          "pkg:otp/ssh@5.3.3"
+        ]
+      }
+    },
+    {
+      "pkg:otp/ssh@5.3": "CVE-2025-48041",
+      "status": {
+        "affected": "Update to any of the following versions: pkg:otp/ssh@5.3.3",
+        "fixed": [
+          "pkg:otp/ssh@5.3.3"
+        ]
+      }
+    },
+    {
       "pkg:github/PCRE2Project/pcre2@2dce7761b1831fd3f82a9c2bd5476259d945da4d": "OSV-2025-300",
       "status": {
         "apps": [
