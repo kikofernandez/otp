@@ -18,38 +18,16 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ##
-## %CopyrightEnd%
+##
 
-# PR_STATUS=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json state -q ".state")
-
-# gh pr checkout vex --repo kikofernandez/otp
-# checkoutPR=$?
-# if [ $checkoutPR -ne 0 ]; then
-#     git checkout -b vex
-# fi
-
-# git config user.name "github-actions[bot]"
-# git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-# git add make/openvex.table
-# git add vex
-# git commit -m "Automatic update of OpenVEX Statements for erlang/otp"
-# if [ $checkoutPR -ne 0 ]; then
-#     gh pr create --repo kikofernandez/erlang -B master \
-#         --title "Automatic update of OpenVEX Statements for erlang/otp" \
-#         --body "Automatic Action. There is a vulnerability from GH Advisories without a matching OpenVEX statement"
-# else
-#     git push origin vex
-# fi
-
-OWNER="kikofernandez"
-REPO="otp"
-PR_NUMBER="vex"
+REPO=$1
+PR_NUMBER=$2
 
 # Fetch PR data using gh CLI
-PR_STATUS=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json state -q ".state")
+PR_STATUS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json state -q ".state")
 
 if [ $? -ne 0 ]; then
-  echo "Failed to fetch PR #$PR_NUMBER from $OWNER/$REPO"
+  echo "Failed to fetch PR #$PR_NUMBER from $REPO"
   exit 2
 fi
 
@@ -64,7 +42,7 @@ if [ "$PR_STATUS" = "CLOSED" ]; then
   git add vex
   git commit -m "Automatic update of OpenVEX Statements for erlang/otp"
   git push --force origin $PR_NUMBER
-  gh pr create --repo $OWNER/$REPO -B master \
+  gh pr create --repo $REPO -B master \
                --title "Automatic update of OpenVEX Statements for erlang/otp" \
                --body "Automatic Action. There is a vulnerability from GH Advisories without a matching OpenVEX statement"
   exit 0
@@ -75,7 +53,7 @@ elif [ "$PR_STATUS" = "MERGED" ]; then
   git add vex
   git commit -m "Automatic update of OpenVEX Statements for erlang/otp"
   git push --force origin $PR_NUMBER
-  gh pr create --repo $OWNER/$REPO -B master \
+  gh pr create --repo $REPO -B master \
                --title "Automatic update of OpenVEX Statements for erlang/otp" \
                --body "Automatic Action. There is a vulnerability from GH Advisories without a matching OpenVEX statement"
   exit 0

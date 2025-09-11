@@ -2532,7 +2532,7 @@ verify_openvex(#{create_pr := PR}) ->
           end, Branches),
     case PR of
         true ->
-            cmd(".github/scripts/create-openvex-pr.sh");
+            cmd(".github/scripts/create-openvex-pr.sh " ++ ?GH_ACCOUNT ++ " vex");
         false ->
             ok
     end.
