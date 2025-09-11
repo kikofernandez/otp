@@ -1588,14 +1588,14 @@ download_gh_file(FilePath, exec) ->
     download_gh_file(FilePath),
     cmd("chmod +x " ++ FilePath).
 
+
 %% assumes that the file exists.
--spec download_gh_file(File :: list()) -> Json :: map().
+-spec download_gh_file(File :: list()) -> string().
 download_gh_file(FilePath) ->
     GithubURI = get_gh_download_uri(FilePath),
     Command = "curl -LJ " ++ GithubURI ++ " --output " ++ FilePath,
     io:format("Proceed to download:~n~s~n~n", [Command]),
-    _ = os:cmd(Command, #{ exception_on_failure => true }),
-    decode(FilePath).
+    cmd(Command).
 
 -spec get_gh_download_uri(String :: list()) -> String :: list().
 get_gh_download_uri(File) ->
