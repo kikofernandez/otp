@@ -307,10 +307,10 @@ cli() ->
                                     Creates PR for any non-present Github Advisory.
 
                                     Example:
-                                    > .github/scripts/otp-compliance.es vex verify -b maint -p
+                                    > .github/scripts/otp-compliance.es vex verify -p
 
                                     """,
-                                arguments => [branch_option(), create_pr()],
+                                arguments => [create_pr()],
                                 handler => fun verify_openvex/1
                               },
 
@@ -1556,6 +1556,12 @@ format_vex_statements(OpenVex) ->
                         Result ++ Acc
               end, [], Stmts).
 
+read_openvex_file(Branch) ->
+    _ = create_dir(?VexPath),
+    OpenVexPath = path_to_openvex_filename(Branch),
+    OpenVexStr = erlang:binary_to_list(OpenVexPath),
+    decode(OpenVexStr).
+
 -spec download_otp_openvex_file(Branch :: binary()) -> Json :: map() | EmptyMap :: #{} | no_return().
 download_otp_openvex_file(Branch) ->
     _ = create_dir(?VexPath),
@@ -1578,24 +1584,6 @@ download_otp_openvex_file(Branch) ->
             io:format("[~p] No OpenVex statements found for file '~s'.~n~n", [E, OpenVexStr]),
             #{}
     end.
-
--spec download_openvex_table_file() -> Json :: map().
-download_openvex_table_file() ->
-    download_gh_file(?OpenVEXTablePath).
-
-
-download_gh_file(FilePath, exec) ->
-    download_gh_file(FilePath),
-    cmd("chmod +x " ++ FilePath).
-
-
-%% assumes that the file exists.
--spec download_gh_file(File :: list()) -> string().
-download_gh_file(FilePath) ->
-    GithubURI = get_gh_download_uri(FilePath),
-    Command = "curl -LJ " ++ GithubURI ++ " --output " ++ FilePath,
-    io:format("Proceed to download:~n~s~n~n", [Command]),
-    cmd(Command).
 
 -spec get_gh_download_uri(String :: list()) -> String :: list().
 get_gh_download_uri(File) ->
@@ -2520,48 +2508,48 @@ run_openvex1(VexStmts, VexTableFile, Branch, VexPath) ->
     Statements = calculate_statements(VexStmts, VexTableFile, Branch, VexPath),
     lists:foreach(fun (St) -> io:format("~ts", [St]) end, Statements).
 
-verify_openvex(#{branch := Branch, create_pr := PR}) ->
-    UpdatedBranch = maint_to_otp_conversion(Branch),
-    OpenVEX = download_openvex(UpdatedBranch),
-    _ = download_openvex_table_file(),
-    _ = download_gh_file(?CREATE_OPENVEX_PR_SCRIPT_FILE, exec),
-    Advisory = download_advisory_from_branch(UpdatedBranch),
-    case verify_advisory_against_openvex(OpenVEX, Advisory) of
-        [] ->
-            io:format("No new advisories nor OpenVEX statements created."),
-            ok;
-        MissingAdvisories when is_list(MissingAdvisories) ->
-            io:format("Missing Advisories:~n~p~n~n", [MissingAdvisories]),
-            case PR of
-                false ->
-                    io:format("To automatically update openvex.table and create a PR run:~n" ++
-                                  ".github/scripts/otp-compliance.es vex verify -b ~s -p~n~n", [Branch]),
-                    ok;
-                true ->
-                    Advs = create_advisory(MissingAdvisories),
-                    _ = update_openvex_otp_table(UpdatedBranch, Advs),
-                    BranchStr = erlang:binary_to_list(UpdatedBranch),
-                    _ = os:cmd(".github/scripts/otp-compliance.es vex init -b "++ BranchStr ++ " | bash",
-                               #{ exception_on_failure => true }),
-                    case filelib:is_file(?CREATE_OPENVEX_PR_SCRIPT_FILE) of
-                        false ->
-                            fail("[~s] Could not find '~ts' file.~nDid you forget to download the file in '~s'?",
-                                 [Branch, ?CREATE_OPENVEX_PR_SCRIPT_FILE, "reusable-vendor-vulnerability-scanner.yml"]);
-                        true ->
-                            os:cmd(".github/scripts/create-openvex-pr.sh", #{ exception_on_failure => true })
-                    end
-            end
+verify_openvex(#{create_pr := PR}) ->
+    Branches = get_supported_branches(),
+    io:format("Sync ~p~n", [Branches]),
+    _ = lists:map(
+          fun (Branch) ->
+                  case verify_openvex_advisories(Branch) of
+                      [] ->
+                          io:format("No new advisories nor OpenVEX statements created for '~s'.", [Branch]);
+                      MissingAdvisories ->
+                          io:format("Missing Advisories:~n~p~n~n", [MissingAdvisories]),
+                          case PR of
+                              false ->
+                                  io:format("To automatically update openvex.table and create a PR run:~n" ++
+                                                ".github/scripts/otp-compliance.es vex verify -b ~s -p~n~n", [Branch]);
+                              true ->
+                                  Advs = create_advisory(MissingAdvisories),
+                                  _ = update_openvex_otp_table(Branch, Advs),
+                                  BranchStr = erlang:binary_to_list(Branch),
+                                  _ = cmd(".github/scripts/otp-compliance.es vex run -b "++ BranchStr ++ " | bash")
+                          end
+                  end
+          end, Branches),
+    case PR of
+        true ->
+            cmd(".github/scripts/create-openvex-pr.sh");
+        false ->
+            ok
     end.
 
-%% OpenVEX files are updated only in the `master` branch, so any branch that runs this
-%% script must download the most recent OpenVEX file
-download_openvex(Branch) ->
-    case download_otp_openvex_file(Branch) of
-        Json when Json == #{} ->
-            fail("Error downloading OpenVEX file.~n", []);
-        Json ->
-            Json
-    end.
+verify_openvex_advisories(Branch) ->
+    OpenVEX = read_openvex_file(Branch),
+    Advisory = download_advisory_from_branch(Branch),
+    verify_advisory_against_openvex(OpenVEX, Advisory).
+
+-spec get_supported_branches() -> [Branches :: binary()].
+get_supported_branches() ->
+    Branches = cmd(".github/scripts/get-supported-branches.sh"),
+    BranchesBin = json:decode(erlang:list_to_binary(Branches)),
+    io:format("~p~n~p~n", [Branches, BranchesBin]),
+    lists:filtermap(fun (<<"maint-", _/binary>>=OTP) -> {true, maint_to_otp_conversion(OTP)};
+                        (_) -> false
+                 end, BranchesBin).
 
 create_advisory(Advisories) ->
     lists:foldl(fun (Adv, Acc) ->
@@ -2588,7 +2576,7 @@ create_openvex_app_entry(Purl, CVEId, FixedVersions) ->
              ~"fixed" => FixedVersions}}.
 
 update_openvex_otp_table(Branch, Advs) ->
-    Path = "make/openvex.table",
+    Path = ?OpenVEXTablePath,
     io:format("OpenVEX Statements:~n~p~n~n", [Advs]),
     #{Branch := Statements}=Table = decode(Path),
     UpdatedTable = Table#{Branch := Advs ++ Statements},
