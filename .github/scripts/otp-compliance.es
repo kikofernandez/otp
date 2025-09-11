@@ -301,10 +301,15 @@ cli() ->
                              #{ help =>
                                     """
                                     Download Github Advisories for erlang/otp.
-                                    Checks that those are present in OpenVEX statements.
+                                    Download OpenVEX statement from erlang/otp for the selected branch.
+                                    Checks that those Advisories are present in OpenVEX statements.
                                     Creates PR for any non-present Github Advisory.
+
+                                    Example:
+                                    > .github/scripts/otp-compliance.es vex verify -b maint -p
+
                                     """,
-                                arguments => [branch_option(), vex_path_option(), create_pr()],
+                                arguments => [branch_option(), create_pr()],
                                 handler => fun verify_openvex/1
                               },
 
@@ -1581,7 +1586,7 @@ get_gh_download_uri(File) ->
 create_dir(DirName) ->
     case file:make_dir(DirName) of
         Result when Result == ok;
-                    Result == {error, eexists} ->
+                    Result == {error, eexist} ->
             io:format("Directory ~s created successfully.~n", [DirName]);
         {error, Reason} ->
             fail("Failed to create directory ~s: ~p~n", [DirName, Reason])
@@ -1592,10 +1597,6 @@ path_to_openvex_filename(Branch) ->
     _ = valid_scan_branches(Branch),
     Version = maint_to_otp_conversion(Branch),
     vex_path(Version).
-path_to_openvex_filename(Branch, VexPath) ->
-    _ = valid_scan_branches(Branch),
-    Version = maint_to_otp_conversion(Branch),
-    vex_path(VexPath, Version).
 
 maint_to_otp_conversion(Branch) ->
     case Branch of
@@ -2500,7 +2501,7 @@ run_openvex1(VexStmts, VexTableFile, Branch, VexPath) ->
     Statements = calculate_statements(VexStmts, VexTableFile, Branch, VexPath),
     lists:foreach(fun (St) -> io:format("~ts", [St]) end, Statements).
 
-verify_openvex(#{branch := Branch, vex_path := VexPath, create_pr := PR}) ->
+verify_openvex(#{branch := Branch, create_pr := PR}) ->
     UpdatedBranch = maint_to_otp_conversion(Branch),
     OpenVEX = download_openvex(UpdatedBranch),
     Advisory = download_advisory_from_branch(UpdatedBranch),
@@ -2535,8 +2536,8 @@ verify_openvex(#{branch := Branch, vex_path := VexPath, create_pr := PR}) ->
 %% script must download the most recent OpenVEX file
 download_openvex(Branch) ->
     case download_otp_openvex_file(Branch) of
-        #{} ->
-            fail("Error downloading OpenVEX file.~n");
+        Json when Json == #{} ->
+            fail("Error downloading OpenVEX file.~n", []);
         Json ->
             Json
     end.
