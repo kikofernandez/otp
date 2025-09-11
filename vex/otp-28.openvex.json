@@ -3,8 +3,8 @@
   "@id": "https://openvex.dev/docs/public/otp/vex-otp-28",
   "author": "vexctl",
   "timestamp": "2025-08-21T10:55:45.714759+02:00",
-  "last_updated": "2025-09-04T09:25:22.570231325+02:00",
-  "version": 9,
+  "last_updated": "2025-09-11T09:08:04.003166468Z",
+  "version": 21,
   "statements": [
     {
       "vulnerability": {
@@ -115,6 +115,258 @@
         }
       ],
       "status": "under_investigation"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-48041"
+      },
+      "timestamp": "2025-09-11T09:08:03.805398564Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.1"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.2"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.1"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.2"
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Update to any of the following versions: pkg:otp/ssh@5.3.3",
+      "action_statement_timestamp": "2025-09-11T09:08:03.805398564Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-48041"
+      },
+      "timestamp": "2025-09-11T09:08:03.82362512Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.3"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.3"
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-48040"
+      },
+      "timestamp": "2025-09-11T09:08:03.841189228Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.1"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.2"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.1"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.2"
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Update to any of the following versions: pkg:otp/ssh@5.3.3",
+      "action_statement_timestamp": "2025-09-11T09:08:03.841189228Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-48040"
+      },
+      "timestamp": "2025-09-11T09:08:03.858762114Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.3"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.3"
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-48039"
+      },
+      "timestamp": "2025-09-11T09:08:03.876485354Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.1"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.2"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.1"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.2"
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Update to any of the following versions: pkg:otp/ssh@5.3.3",
+      "action_statement_timestamp": "2025-09-11T09:08:03.876485354Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-48039"
+      },
+      "timestamp": "2025-09-11T09:08:03.894435121Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.3"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.3"
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-48038"
+      },
+      "timestamp": "2025-09-11T09:08:03.912481699Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.1"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.2"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.1"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.2"
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Update to any of the following versions: pkg:otp/ssh@5.3.3",
+      "action_statement_timestamp": "2025-09-11T09:08:03.912481699Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-48038"
+      },
+      "timestamp": "2025-09-11T09:08:03.932227331Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.3"
+        },
+        {
+          "@id": "pkg:otp/ssh@5.3.3"
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-58050"
+      },
+      "timestamp": "2025-09-11T09:08:03.949769113Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.1"
+        },
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.2"
+        },
+        {
+          "@id": "pkg:otp/erts@16.0"
+        },
+        {
+          "@id": "pkg:otp/erts@16.0.1"
+        },
+        {
+          "@id": "pkg:otp/erts@16.0.2"
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Update to any of the following versions: pkg:otp/erts@16.0.3",
+      "action_statement_timestamp": "2025-09-11T09:08:03.949769113Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-58050"
+      },
+      "timestamp": "2025-09-11T09:08:03.967516206Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.3"
+        },
+        {
+          "@id": "pkg:otp/erts@16.0.3"
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-4748"
+      },
+      "timestamp": "2025-09-11T09:08:03.985504736Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0"
+        },
+        {
+          "@id": "pkg:otp/stdlib@7.0"
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Update to any of the following versions: pkg:otp/stdlib@7.0.1",
+      "action_statement_timestamp": "2025-09-11T09:08:03.985504736Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2025-4748"
+      },
+      "timestamp": "2025-09-11T09:08:04.003166998Z",
+      "products": [
+        {
+          "@id": "pkg:github/erlang/otp@OTP-28.0.1"
+        },
+        {
+          "@id": "pkg:otp/stdlib@7.0.1"
+        }
+      ],
+      "status": "fixed"
     }
   ]
 }
