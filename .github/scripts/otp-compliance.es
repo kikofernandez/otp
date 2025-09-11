@@ -2535,6 +2535,7 @@ update_openvex_otp_table(Branch, Advs) ->
     io:format("OpenVEX Statements:~n~p~n~n", [Advs]),
     #{Branch := Statements}=Table = decode(Path),
     UpdatedTable = Table#{Branch := Advs ++ Statements},
+    io:format("Update table:~n~p~n", [UpdatedTable]),
     file:write_file(Path, json:format(UpdatedTable)).
 
 
