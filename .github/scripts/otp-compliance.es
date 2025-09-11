@@ -96,6 +96,7 @@
 %% VEX MACROS
 %%
 -define(VexPath, ~"vex/").
+-define(OpenVEXTablePath, "make/openvex.table").
 -define(ErlangPURL, "pkg:github/erlang/otp").
 
 -define(FOUND_VENDOR_VULNERABILITY_TITLE, "Vendor vulnerability found").
@@ -1578,6 +1579,20 @@ download_otp_openvex_file(Branch) ->
             #{}
     end.
 
+-spec download_openvex_table_file() -> Json :: map().
+download_openvex_table_file() ->
+    download_gh_file(?OpenVEXTablePath).
+
+
+%% assumes that the file exists.
+-spec download_gh_file(File :: list()) -> Json :: map().
+download_gh_file(FilePath) ->
+    GithubURI = get_gh_download_uri(FilePath),
+    Command = "curl -LJ " ++ GithubURI ++ " --output " ++ FilePath,
+    io:format("Proceed to download:~n~s~n~n", [Command]),
+    _ = os:cmd(Command, #{ exception_on_failure => true }),
+    decode(FilePath).
+
 -spec get_gh_download_uri(String :: list()) -> String :: list().
 get_gh_download_uri(File) ->
     ?OTP_GH_URI ++ File.
@@ -2504,6 +2519,7 @@ run_openvex1(VexStmts, VexTableFile, Branch, VexPath) ->
 verify_openvex(#{branch := Branch, create_pr := PR}) ->
     UpdatedBranch = maint_to_otp_conversion(Branch),
     OpenVEX = download_openvex(UpdatedBranch),
+    _ = download_openvex_table_file(),
     Advisory = download_advisory_from_branch(UpdatedBranch),
     case verify_advisory_against_openvex(OpenVEX, Advisory) of
         [] ->
