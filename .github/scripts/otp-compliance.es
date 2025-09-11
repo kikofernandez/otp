@@ -1584,6 +1584,10 @@ download_openvex_table_file() ->
     download_gh_file(?OpenVEXTablePath).
 
 
+download_gh_file(FilePath, exec) ->
+    download_gh_file(FilePath),
+    cmd("chmod +x " ++ FilePath).
+
 %% assumes that the file exists.
 -spec download_gh_file(File :: list()) -> Json :: map().
 download_gh_file(FilePath) ->
@@ -2520,6 +2524,7 @@ verify_openvex(#{branch := Branch, create_pr := PR}) ->
     UpdatedBranch = maint_to_otp_conversion(Branch),
     OpenVEX = download_openvex(UpdatedBranch),
     _ = download_openvex_table_file(),
+    _ = download_gh_file(?CREATE_OPENVEX_PR_SCRIPT_FILE, exec),
     Advisory = download_advisory_from_branch(UpdatedBranch),
     case verify_advisory_against_openvex(OpenVEX, Advisory) of
         [] ->
