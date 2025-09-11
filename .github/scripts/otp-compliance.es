@@ -2514,7 +2514,7 @@ read_openvex(VexPath, Branch) ->
         true -> % file exists
             decode(InitVex);
         false ->
-            throw(file_not_found)
+            fail("File ~s not found~n", [InitVex])
     end.
 
 create_advisory(Advisories) ->
