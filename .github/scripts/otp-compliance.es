@@ -101,6 +101,8 @@
 -define(FOUND_VENDOR_VULNERABILITY_TITLE, "Vendor vulnerability found").
 -define(FOUND_VENDOR_VULNERABILITY, lists:append(string:replace(?FOUND_VENDOR_VULNERABILITY_TITLE, " ", "+", all))).
 
+-define(OTP_GH_URI, "https://raw.githubusercontent.com/" ++ ?GH_ACCOUNT ++ "/refs/heads/master/").
+
 %% GH default options
 -define(GH_ADVISORIES_OPTIONS, "state=published&direction=desc&per_page=100&sort=updated").
 
@@ -263,7 +265,8 @@ cli() ->
                           "osv-scan" =>
                               #{ help =>
                                      """
-                                     Performs vulnerability scanning on vendor libraries
+                                     Performs vulnerability scanning on vendor libraries.
+                                     As a side effect,
 
                                      Example:
 
@@ -1500,7 +1503,7 @@ create_gh_issue(Version, Title, BodyText) ->
     ok.
 
 ignore_vex_cves(Branch, Vulns) ->
-    OpenVex = get_otp_openvex_file(Branch),
+    OpenVex = download_otp_openvex_file(Branch),
     OpenVex1 = format_vex_statements(OpenVex),
 
     case OpenVex1 of
@@ -1547,41 +1550,49 @@ format_vex_statements(OpenVex) ->
                         Result ++ Acc
               end, [], Stmts).
 
-get_otp_openvex_file(Branch) ->
-    OpenVexPath = fetch_openvex_filename(Branch),
-    _ = create_dir(OpenVexPath),
+-spec download_otp_openvex_file(Branch :: binary()) -> Json :: map() | EmptyMap :: #{} | no_return().
+download_otp_openvex_file(Branch) ->
+    _ = create_dir(?VexPath),
+    OpenVexPath = path_to_openvex_filename(Branch),
     OpenVexStr = erlang:binary_to_list(OpenVexPath),
-    GithubURI = "https://raw.githubusercontent.com/" ++ ?GH_ACCOUNT ++ "/refs/heads/master/" ++ OpenVexStr,
+    GithubURI = get_gh_download_uri(OpenVexStr),
 
     io:format("Checking OpenVex statements in '~s' from~n'~s'...~n", [OpenVexPath, GithubURI]),
 
     ValidURI = "curl -I -Lj --silent " ++ GithubURI ++ " | head -n1 | cut -d' ' -f2",
     case string:trim(os:cmd(ValidURI)) of
         "200" ->
+            %% Overrides existing file.
             io:format("OpenVex file found.~n~n"),
             Command = "curl -LJ " ++ GithubURI ++ " --output " ++ OpenVexStr,
+            io:format("Proceed to download:~n~s~n~n", [Command]),
             os:cmd(Command, #{ exception_on_failure => true }),
             decode(OpenVexStr);
         E ->
-            io:format("[~p] No OpenVex file found.~n~n", [E]),
+            io:format("[~p] No OpenVex statements found for file '~s'.~n~n", [E, OpenVexStr]),
             #{}
     end.
 
+-spec get_gh_download_uri(String :: list()) -> String :: list().
+get_gh_download_uri(File) ->
+    ?OTP_GH_URI ++ File.
+
+-spec create_dir(DirName :: binary()) -> ok | no_return().
 create_dir(DirName) ->
     case file:make_dir(DirName) of
         Result when Result == ok;
                     Result == {error, eexists} ->
             io:format("Directory ~s created successfully.~n", [DirName]);
         {error, Reason} ->
-            io:format("Failed to create directory ~s: ~p~n", [DirName, Reason])
+            fail("Failed to create directory ~s: ~p~n", [DirName, Reason])
     end.
 
-
-fetch_openvex_filename(Branch) ->
+-spec path_to_openvex_filename(Branch :: binary()) -> Path :: binary().
+path_to_openvex_filename(Branch) ->
     _ = valid_scan_branches(Branch),
     Version = maint_to_otp_conversion(Branch),
     vex_path(Version).
-fetch_openvex_filename(Branch, VexPath) ->
+path_to_openvex_filename(Branch, VexPath) ->
     _ = valid_scan_branches(Branch),
     Version = maint_to_otp_conversion(Branch),
     vex_path(VexPath, Version).
@@ -1602,6 +1613,7 @@ maint_to_otp_conversion(Branch) ->
             OTP
     end.
 
+-spec valid_scan_branches(Branch :: binary()) -> ok | no_return().
 valid_scan_branches(Branch) ->
     case Branch of
         ~"master" ->
@@ -2490,7 +2502,7 @@ run_openvex1(VexStmts, VexTableFile, Branch, VexPath) ->
 
 verify_openvex(#{branch := Branch, vex_path := VexPath, create_pr := PR}) ->
     UpdatedBranch = maint_to_otp_conversion(Branch),
-    OpenVEX = read_openvex(VexPath, UpdatedBranch),
+    OpenVEX = download_openvex(UpdatedBranch),
     Advisory = download_advisory_from_branch(UpdatedBranch),
     case verify_advisory_against_openvex(OpenVEX, Advisory) of
         [] ->
@@ -2519,13 +2531,14 @@ verify_openvex(#{branch := Branch, vex_path := VexPath, create_pr := PR}) ->
             end
     end.
 
-read_openvex(VexPath, Branch) ->
-    InitVex = fetch_openvex_filename(Branch, VexPath),
-    case filelib:is_file(InitVex) of
-        true -> % file exists
-            decode(InitVex);
-        false ->
-            fail("File ~s not found~n", [InitVex])
+%% OpenVEX files are updated only in the `master` branch, so any branch that runs this
+%% script must download the most recent OpenVEX file
+download_openvex(Branch) ->
+    case download_otp_openvex_file(Branch) of
+        #{} ->
+            fail("Error downloading OpenVEX file.~n");
+        Json ->
+            Json
     end.
 
 create_advisory(Advisories) ->
