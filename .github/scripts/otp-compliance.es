@@ -107,6 +107,9 @@
 %% Advisories to download from last X years.
 -define(GH_ADVISORIES_FROM_LAST_X_YEARS, 5).
 
+%% Defines path of script to create PRs for missing openvex/vulnerabilities
+-define(CREATE_OPENVEX_PR_SCRIPT_FILE, ".github/scripts/create-openvex-pr.sh").
+
 %% Sets end point account to fetch information from GH
 %% used by `gh` command-line tool.
 %% change to your fork for testing, e.g., `kikofernandez/otp`
@@ -2480,20 +2483,29 @@ verify_openvex(#{branch := Branch, vex_path := VexPath, create_pr := PR}) ->
     Advisory = download_advisory_from_branch(UpdatedBranch),
     case verify_advisory_against_openvex(OpenVEX, Advisory) of
         [] ->
+            io:format("No new advisories nor OpenVEX statements created."),
             ok;
-        MissingAdvisories when PR == false ->
-            io:format("Missing:~n~p~n~n", [MissingAdvisories]),
-            io:format("To automatically update openvex.table and create a PR run:~n" ++
-                          ".github/scripts/otp-compliance.es vex verify -b ~s -p~n~n", [Branch]),
-            ok;
-        MissingAdvisories when is_list(MissingAdvisories),
-                               PR == true ->
-            Advs = create_advisory(MissingAdvisories),
-            _ = update_openvex_otp_table(UpdatedBranch, Advs),
-            BranchStr = erlang:binary_to_list(UpdatedBranch),
-            _ = os:cmd(".github/scripts/otp-compliance.es vex init -b "++ BranchStr ++ " | bash",
-                   #{ exception_on_failure => true }),
-            os:cmd(".github/scripts/create-openvex-pr.sh", #{ exception_on_failure => true })
+        MissingAdvisories when is_list(MissingAdvisories) ->
+            io:format("Missing Advisories:~n~p~n~n", [MissingAdvisories]),
+            case PR of
+                false ->
+                    io:format("To automatically update openvex.table and create a PR run:~n" ++
+                                  ".github/scripts/otp-compliance.es vex verify -b ~s -p~n~n", [Branch]),
+                    ok;
+                true ->
+                    Advs = create_advisory(MissingAdvisories),
+                    _ = update_openvex_otp_table(UpdatedBranch, Advs),
+                    BranchStr = erlang:binary_to_list(UpdatedBranch),
+                    _ = os:cmd(".github/scripts/otp-compliance.es vex init -b "++ BranchStr ++ " | bash",
+                               #{ exception_on_failure => true }),
+                    case filelib:is_file(?CREATE_OPENVEX_PR_SCRIPT_FILE) of
+                        false ->
+                            fail("[~s] Could not find '~ts' file.~nDid you forget to download the file in '~s'?",
+                                 [Branch, ?CREATE_OPENVEX_PR_SCRIPT_FILE, "reusable-vendor-vulnerability-scanner.yml"]);
+                        true ->
+                            os:cmd(".github/scripts/create-openvex-pr.sh", #{ exception_on_failure => true })
+                    end
+            end
     end.
 
 read_openvex(VexPath, Branch) ->
@@ -2506,7 +2518,6 @@ read_openvex(VexPath, Branch) ->
     end.
 
 create_advisory(Advisories) ->
-    io:format("Missing:~n~p~n~n", [Advisories]),
     lists:foldl(fun (Adv, Acc) ->
                         create_openvex_otp_entries(Adv) ++ Acc
                 end, [], Advisories).
