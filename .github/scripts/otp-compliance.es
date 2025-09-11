@@ -1549,6 +1549,7 @@ format_vex_statements(OpenVex) ->
 
 get_otp_openvex_file(Branch) ->
     OpenVexPath = fetch_openvex_filename(Branch),
+    _ = create_dir(OpenVexPath),
     OpenVexStr = erlang:binary_to_list(OpenVexPath),
     GithubURI = "https://raw.githubusercontent.com/" ++ ?GH_ACCOUNT ++ "/refs/heads/master/" ++ OpenVexStr,
 
@@ -1565,6 +1566,16 @@ get_otp_openvex_file(Branch) ->
             io:format("[~p] No OpenVex file found.~n~n", [E]),
             #{}
     end.
+
+create_dir(DirName) ->
+    case file:make_dir(DirName) of
+        Result when Result == ok;
+                    Result == {error, eexists} ->
+            io:format("Directory ~s created successfully.~n", [DirName]);
+        {error, Reason} ->
+            io:format("Failed to create directory ~s: ~p~n", [DirName, Reason])
+    end.
+
 
 fetch_openvex_filename(Branch) ->
     _ = valid_scan_branches(Branch),
