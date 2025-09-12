@@ -48,11 +48,13 @@ jobs:
         with:
           otp-version: '28'
 
+      - uses: openvex/setup-vexctl@e85ca48f3c8a376289f6476129d59cda82147e71 # ratchet:openvex/setup-vexctl@v0.1.1
+        with:
+          vexctl-release: '0.3.0'
+
       - name: 'Open OpenVEX Pull Requests for newly released vulnerabilities'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          go install github.com/openvex/vexctl@latest && \
-          export PATH=$HOME/go/bin:$PATH && \
           .github/scripts/otp-compliance.es vex verify -p
