@@ -21,12 +21,12 @@
 ##
 
 REPO=$1
-PR_NUMBER=$2
+BRANCH_NAME=$2
 # Fetch PR data using gh CLI
-PR_STATUS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json state -q ".state")
+PR_STATUS=$(gh pr view "$BRANCH_NAME" --repo "$REPO" --json state -q ".state")
 
 if [ $? -ne 0 ]; then
-  echo "Failed to fetch PR #$PR_NUMBER from $REPO"
+  echo "Failed to fetch PR #$BRANCH_NAME from $REPO"
   exit 2
 fi
 
@@ -34,29 +34,18 @@ git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
 # Check if PR is closed
-if [ "$PR_STATUS" = "CLOSED" ]; then
-  echo "✅ Pull request #$PR_NUMBER is CLOSED."
-  git checkout -b "$PR_NUMBER"
+if [ "$PR_STATUS" = "CLOSED" ] || [ "$PR_STATUS" = "MERGED" ]; then
+  echo "✅ Pull request #$BRANCH_NAME is CLOSED or MERGED."
+  git branch "$BRANCH_NAME" master
   git add make/openvex.table
   git add vex
   git commit -m "Automatic update of OpenVEX Statements for erlang/otp"
-  git push --force origin "$PR_NUMBER"
-  gh pr create --repo "$REPO" -B master \
-               --title "Automatic update of OpenVEX Statements for erlang/otp" \
-               --body "Automatic Action. There is a vulnerability from GH Advisories without a matching OpenVEX statement"
-  exit 0
-elif [ "$PR_STATUS" = "MERGED" ]; then
-  echo "✅ Pull request #$PR_NUMBER is MERGED (also closed)."
-  git checkout -b "$PR_NUMBER"
-  git add make/openvex.table
-  git add vex
-  git commit -m "Automatic update of OpenVEX Statements for erlang/otp"
-  git push --force origin "$PR_NUMBER"
+  git push --force origin "$BRANCH_NAME"
   gh pr create --repo "$REPO" -B master \
                --title "Automatic update of OpenVEX Statements for erlang/otp" \
                --body "Automatic Action. There is a vulnerability from GH Advisories without a matching OpenVEX statement"
   exit 0
 else
-  echo "❌ Pull request #$PR_NUMBER is OPEN. Create a PR once the PR is closed or merged."
+  echo "❌ Pull request #$BRANCH_NAME is OPEN. Create a PR once the PR is closed or merged."
   exit 0
 fi
