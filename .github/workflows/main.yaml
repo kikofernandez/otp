@@ -460,7 +460,7 @@ jobs:
     name: Check if vendor files changed
     runs-on: ubuntu-latest
     # this condition is necessary because github.base_ref only exists for pull_requests
-    if: ${{ github.event_name == 'pull_request' }}
+    # if: ${{ github.event_name == 'pull_request' }}
     outputs:
       vendor-files: ${{ steps.vendor-files.outputs.MODIFIED_FILES != '0' }}
     steps:
@@ -475,7 +475,7 @@ jobs:
   # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
     needs: modified-vendor-files
-    if: ${{ needs.modified-vendor-files.outputs.vendor-files == 'true' && github.event_name == 'pull_request'}}
+    # if: ${{ needs.modified-vendor-files.outputs.vendor-files == 'true' && github.event_name == 'pull_request'}}
     permissions:
       security-events: read
       issues: write
