@@ -481,7 +481,6 @@ jobs:
       issues: write
       actions: write
       contents: write
-      pull-requests: write
     name: Vendor Vulnerability Scanning
     uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
     with:
