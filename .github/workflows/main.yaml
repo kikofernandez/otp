@@ -479,8 +479,6 @@ jobs:
     permissions:
       security-events: read
       issues: write
-      actions: write
-      contents: write
     name: Vendor Vulnerability Scanning
     uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
     with:
