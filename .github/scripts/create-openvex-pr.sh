@@ -37,6 +37,7 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 if [ "$PR_STATUS" = "CLOSED" ] || [ "$PR_STATUS" = "MERGED" ]; then
   echo "✅ Pull request #$BRANCH_NAME is CLOSED or MERGED."
   git branch "$BRANCH_NAME" master
+  git checkout "$BRANCH_NAME"
   git add make/openvex.table
   git add vex
   git commit -m "Automatic update of OpenVEX Statements for erlang/otp"
