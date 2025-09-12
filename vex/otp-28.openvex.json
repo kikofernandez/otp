@@ -8,6 +8,7 @@
   "statements": [
     {
       "vulnerability": {
+
         "name": "OSV-2025-300"
       },
       "timestamp": "2025-08-21T10:55:45.929417984+02:00",
