@@ -478,9 +478,9 @@ jobs:
     name: Vendor Vulnerability Scanning
     uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
     with:
-      fail_if_cve: false
+      fail_if_cve: true
       checkout: true
-      version: master
+      version: maint
       # equivalent of ${{ env.BASE_BRANCH }} but reusable-workflows do not allow to pass env.
     secrets: inherit
 
