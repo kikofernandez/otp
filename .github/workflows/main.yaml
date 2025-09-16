@@ -472,10 +472,7 @@ jobs:
         run: |
           echo "MODIFIED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep 'vendor\.info$' | wc -l || 1)" >> $GITHUB_OUTPUT
 
-  # this is a call to a workflow_call
   pr-vendor-vulnerability-analysis:
-    needs: modified-vendor-files
-    if: ${{ needs.modified-vendor-files.outputs.vendor-files == 'true' && github.event_name == 'pull_request'}}
     permissions:
       actions: read
     name: Vendor Vulnerability Scanning
@@ -483,7 +480,7 @@ jobs:
     with:
       fail_if_cve: false
       checkout: true
-      version: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+      version: master
       # equivalent of ${{ env.BASE_BRANCH }} but reusable-workflows do not allow to pass env.
     secrets: inherit
 
