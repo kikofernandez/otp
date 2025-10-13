@@ -813,7 +813,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           repository: oss-review-toolkit/ort-config
-          ref: "d2978deb230beae095bb6cfec074b94f1a74fd34"
+          ref: "0f33db761dc4775be51d0e59b31c18ad2401d56b"
           path: ".ort-config"
 
       - name: Setup ORT Config

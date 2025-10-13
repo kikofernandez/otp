@@ -23,6 +23,9 @@ ort:
   enableRepositoryPackageCurations: true
   forceOverwrite: true
 
+  licenseFactProviders:
+    spdx: {}
+
   advisor:
     osv:
       serverUrl: "https://api-staging.osv.dev"
