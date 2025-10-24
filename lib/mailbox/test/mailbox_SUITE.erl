@@ -1,0 +1,160 @@
+-module(mailbox_SUITE).
+
+-include_lib("common_test/include/ct.hrl").
+-include("../include/mailbox.hrl").
+
+-export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1]).
+-export([mailbox_lint_tests/0]).
+-export([missing_mailbox_association/1, missing_mailbox_function/1,
+         missing_mailbox_function2/1,
+         missing_mailbox_bound_function/1, correct_mailbox_declaration/1,
+         check_program_without_mailbox/1, check_program_without_mailbox_with_attr/1]).
+
+-define(MAILBOX_LINT_GROUP, mailbox_lint).
+
+all() ->
+    [{group, ?MAILBOX_LINT_GROUP}].
+
+%% Configuration of the max. time per test case
+suite() ->
+    [{timetrap, {seconds, 1}}].
+
+groups() ->
+    [{?MAILBOX_LINT_GROUP, [sequence], mailbox_lint_tests()}].
+
+init_per_suite(Config) ->
+    PrivDir = proplists:get_value(priv_dir, Config),
+    Check = fun (Program) ->
+                      {ok, Tokens, _} = erl_scan:string(Program),
+                      case Tokens of
+                          [{'-',_},
+                           {atom,1,module},
+                           {'(',1},
+                           {atom,1,ModuleName},
+                           {')',1} | _] when is_atom(ModuleName) ->
+
+                              Path = PrivDir ++ atom_to_list(ModuleName) ++ ".erl",
+                              _ = file:write_file(PrivDir ++ "test.erl", Program),
+                              mailbox:check(Path, #option{})
+                      end
+              end,
+    GetPath = fun (Program) ->
+                      {ok, Tokens, _} = erl_scan:string(Program),
+                      case Tokens of
+                          [{'-',_},
+                           {atom,1,module},
+                           {'(',1},
+                           {atom,1,ModuleName},
+                           {')',1} | _] when is_atom(ModuleName) ->
+
+                              Path = PrivDir ++ atom_to_list(ModuleName) ++ ".erl",
+                              _ = file:write_file(PrivDir ++ "test.erl", Program),
+                              Path
+                      end
+              end,
+    [{check, Check}, {get_path, GetPath} | Config].
+
+end_per_suite(Config) ->
+    Config.
+
+mailbox_lint_tests() ->
+    [
+     missing_mailbox_association,
+     missing_mailbox_function,
+     missing_mailbox_function2,
+     missing_mailbox_bound_function,
+     correct_mailbox_declaration,
+     check_program_without_mailbox,
+     check_program_without_mailbox_with_attr
+    ].
+
+missing_mailbox_association(Config) ->
+    Test = """
+            -module(test).
+            -new([]).
+            """,
+    Check = proplists:get_value(check, Config),
+    Result = Check(Test),
+
+    Expected = [{?ERR_MISSING_MAILBOX_NAME,{new,[]}}],
+    Expected = Result,
+    ok.
+
+missing_mailbox_function(Config) ->
+    Test = """
+            -module(test).
+            -new({foo_mailbox, []}).
+            """,
+    Check = proplists:get_value(check, Config),
+    Result = Check(Test),
+
+    Expected = [{?ERR_MISSING_MAILBOX_EMPTY_BOUND,{foo_mailbox, []}}],
+    Expected = Result,
+    ok.
+
+missing_mailbox_function2(Config) ->
+    Test = """
+            -module(test).
+            -new({foo_mailbox, [{foo, 0}]}).
+            """,
+    Check = proplists:get_value(check, Config),
+    Result = Check(Test),
+
+    Expected = [{?ERR_MISSING_BOUND_FUNCTION,{foo_mailbox, [{foo, 0}]}}],
+    Expected = Result,
+    ok.
+
+missing_mailbox_bound_function(Config) ->
+    Test = """
+            -module(test).
+            -new({foo_mailbox, [blah/0]}).
+            """,
+    Check = proplists:get_value(check, Config),
+    Result = Check(Test),
+
+    Expected = [{?ERR_MISSING_BOUND_FUNCTION,{foo_mailbox, [{blah, 0}]}}],
+    Expected = Result,
+    ok.
+
+correct_mailbox_declaration(Config) ->
+    Test = """
+            -module(test).
+            -new({mailbox, [blah/0]}).
+            blah() ->
+              ok.
+            """,
+    Check = proplists:get_value(check, Config),
+    Result = Check(Test),
+
+    Expected = [],
+    Expected = Result,
+    ok.
+
+check_program_without_mailbox(Config) ->
+    Test = """
+            -module(test).
+            -define(FOO, bar).
+            blah() ->
+              ok.
+            """,
+    Check = proplists:get_value(check, Config),
+    Result = Check(Test),
+
+    Expected = [],
+    Expected = Result,
+    ok.
+
+check_program_without_mailbox_with_attr(Config) ->
+    Test = """
+            -module(test).
+            -doc "blah doc".
+            blah() ->
+              ok.
+            """,
+    GetPath = proplists:get_value(get_path, Config),
+    Path = GetPath(Test),
+    Result = mailbox:check(Path, #option{mode = debug}),
+
+    Expected = [],
+    Expected = Result,
+    ok.

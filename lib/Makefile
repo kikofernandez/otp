@@ -40,7 +40,7 @@ ALL_ERLANG_APPLICATIONS = xmerl edoc snmp erl_interface \
 	          mnesia crypto os_mon syntax_tools \
 	          public_key ssl observer odbc diameter \
 	          et megaco \
-		  eunit ssh eldap dialyzer ftp tftp
+		  eunit ssh eldap dialyzer ftp tftp mailbox
 
 
 ifdef BUILD_ALL
