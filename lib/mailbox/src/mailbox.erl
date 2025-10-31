@@ -56,6 +56,6 @@ check(File, Options) ->
 
 -spec init(File :: file:filename(), #option{}) -> #analysis{}.
 init(File, #option{}=Options) ->
-    ok = mailbox_options:set_config(Options),    
+    _ = mailbox_options:set_config(Options),
     Analysis = analysis:set_file(#analysis{}, File),
     analysis:set_mode(Analysis, mailbox_options:mode(Options)).

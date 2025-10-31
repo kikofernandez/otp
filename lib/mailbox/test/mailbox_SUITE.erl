@@ -7,7 +7,7 @@
 -export([mailbox_lint_tests/0]).
 -export([missing_mailbox_association/1, missing_mailbox_function/1,
          missing_mailbox_function2/1,
-         missing_mailbox_bound_function/1, correct_mailbox_declaration/1,
+         missing_mailbox_bound_function/1, unsupported_mailbox_recv_pattern/1,
          check_program_without_mailbox/1, check_program_without_mailbox_with_attr/1]).
 
 -define(MAILBOX_LINT_GROUP, mailbox_lint).
@@ -63,7 +63,7 @@ mailbox_lint_tests() ->
      missing_mailbox_function,
      missing_mailbox_function2,
      missing_mailbox_bound_function,
-     correct_mailbox_declaration,
+     unsupported_mailbox_recv_pattern,
      check_program_without_mailbox,
      check_program_without_mailbox_with_attr
     ].
@@ -116,17 +116,22 @@ missing_mailbox_bound_function(Config) ->
     Expected = Result,
     ok.
 
-correct_mailbox_declaration(Config) ->
+unsupported_mailbox_recv_pattern(Config) ->
     Test = """
             -module(test).
             -new({mailbox, [blah/0]}).
             blah() ->
+              Client = self(),
+              Pid = spawn(fun () -> Client ! {foo, bar} end),
+              _ = receive {foo, bar, X} when is_atom(X) -> ok end,
+              _ = receive {foo, bar} -> ok after _ -> ok end,
               ok.
             """,
     Check = proplists:get_value(check, Config),
     Result = Check(Test),
-
-    Expected = [],
+    Expected = [{?ERR_RECV_PATTERN_UNSUPPORTED,
+                 {error,{'receive',6,{tuple,6,[{atom,6,foo},{atom,6,bar},{var,6,'X'}]}}}},
+                {?ERR_RECV_PATTERN_UNSUPPORTED, {error, {'receive',7,{tuple,7,[{atom,7,foo},{atom,7,bar}]}}}}],
     Expected = Result,
     ok.
 

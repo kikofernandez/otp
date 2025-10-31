@@ -6,7 +6,9 @@ Helper module with functions to access the analysis record.
 
 -include("../include/mailbox.hrl").
 
--export([forms/1, set_forms/2, push_error/3, errors/1, set_mode/2, mode/1]).
+-export([forms/1, set_forms/2]).
+-export([set_mode/2, mode/1]).
+-export([set_errors/2, errors/1, push_error/3]).
 -export([file/1, set_file/2]).
 
 -spec file(#analysis{}) -> file:filename().
@@ -36,7 +38,7 @@ forms(#analysis{forms = Forms}) ->
 
 -spec push_error(Error, Form, Analysis) -> Result when
       Error    :: error(),
-      Form     :: {error() | ?NEW_MB | ?USE_MB, dynamic()},
+      Form     :: {atom() | ?NEW_MB | ?USE_MB, dynamic()},
       Analysis :: #analysis{},
       Result   :: #analysis{}.
 push_error(Error, Form, #analysis{errors = Errors}=Analysis) ->
@@ -45,3 +47,12 @@ push_error(Error, Form, #analysis{errors = Errors}=Analysis) ->
 -spec errors(#analysis{}) -> list().
 errors(#analysis{errors = Errors}) ->
     Errors.
+
+-spec set_errors(Errors, Analysis) -> Result when
+      Errors   :: [{Error, Form}],
+      Error    :: error(),
+      Form     :: {atom() | ?NEW_MB | ?USE_MB, dynamic()},
+      Analysis :: #analysis{},
+      Result   :: #analysis{}.
+set_errors(Errors, #analysis{}=Analysis) when is_list(Errors) ->
+    Analysis#analysis{errors = Errors}.

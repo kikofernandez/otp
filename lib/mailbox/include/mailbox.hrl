@@ -33,6 +33,13 @@
 %% e.g., -new({foo_mailbox, []}).
 -define(ERR_MISSING_MAILBOX_EMPTY_BOUND, err_mailbox_empty_bound).
 
+%% e.g., recv pattern matches on unsupported pattern
+-define(ERR_RECV_PATTERN_UNSUPPORTED, err_unsupported_recv_pattern).
+
+-define(ERR_DESCRIPTOR_MARKERS, err_descriptors_markers).
+
+-define(ERR_UNSUPPORTED_CATCH_CLAUSES, err_unsupported_catch_clauses).
+
 %% defines modes:
 %% 'debug' will print debugging information.
 %% 'check' ignores debugging info
@@ -146,7 +153,10 @@
 -type errors() :: [error()].
 -type error()  :: ?ERR_MISSING_MAILBOX_NAME |
                   ?ERR_MISSING_MAILBOX_EMPTY_BOUND |
-                  ?ERR_MISSING_BOUND_FUNCTION.
+                  ?ERR_MISSING_BOUND_FUNCTION |
+                  ?ERR_DESCRIPTOR_MARKERS |
+                  ?ERR_RECV_PATTERN_UNSUPPORTED |
+                  ?ERR_UNSUPPORTED_CATCH_CLAUSES.
 -type mode()   :: ?CHECK_MODE | ?DEBUG_MODE.
 
 
