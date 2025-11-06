@@ -245,29 +245,42 @@ check_record_field({record_field,_Anno,Field,Expr}, Analysis) when is_atom(Field
 check_patterns(Patterns, Analysis) when is_list(Patterns) ->
     lists:foldl(fun check_pattern/2, Analysis, Patterns).
 
-%% TODO
+%% Function guards do not affect the well-formedness
 check_guards(_, Analysis) ->
     Analysis.
 
-%% TODO
+-doc "Check well-formedness of if/maybe clauses".
+-spec check_if_clauses(Clauses :: [tuple()], #analysis{}) -> #analysis{}.
 check_if_clauses(Clauses, Analysis) when is_list(Clauses) ->
-    Analysis.
+    lists:foldl(fun check_if_clause/2, Analysis, Clauses).
 
-%% TODO
+check_if_clause({clause,_Anno,[],Guards,Body}, Analysis) when is_list(Guards),
+                                                              is_list(Body) ->
+    Analysis1 = check_guards(Guards, Analysis),
+    check_exprs(Body, Analysis1).
+    
+-spec check_qualifier(Qualifiers :: [tuple()], #analysis{}) -> #analysis{}.
 check_qualifier(Qualifiers, Analysis) when is_list(Qualifiers) ->
-    Analysis.
+    analysis:push_error(?ERR_UNSUPPORTED_QUALIFIERS, {error, Qualifiers}, Analysis).    
 
-%% TODO
+-spec check_associations(Associations :: [tuple()], #analysis{}) -> #analysis{}.
 check_associations(Associations, Analysis) when is_list(Associations) ->
-    Analysis.
+    lists:foldl(fun check_association/2, Analysis, Associations).
 
-%% TODO
-check_pattern(_Pattern, Analysis) ->
-    Analysis.
+-spec check_association(Associations :: tuple(), #analysis{}) -> #analysis{}.
+check_association({Tag,_Anno,K,V}, Analysis) when Tag == map_field_assoc;
+                                                  Tag == map_field_exact ->
+    Analysis1 = check_expr(K, Analysis),
+    check_expr(V, Analysis1).
 
-%% TODO: check.
-check_case_pattern(_Pattern, Analysis) ->
-    Analysis.
+-spec check_pattern(Pattern :: tuple(), #analysis{}) -> #analysis{}.
+check_pattern(Pattern, Analysis) ->
+    %% patterns form match their expr form.
+    check_expr(Pattern, Analysis).
+
+-spec check_case_pattern(Pattern :: tuple(), #analysis{}) -> #analysis{}.
+check_case_pattern(Pattern, Analysis) ->
+    check_pattern(Pattern, Analysis).
 
 check_case_clauses(Clauses, Analysis) when is_list(Clauses) ->
     lists:foldl(fun check_case_clause/2, Analysis, Clauses).

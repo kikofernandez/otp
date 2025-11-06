@@ -40,6 +40,8 @@
 
 -define(ERR_UNSUPPORTED_CATCH_CLAUSES, err_unsupported_catch_clauses).
 
+-define(ERR_UNSUPPORTED_QUALIFIERS, err_unsupported_qualifiers).
+
 %% defines modes:
 %% 'debug' will print debugging information.
 %% 'check' ignores debugging info
@@ -156,7 +158,8 @@
                   ?ERR_MISSING_BOUND_FUNCTION |
                   ?ERR_DESCRIPTOR_MARKERS |
                   ?ERR_RECV_PATTERN_UNSUPPORTED |
-                  ?ERR_UNSUPPORTED_CATCH_CLAUSES.
+                  ?ERR_UNSUPPORTED_CATCH_CLAUSES |
+                  ?ERR_UNSUPPORTED_QUALIFIERS.
 -type mode()   :: ?CHECK_MODE | ?DEBUG_MODE.
 
 

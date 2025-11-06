@@ -6,7 +6,7 @@
 -export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1]).
 -export([mailbox_lint_tests/0]).
 -export([missing_mailbox_association/1, missing_mailbox_function/1,
-         missing_mailbox_function2/1,
+         missing_mailbox_function2/1, check_stdlib/1,
          missing_mailbox_bound_function/1, unsupported_mailbox_recv_pattern/1,
          check_program_without_mailbox/1, check_program_without_mailbox_with_attr/1]).
 
@@ -28,13 +28,13 @@ init_per_suite(Config) ->
                       {ok, Tokens, _} = erl_scan:string(Program),
                       case Tokens of
                           [{'-',_},
-                           {atom,1,module},
-                           {'(',1},
-                           {atom,1,ModuleName},
-                           {')',1} | _] when is_atom(ModuleName) ->
+                           {atom,_,module},
+                           {'(',_},
+                           {atom,_,ModuleName},
+                           {')',_} | _] when is_atom(ModuleName) ->
 
                               Path = PrivDir ++ atom_to_list(ModuleName) ++ ".erl",
-                              _ = file:write_file(PrivDir ++ "test.erl", Program),
+                              _ = file:write_file(Path, Program),
                               mailbox:check(Path, #option{})
                       end
               end,
@@ -42,13 +42,13 @@ init_per_suite(Config) ->
                       {ok, Tokens, _} = erl_scan:string(Program),
                       case Tokens of
                           [{'-',_},
-                           {atom,1,module},
-                           {'(',1},
-                           {atom,1,ModuleName},
-                           {')',1} | _] when is_atom(ModuleName) ->
+                           {atom,_,module},
+                           {'(',_},
+                           {atom,_,ModuleName},
+                           {')',_} | _] when is_atom(ModuleName) ->
 
                               Path = PrivDir ++ atom_to_list(ModuleName) ++ ".erl",
-                              _ = file:write_file(PrivDir ++ "test.erl", Program),
+                              _ = file:write_file(Path, Program),
                               Path
                       end
               end,
@@ -65,7 +65,8 @@ mailbox_lint_tests() ->
      missing_mailbox_bound_function,
      unsupported_mailbox_recv_pattern,
      check_program_without_mailbox,
-     check_program_without_mailbox_with_attr
+     check_program_without_mailbox_with_attr,
+     check_stdlib
     ].
 
 missing_mailbox_association(Config) ->
@@ -159,6 +160,22 @@ check_program_without_mailbox_with_attr(Config) ->
     GetPath = proplists:get_value(get_path, Config),
     Path = GetPath(Test),
     Result = mailbox:check(Path, #option{mode = debug}),
+
+    Expected = [],
+    Expected = Result,
+    ok.
+
+check_stdlib(Config) ->
+    DataDir = filename:join([os:getenv("ERL_TOP"), "lib", "stdlib", "src"]),
+    ok = filelib:ensure_path(DataDir),
+    FilePath = filename:join(DataDir, "lists.erl"),
+    io:format("FilePath: ~p~n", [FilePath]),
+    true = filelib:is_file(FilePath),
+
+    {ok, TestBin} = file:read_file(FilePath),
+    io:format("Bin:~n~p~n", [TestBin]),
+    Check = proplists:get_value(check, Config),
+    Result = Check(erlang:binary_to_list(TestBin)),
 
     Expected = [],
     Expected = Result,
