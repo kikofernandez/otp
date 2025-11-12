@@ -26,6 +26,10 @@ Checks well-formedness of the mailbox definitions.
 
 -define(IS_ERROR_MARKER(Form), ((element(1, Form) == 'error') orelse (element(1, Form) == 'eof'))).
 
+%% eqwalizer rejects it in .hrl file.
+-type literal() :: #'atom'{} | #'float'{} | #'integer'{} | #'string'{}.
+-type associations() :: #'map_field_assoc'{} | #'map_field_exact'{}.
+
 -doc """
 Check well-formedness of mailbox attributes using 'new' and 'use'.
 
@@ -44,7 +48,8 @@ This pass rejects ill-typed mailbox, such as:
 It also checks valid receive pattern clauses.
 """.
 -spec check(Forms, Analysis) -> #analysis{} when
-      Forms :: [erl_parse:abstract_form() | {'error', erl_scan:error_info() | erl_parse:error_info()} | {'eof', erl_anno:location()}],
+      Forms :: [ erl_parse:abstract_form()       | {'error', erl_scan:error_info() |
+                 erl_parse:error_info()}         | {'eof', erl_anno:location()}],
       Analysis :: #analysis{}.
 check(Forms, Analysis0) when is_list(Forms) ->
     Info = erl_syntax_lib:analyze_forms(Forms),
@@ -86,12 +91,19 @@ check_errors(Forms, #analysis{}=Analysis) when is_list(Forms) ->
     end.
 
 -doc "Check error descriptors markers".
--spec check_error({'error' | 'eof', dynamic()}, #analysis{}) -> #analysis{}.
+-spec check_error(erl_parse:form_info(), #analysis{}) -> #analysis{}.
 check_error({'error', _}=E, Analysis) ->
     Error = ?ERR_DESCRIPTOR_MARKERS,
     analysis:push_error(Error, E, Analysis);
 check_error({'eof', _}=E, Analysis) ->
     Error = ?ERR_DESCRIPTOR_MARKERS,
+    analysis:push_error(Error, E, Analysis);
+check_error({_Anno,_Mod,{'undefined',_UndefHeaderFun,Arity}}, Analysis) when is_number(Arity) ->
+    Analysis;
+check_error({_Anno,_Mod,{'include','file',_Filename}}, Analysis) ->
+    Analysis;
+check_error(E, Analysis) when is_tuple(E) ->
+    Error = ?ERR_UNKNOWN_FORM,
     analysis:push_error(Error, E, Analysis).
 
 -doc """
@@ -110,55 +122,62 @@ check_attributes(Forms, #analysis{}=Analysis) when is_list(Forms) ->
             Analysis
     end.
 
--doc "Check function well-formedness".
--spec check_fun({function,_,_,_,Clauses :: list()}, #analysis{}) -> #analysis{}.
-check_fun({function,_Anno,_Name,_Arity,Clauses}, Analysis) when is_list(Clauses) ->
+-doc """
+Check function well-formedness.
+
+Checks that function arguments, `guards`, and function clauses are well-formed.
+""".
+-spec check_fun(Function, Analysis) -> #analysis{} when
+      Function :: #function{},
+      Analysis :: #analysis{}.
+check_fun(#function{clauses = Clauses}, Analysis) when is_list(Clauses) ->
     check_clauses(Clauses, Analysis).
 
 -doc "Check function clauses well-formedness".
--spec check_clauses(Clauses :: [tuple()], #analysis{}) -> #analysis{}.
+-spec check_clauses(erl_anno:af_clause_seq(),
+                    #analysis{}) -> #analysis{}.
 check_clauses(Clauses, Analysis) when is_list(Clauses) ->
     lists:foldl(fun check_clause/2, Analysis, Clauses).
 
 -doc "Check function clause well-formedness".
--spec check_clause({clause, _, PatternSeqArgs, Guards, Body}, #analysis{}) -> #analysis{} when
-      PatternSeqArgs :: list(),
-      Guards         :: list(),
-      Body           :: list().
-check_clause({clause, _Anno, PatternSeq, Guards, Body}, Analysis) when is_list(PatternSeq) ->
+-spec check_clause(#clause{}, #analysis{}) -> #analysis{}.
+check_clause(#clause{patterns = PatternSeq, guards = Guards, body = Body}, Analysis)
+  when is_list(PatternSeq) ->
     Analysis1 = check_patterns(PatternSeq, Analysis),
     Analysis2 = check_guards(Guards, Analysis1),
     check_exprs(Body, Analysis2).
 
 -doc "Check expressions well-formedness".
--spec check_exprs([tuple()], #analysis{}) -> #analysis{}.
+-spec check_exprs(erl_parse:af_body(), #analysis{}) -> #analysis{}.
 check_exprs(Forms, Analysis) when is_list(Forms) ->
     lists:foldl(fun check_expr/2, Analysis, Forms).
 
 -doc "Check well-formedness of expressions".
--spec check_expr(Expr :: tuple() | list(), #analysis{}) -> #analysis{}.
-check_expr(Exprs, Analysis) when is_list(Exprs) ->
-    check_exprs(Exprs, Analysis);
+-spec check_expr(Expr :: erl_parse:af_body(), #analysis{}) -> #analysis{}.
+%% check_expr(Exprs, Analysis) when is_list(Exprs) ->
+%%     check_exprs(Exprs, Analysis);
 check_expr({'receive', _Anno, CaseClauses}, Analysis) when is_list(CaseClauses) ->
     check_recv_clauses(CaseClauses, Analysis);
-check_expr({'receive', _Anno, CaseClauses, AfterExpr, AfterBody}, Analysis) when is_list(CaseClauses),
-                                                                                 is_list(AfterBody) ->
+check_expr({'receive', _Anno, CaseClauses, AfterExpr, AfterBody},
+           Analysis) when is_list(CaseClauses),
+                          is_list(AfterBody) ->
     Analysis1 = check_recv_clauses(CaseClauses, Analysis),
     check_exprs([AfterExpr | AfterBody], Analysis1);
-check_expr({var,_Anno,_VarName}, Analysis) ->
+check_expr(#var{}, Analysis) ->
     Analysis;
-check_expr({'block', _Anno, Body}, Analysis) when is_list(Body) ->
+check_expr(#block{body = Body}, Analysis) when is_list(Body) ->
     check_exprs(Body, Analysis);
-check_expr({'case', _Anno, Expr, CaseClauses}, Analysis) when is_list(CaseClauses) ->
+check_expr(#'case'{expr = Expr, caseClauses = CaseClauses},
+           Analysis) when is_list(CaseClauses) ->
     Analysis1 = check_expr(Expr, Analysis),
     check_case_clauses(CaseClauses, Analysis1);
-check_expr({'catch',_Anno,Expr}, Analysis) ->
+check_expr(#'catch'{expr=Expr}, Analysis) ->
     check_expr(Expr, Analysis);
-check_expr({cons,_Anno,HeadList,List}, Analysis) when is_list(List) ->
+check_expr(#'cons'{head=HeadList, tail=List}, Analysis) when is_list(List) ->
     check_exprs([HeadList | List], Analysis);
-check_expr({'fun',_Anno,{clauses, FunClauses}}, Analysis) when is_list(FunClauses) ->
+check_expr(#'fun'{clauses = {clauses, FunClauses}}, Analysis) when is_list(FunClauses) ->
     check_clauses(FunClauses, Analysis);
-check_expr({named_fun,_Anno,_Name,FunClauses}, Analysis) when is_list(FunClauses) ->
+check_expr(#'named_fun'{clauses = FunClauses}, Analysis) when is_list(FunClauses) ->
     check_clauses(FunClauses, Analysis);
 check_expr({call, _Anno, {atom, _, Name}, Args}, Analysis) when is_list(Args),
                                                                 (Name == spawn orelse Name == self) ->
@@ -173,22 +192,22 @@ check_expr({call, _Anno, _Name, Args}, Analysis) when is_list(Args) ->
 %%     check_exprs(Args, Analysis);
 check_expr({call,_Anno,{remote,_AnnoRemote,ModuleExpr,FunExpr,Args}}, Analysis) when is_list(Args) ->
     check_exprs([ModuleExpr, FunExpr | Args], Analysis);
-check_expr({'if',_Anno,IfClauses}, Analysis) when is_list(IfClauses) ->
+check_expr(#'if'{clauses = IfClauses}, Analysis) when is_list(IfClauses) ->
     check_if_clauses(IfClauses, Analysis);
-check_expr({lc,_Anno,Body,Qualifiers}, Analysis) when is_list(Qualifiers) ->
+check_expr(#'lc'{body=Body,qualifiers=Qualifiers}, Analysis) when is_list(Qualifiers) ->
     Analysis1 = check_qualifier(Qualifiers, Analysis),
     check_expr(Body, Analysis1);
-check_expr({mc,_Anno,Body,Qualifiers}, Analysis) when is_list(Qualifiers) ->
+check_expr(#'mc'{body=Body, qualifiers=Qualifiers}, Analysis) when is_list(Qualifiers) ->
     Analysis1 = check_qualifier(Qualifiers, Analysis),
     check_expr(Body, Analysis1);
 check_expr({map,_Anno,Associations}, Analysis) when is_list(Associations) ->
     check_associations(Associations, Analysis);
 check_expr({map,_Anno,MapExpr,Associations}, Analysis) when is_list(Associations) ->
     check_associations(Associations, check_expr(MapExpr, Analysis));
-check_expr({match,_Anno,Pattern,Expr}, Analysis) ->
+check_expr(#'match'{pattern=Pattern, expr=Expr}, Analysis) ->
     Analysis1 = check_pattern(Pattern, Analysis),
     check_expr(Expr, Analysis1);
-check_expr({maybe_match,_Anno,Pattern,Expr}, Analysis) ->
+check_expr(#'maybe_match'{pattern=Pattern,expr=Expr}, Analysis) ->
     check_expr(Expr, check_expr(Pattern, Analysis));
 check_expr({'maybe',_Anno,Body}, Analysis) ->
     check_exprs(Body, Analysis);
@@ -199,20 +218,24 @@ check_expr({op,_Anno,_Op,Expr1, Expr2}, Analysis) ->
     check_expr(Expr2, check_expr(Expr1, Analysis));
 check_expr({op, _Anno, _Op, Expr}, Analysis) ->
     check_expr(Expr, Analysis);
-check_expr({record,_Anno,_Name, RecordFields}, Analysis) when is_list(RecordFields) ->
+check_expr({record,_Anno,Name, RecordFields}, Analysis) when is_list(RecordFields),
+is_atom(Name) ->
     check_record_fields(RecordFields, Analysis);
+check_expr({record,_Anno,Expr,_Name,RecordFields}, Analysis) when is_list(RecordFields) ->
+    check_record_fields(RecordFields, check_expr(Expr, Analysis));
 check_expr({record_field,_Anno,Expr,_Name,Field}, Analysis) ->
     Analysis1 = check_expr(Expr, Analysis),
     check_expr(Field, Analysis1);
 check_expr({record_index,_Anno,_Name,Field}, Analysis) ->
     check_expr(Field, Analysis);
-check_expr({record,_Anno,Expr,_Name,RecordFields}, Analysis) when is_list(RecordFields) ->
-    check_record_fields(RecordFields, check_expr(Expr, Analysis));
 check_expr({tuple,_Anno,Exprs}, Analysis) when is_list(Exprs) ->
     check_exprs(Exprs, Analysis);
-check_expr({'try',_Anno,Body,CaseClauses,CatchClauses,AfterBody}, Analysis) when is_list(CaseClauses),
-                                                                                 is_list(CatchClauses),
-                                                                                 is_list(AfterBody) ->
+check_expr(#'try'{body = Body,
+                  cases=CaseClauses,
+                  catches=CatchClauses,
+                  'after'=AfterBody}, Analysis) when is_list(CaseClauses),
+                                                     is_list(CatchClauses),
+                                                     is_list(AfterBody) ->
     Analysis1 = check_exprs(Body, Analysis),
     Analysis2 = check_case_clauses(CaseClauses, Analysis1),
     Analysis3 = check_catch_clauses(CatchClauses, Analysis2),
@@ -235,98 +258,108 @@ check_record_fields(RecordFields, Analysis) when is_list(RecordFields) ->
 
 -doc "Check well-formedness of record fields".
 -spec check_record_field(RecordField, Analysis) -> #analysis{} when
-      RecordField :: {record_field,_,Field :: atom(), Expr :: tuple()},
-      Analysis :: #analysis{}.
-check_record_field({record_field,_Anno,Field,Expr}, Analysis) when is_atom(Field) ->
+      RecordField :: {record_field,_, FieldName, Expr},
+      FieldName   :: erl_parse:af_field_name(),
+      Expr        :: erl_parse:abstract_type(),
+      Analysis    :: #analysis{}.
+check_record_field({record_field,_Anno,Field,Expr}, Analysis) when is_tuple(Field),
+                                                                   is_tuple(Expr) ->
     check_expr(Expr, Analysis).
 
 -doc "Check well-formedness of pattern sequences".
--spec check_patterns(Patterns :: list(), #analysis{}) -> #analysis{}.
+-spec check_patterns(Patterns :: erl_parse:af_pattern(), #analysis{}) -> #analysis{}.
 check_patterns(Patterns, Analysis) when is_list(Patterns) ->
     lists:foldl(fun check_pattern/2, Analysis, Patterns).
 
 %% Function guards do not affect the well-formedness
+-spec check_guards(erl_parse:af_guard_seq(), #analysis{}) -> #analysis{}.
 check_guards(_, Analysis) ->
     Analysis.
 
 -doc "Check well-formedness of if/maybe clauses".
--spec check_if_clauses(Clauses :: [tuple()], #analysis{}) -> #analysis{}.
+-spec check_if_clauses(Clauses :: [#'clause'{}], #analysis{}) -> #analysis{}.
 check_if_clauses(Clauses, Analysis) when is_list(Clauses) ->
     lists:foldl(fun check_if_clause/2, Analysis, Clauses).
 
-check_if_clause({clause,_Anno,[],Guards,Body}, Analysis) when is_list(Guards),
+check_if_clause(#'clause'{guards=Guards,body=Body}, Analysis) when is_list(Guards),
                                                               is_list(Body) ->
     Analysis1 = check_guards(Guards, Analysis),
     check_exprs(Body, Analysis1).
-    
+
 -spec check_qualifier(Qualifiers :: [tuple()], #analysis{}) -> #analysis{}.
 check_qualifier(Qualifiers, Analysis) when is_list(Qualifiers) ->
-    analysis:push_error(?ERR_UNSUPPORTED_QUALIFIERS, {error, Qualifiers}, Analysis).    
+    analysis:push_error(?ERR_UNSUPPORTED_QUALIFIERS, {error, Qualifiers}, Analysis).
 
--spec check_associations(Associations :: [tuple()], #analysis{}) -> #analysis{}.
+-spec check_associations(associations(), #analysis{}) -> #analysis{}.
 check_associations(Associations, Analysis) when is_list(Associations) ->
     lists:foldl(fun check_association/2, Analysis, Associations).
 
--spec check_association(Associations :: tuple(), #analysis{}) -> #analysis{}.
-check_association({Tag,_Anno,K,V}, Analysis) when Tag == map_field_assoc;
-                                                  Tag == map_field_exact ->
+-spec check_association(associations(), #analysis{}) -> #analysis{}.      
+check_association(#'map_field_assoc'{key=K, value=V}, Analysis) ->
+    Analysis1 = check_expr(K, Analysis),
+    check_expr(V, Analysis1);
+check_association(#'map_field_exact'{key=K, value=V}, Analysis) ->
     Analysis1 = check_expr(K, Analysis),
     check_expr(V, Analysis1).
 
--spec check_pattern(Pattern :: tuple(), #analysis{}) -> #analysis{}.
+-spec check_case_pattern(Pattern :: erl_parse:af_body(), #analysis{}) -> #analysis{}.
+check_case_pattern(Pattern, Analysis) ->
+    check_pattern(Pattern, Analysis).
+
+-spec check_pattern(Pattern :: erl_parse:af_body(), #analysis{}) -> #analysis{}.
 check_pattern(Pattern, Analysis) ->
     %% patterns form match their expr form.
     check_expr(Pattern, Analysis).
 
--spec check_case_pattern(Pattern :: tuple(), #analysis{}) -> #analysis{}.
-check_case_pattern(Pattern, Analysis) ->
-    check_pattern(Pattern, Analysis).
-
+-spec check_case_clauses(erl_parse:af_clause_seq(), #analysis{}) -> #analysis{}.
 check_case_clauses(Clauses, Analysis) when is_list(Clauses) ->
     lists:foldl(fun check_case_clause/2, Analysis, Clauses).
 
-check_case_clause({clause, _, [Pattern], _Guards, Body}, Analysis) ->
+-spec check_case_clause(#'clause'{}, #analysis{}) -> #analysis{}.
+check_case_clause(#'clause'{patterns = [Pattern], body=Body}, Analysis) ->
     Analysis1 = check_case_pattern(Pattern, Analysis),
     check_exprs(Body, Analysis1).
 
-
 -doc "Check well-formedness of accepted receive clauses".
--spec check_recv_clauses(Clauses :: list(), #analysis{}) -> #analysis{}.
+-spec check_recv_clauses(Clauses :: [#'clause'{}], #analysis{}) -> #analysis{}.
 check_recv_clauses(Clauses, Analysis) when is_list(Clauses) ->
     lists:foldl(fun check_recv_clause/2, Analysis, Clauses).
 
 -doc "Check well-formedness of accepted singleton receive clause".
--spec check_recv_clause(Clauses :: tuple(), #analysis{}) -> #analysis{}.
-check_recv_clause({clause, _Anno, Pattern, _Guards, Body}, Analysis) ->
+-spec check_recv_clause(Clauses :: #'clause'{}, #analysis{}) -> #analysis{}.
+check_recv_clause(#'clause'{patterns=Pattern, body= Body}, Analysis) ->
     Analysis1 = check_recv_patterns(Pattern, Analysis),
     check_exprs(Body, Analysis1).
 
 -doc "Check well-formedness of accepted patterns in receive clauses".
--spec check_recv_patterns(Form :: list(), #analysis{}) -> #analysis{}.
+-spec check_recv_patterns(Form :: [literal() | nil | [tuple()]], #analysis{}) -> #analysis{}.
 check_recv_patterns(Patterns, Analysis) when is_list(Patterns) ->
     lists:foldl(fun check_recv_pattern/2, Analysis, Patterns).
 
 -doc "Check well-formedness of accepted patterns in receive clauses".
--spec check_recv_pattern(Form :: tuple() | nil | [tuple()], #analysis{}) -> #analysis{}.
+-spec check_recv_pattern(Form :: [literal() | nil | [tuple()]], #analysis{}) -> #analysis{}.
 check_recv_pattern(Lit, Analysis) when ?IS_LITERAL(Lit) ->
     check_lit(Lit, Analysis);
-check_recv_pattern({var, _Anno, _Name}, Analysis) ->
+check_recv_pattern(#'var'{}, Analysis) ->
     Analysis;
 check_recv_pattern(Pattern, Analysis) when is_tuple(Pattern) ->
     Anno = erl_syntax:get_pos(Pattern),
     analysis:push_error(?ERR_RECV_PATTERN_UNSUPPORTED, {error, {'receive', Anno, Pattern}}, Analysis).
 
 -doc "Check well-formedness of atomic literals".
--spec check_lit(Form :: tuple(), #analysis{}) -> #analysis{}.
-check_lit({atom, _, Value}, Analysis)
+-spec check_lit(Form :: literal(), #analysis{}) -> #analysis{}.      
+check_lit(#'atom'{value=Value}, Analysis)
   when Value =:= true; Value =:= false; Value =:= ok; Value =:= self; is_atom(Value) ->
   Analysis;
-check_lit({float, _, Value}, Analysis) when is_float(Value) ->
+check_lit(#'float'{value=Value}, Analysis) when is_float(Value) ->
   Analysis;
-check_lit({integer, _, Value}, Analysis) when is_integer(Value) ->
+check_lit(#'integer'{value=Value}, Analysis) when is_integer(Value) ->
   Analysis;
-check_lit({string, _, Value}, Analysis) when is_list(Value) ->
-  Analysis.
+check_lit(#'string'{value=Value}, Analysis) when is_list(Value) ->
+    Analysis;
+check_lit(_, Analysis) ->
+    Analysis.
+
 
 -doc """
 Check well-formedness of attributes `-use` and `-new`.

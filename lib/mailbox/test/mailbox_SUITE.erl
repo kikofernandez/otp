@@ -5,10 +5,10 @@
 
 -export([all/0, suite/0, groups/0, init_per_suite/1, end_per_suite/1]).
 -export([mailbox_lint_tests/0]).
--export([missing_mailbox_association/1, missing_mailbox_function/1,
-         missing_mailbox_function2/1, check_stdlib/1,
+-export([missing_mailbox_association/1, missing_mailbox_function/1, missing_mailbox_function2/1,
          missing_mailbox_bound_function/1, unsupported_mailbox_recv_pattern/1,
          check_program_without_mailbox/1, check_program_without_mailbox_with_attr/1]).
+-export([check_stdlib_lists/1, check_stdlib_gen_server/1, check_stdlib_gen_statem/1]).
 
 -define(MAILBOX_LINT_GROUP, mailbox_lint).
 
@@ -66,7 +66,9 @@ mailbox_lint_tests() ->
      unsupported_mailbox_recv_pattern,
      check_program_without_mailbox,
      check_program_without_mailbox_with_attr,
-     check_stdlib
+     check_stdlib_lists,
+     check_stdlib_gen_server,
+     check_stdlib_gen_statem
     ].
 
 missing_mailbox_association(Config) ->
@@ -165,18 +167,43 @@ check_program_without_mailbox_with_attr(Config) ->
     Expected = Result,
     ok.
 
-check_stdlib(Config) ->
+check_stdlib_lists(Config) ->
+    TestBin = setup_check_stdlib_file("lists.erl"),
+    Check = proplists:get_value(check, Config),
+    Result = Check(erlang:binary_to_list(TestBin)),
+
+    true = lists:all(fun ({ErrorTag, _}) -> err_unsupported_qualifiers == ErrorTag end, Result),
+    ok.
+
+
+check_stdlib_gen_server(Config) ->
+    TestBin = setup_check_stdlib_file("gen_server.erl"),
+    Check = proplists:get_value(check, Config),
+    Result = Check(erlang:binary_to_list(TestBin)),
+
+    Expected = [err_unsupported_catch_clauses,
+                err_unsupported_recv_pattern,
+                err_unsupported_qualifiers],
+    true = lists:all(fun ({ErrorTag, _}) -> lists:member(ErrorTag, Expected) end, Result),
+    ok.
+
+check_stdlib_gen_statem(Config) ->
+    TestBin = setup_check_stdlib_file("gen_statem.erl"),
+    Check = proplists:get_value(check, Config),
+    Result = Check(erlang:binary_to_list(TestBin)),
+
+    Expected = [err_unsupported_catch_clauses,
+                err_unsupported_qualifiers],
+    true = lists:all(fun ({ErrorTag, _}) -> lists:member(ErrorTag, Expected) end, Result),
+    ok.
+
+-spec setup_check_stdlib_file(File :: string()) -> binary().
+setup_check_stdlib_file(File) when is_list(File) ->
     DataDir = filename:join([os:getenv("ERL_TOP"), "lib", "stdlib", "src"]),
     ok = filelib:ensure_path(DataDir),
-    FilePath = filename:join(DataDir, "lists.erl"),
+    FilePath = filename:join(DataDir, File),
     io:format("FilePath: ~p~n", [FilePath]),
     true = filelib:is_file(FilePath),
 
     {ok, TestBin} = file:read_file(FilePath),
-    io:format("Bin:~n~p~n", [TestBin]),
-    Check = proplists:get_value(check, Config),
-    Result = Check(erlang:binary_to_list(TestBin)),
-
-    Expected = [],
-    Expected = Result,
-    ok.
+    TestBin.

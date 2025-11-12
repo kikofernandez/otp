@@ -39,3 +39,5 @@ apps = [
     {"name" = "mailbox", "dir" = "lib/mailbox", "src_dirs" = ["src"], "extra_src_dirs" = ["test"], "include_dirs" = ["include", "ebin"]},
     ]
 deps = []
+[eqwalizer]
+enable_all = true

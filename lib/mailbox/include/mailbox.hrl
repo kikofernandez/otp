@@ -42,6 +42,8 @@
 
 -define(ERR_UNSUPPORTED_QUALIFIERS, err_unsupported_qualifiers).
 
+-define(ERR_UNKNOWN_FORM, err_unknown_form).
+
 %% defines modes:
 %% 'debug' will print debugging information.
 %% 'check' ignores debugging info
@@ -163,3 +165,120 @@
 -type mode()   :: ?CHECK_MODE | ?DEBUG_MODE.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% MODULE DECLARATION RECORDS
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+-record(function,
+        {anno    :: erl_anno:location(),
+         name    :: erl_anno:function_name(),
+         arity   :: erl_anno:arity(),
+         clauses :: erl_anno:af_clause_seq()}).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+-type anno() :: erl_parse:anno().
+
+-record('block',
+        {anno :: erl_parse:anno(),
+         body :: erl_parse:af_body()}).
+
+-record(var,
+        {anno    :: erl_anno:location(),
+         varName :: atom()}).
+
+-record('catch',
+        {anno :: erl_parse:anno(),
+         expr :: erl_parse:abstract_expr()}).
+
+-record('cons',
+        {anno :: erl_parse:anno(),
+         head :: T,
+         tail :: T}).
+
+-record(clauses,
+       {clauses :: erl_parse:af_clause_seq()}).
+
+-record('clause',
+        {anno     :: erl_parse:anno(),
+         patterns :: [erl_parse:af_pattern()],
+         guards   :: erl_parse:af_guard_seq(),
+         body     :: erl_parse:af_body()}).
+
+-record('fun',
+        {anno    :: erl_parse:anno(),
+         clauses :: erl_parse:af_clause_seq() }).
+
+-record(named_fun,
+        {anno    :: erl_parse:anno(),
+         name    :: erl_parse:fun_name(),
+         clauses :: erl_parse:af_clause_seq()}).
+
+-record('if',
+        { anno    :: erl_parse:anno(),
+          clauses :: erl_parse:af_clause_seq()}).
+
+-record('lc',
+        {anno :: erl_parse:anno(),
+         body :: erl_parse:af_template(),
+         qualifiers :: erl_parse:af_qualifier_seq()}).
+
+-record('mc',
+        {anno :: erl_parse:anno(),
+         body :: erl_parse:af_assoc(erl_parse:abstract_expr()),
+         qualifiers :: erl_parse:af_qualifier_seq()}).
+
+-record('bc',
+        {anno :: erl_parse:anno(),
+         body :: erl_parse:af_template(),
+         qualifiers :: erl_parse:af_qualifier_seq()}).
+
+-record('match',
+        {anno    :: erl_parse:anno(),
+         pattern :: erl_parse:af_pattern(),
+         expr    :: dynamic()}).
+
+-record('map_field_assoc',
+        {anno :: erl_parse:anno(),
+         key  :: dynamic(),
+         value :: dynamic()}).
+
+-record('map_field_exact',
+        {anno :: erl_parse:anno(),
+         key  :: dynamic(),
+         value :: dynamic()}).
+
+-record('maybe_match',
+        {anno    :: erl_parse:anno(),
+         pattern :: erl_parse:af_pattern(),
+         expr    :: erl_parse:abstract_expr()}).
+
+-record('case',
+        {anno        :: erl_parse:anno(),
+         expr        :: erl_parse:abstract_expr(),
+         caseClauses :: erl_parse:af_clause_seq()}).
+
+-record('try',
+        {anno      :: erl_parse:anno(),
+         body      :: erl_parse:af_body(),
+         cases  :: erl_parse:af_clause_seq() | [],
+         catches :: erl_parse:af_clause_seq() | [],
+         'after'   :: erl_parse:af_body() | []}).
+
+-record('atom',
+        {anno  :: erl_parse:anno(),
+         value :: erl_parse:af_lit_atom(atom())}).
+
+-record('float',
+        {anno  :: erl_parse:anno(),
+         value :: erl_parse:float()}).
+
+-record('integer',
+        {anno  :: erl_parse:anno(),
+         value :: non_neg_integer()}).
+
+-record('string',
+        {anno  :: erl_parse:anno(),
+         value :: string()}).
