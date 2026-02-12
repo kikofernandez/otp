@@ -555,24 +555,79 @@ jobs:
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: otp_prebuilt
-      - name: Build on FreeBSD
-        uses: vmactions/freebsd-vm@c9f815bc7aa0d34c9fdd0619b034a32d6ca7b57e
+      - name: Build on FreeBSD (monitor FD usage)
+        uses: vmactions/freebsd-vm@262fcf6e3e09d447753de95ad05d006c26e11f22 # v1
         with:
             usesh: true
             copyback: false
             prepare: |
               pkg update
               pkg upgrade -y
-              pkg install -y bash gmake gtar autoconf ncurses pkgconf
-
+              pkg install -y bash gmake gtar autoconf ncurses pkgconf lsof
             run: |
+                set -euo pipefail
+
+                # target soft limit we want to try
+                TARGET_NOFILE=65536
+
+                echo "Before: soft=$(ulimit -Sn) hard=$(ulimit -Hn)"
+                # try to increase soft limit (will fail if hard limit lower)
+                echo "Trying to set ulimit -n $TARGET_NOFILE"
+                if ulimit -n "$TARGET_NOFILE" 2>/dev/null; then
+                  echo "ulimit set to $(ulimit -n)"
+                else
+                  echo "Could not set ulimit -n $TARGET_NOFILE (hard limit likely lower); current soft=$(ulimit -Sn) hard=$(ulimit -Hn)"
+                fi
+
+                # extract sources
                 tar -xzf ./otp_src.tar.gz
                 cd otp
-                export ERL_TOP=`pwd`
+                export ERL_TOP=$(pwd)
+                export MAKEFLAGS=-j$(($(nproc) + 2))
                 export ERLC_USE_SERVER=true
                 export ERTS_SKIP_DEPEND=true
-                ./configure
-                gmake
+
+                # helper: monitor lsof count for a PID, record max
+                monitor_fd_peak() {
+                  pid="$1"
+                  max=0
+                  while kill -0 "$pid" 2>/dev/null; do
+                    # lsof returns a list; subtract 1 for header if present
+                    n=$(lsof -p "$pid" 2>/dev/null | wc -l || echo 0)
+                    # adjust if lsof prints header
+                    if [ "$n" -gt 0 ]; then
+                      # lsof includes header line; real count roughly n-1
+                      n=$((n - 1))
+                    fi
+                    [ "$n" -gt "$max" ] && max=$n
+                    sleep 1
+                  done
+                  echo "$max"
+                }
+
+                # run build in background and monitor its FD usage
+                gmake &
+                BUILD_PID=$!
+                echo "Build started with PID $BUILD_PID"
+
+                # run monitor in subshell and capture peak in a file
+                ( monitor_fd_peak "$BUILD_PID" > /tmp/fd_peak.txt ) & MONITOR_PID=$!
+
+                # wait build to finish
+                wait "$BUILD_PID"
+                # give monitor one second to exit
+                sleep 1
+                # ensure monitor ended
+                kill -0 "$MONITOR_PID" 2>/dev/null && kill "$MONITOR_PID" || true
+
+                PEAK_FDS=$(cat /tmp/fd_peak.txt || echo 0)
+                echo "Peak file descriptors used by build process: $PEAK_FDS"
+                echo "Final ulimit: soft=$(ulimit -Sn) hard=$(ulimit -Hn)"
+
+                # optional: fail if peak dangerously close to limit (uncomment to enable)
+                # if [ "$PEAK_FDS" -ge $(( $(ulimit -Sn) - 100 )) ]; then
+                #   echo "WARNING: peak fds close to soft limit"
+                # fi
   openbsd:
     name: Build Erlang/OTP (OpenBSD)
     runs-on: ubuntu-latest
