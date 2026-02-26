@@ -119,6 +119,7 @@ jobs:
           done
         env:
           ATTESTATION: "${{ steps.attest-sbom.outputs.bundle-path }}"
+      # TODO: enable when live
       # - name: "Assemble Distribution Attestations"
       #   uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       #   with:
@@ -139,6 +140,7 @@ jobs:
             bom.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # TODO: enable when live
       # - name: Deploy on erlang.org
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
