@@ -27,8 +27,6 @@ on:
         required: true
         type: string
     secrets:
-      GITHUB_TOKEN:
-        required: true
       TRIGGER_ERLANG_ORG_BUILD:
         required: true
 

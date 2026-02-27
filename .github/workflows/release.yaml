@@ -158,9 +158,7 @@ jobs:
     uses: ./.github/workflows/reusable-release.yaml
     with:
       otp_sbom_version: ${{ needs.setup.outputs.otp_sbom_version }}
-    secrets:
-      GITHUB_TOKEN:             ${{ secrets.GITHUB_TOKEN  }}
-      TRIGGER_ERLANG_ORG_BUILD: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
+    secrets: inherit
 
   event_file:
     name: "Event File"
