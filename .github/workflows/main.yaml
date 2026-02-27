@@ -134,6 +134,7 @@ jobs:
       ref_name:             ${{ github.ref_name }}
       base_ref:             ${{ github.base_ref }}
       pr_base_sha:          ${{ github.event.pull_request.base.sha }}
+      bypass_erlang_repo:   false
 
   build-macos:
     name: Build Erlang/OTP (macOS)
@@ -437,9 +438,8 @@ jobs:
     uses: ./.github/workflows/reusable-vendor-vulnerability-scanner.yml
     with:
       fail_if_cve: false
-      checkout: true
-      version: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
-      # equivalent of ${{ env.BASE_BRANCH }} but reusable-workflows do not allow to pass env.
+      checkout:    true
+      version:     ${{ needs.setup.outputs.base_branch }}
       # `fail_if_cve` must always be `false`. the reason is that the reusable workflow tries to open
       # a GH Issue if it finds a vulnerability. however, this can only work on internal PRs or PRs coming
       # from a repo branch. this is a security limitation as otherwise, forked repos could create pull
@@ -503,8 +503,8 @@ jobs:
     secrets:
       TRIGGER_ERLANG_ORG_BUILD: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
     with:
-      base_branch: env.BASE_BRANCH
-      base_url: ${{ needs.setup.outputs.docs_base_url  }}
+      base_branch:              ${{ env.BASE_BRANCH }}
+      base_url:                 ${{ needs.setup.outputs.docs_base_url  }}
       trigger_erlang_org_build: ${{ github.ref_name == 'master' && github.repository == 'erlang/otp' }}
 
   static:

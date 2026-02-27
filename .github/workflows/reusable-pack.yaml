@@ -41,6 +41,10 @@ on:
         required: false
         type: string
         default: ''
+      bypass_erlang_repo:
+        required: true
+        type: boolean
+        description: "Bypasses checks of github.repository being 'erlang/otp'. Used for testing in forks"
     outputs:
       changes:
         description: "changed apps"
@@ -56,7 +60,7 @@ jobs:
   pack:
     name: Build Erlang/OTP (64-bit)
     runs-on: ubuntu-latest
-    if: github.repository == 'erlang/otp' || github.event_name != 'schedule'
+    if: github.repository == 'erlang/otp' || github.event_name != 'schedule' || inputs.bypass_erlang_repo
     outputs:
       changes:      ${{ steps.changes.outputs.changes }}
       build-c-code: ${{ steps.build-c-code.outputs.value }}
