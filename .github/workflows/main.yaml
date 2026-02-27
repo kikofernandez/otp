@@ -104,6 +104,9 @@ jobs:
   pack:
     needs: pre-pack
     uses: ./.github/workflows/reusable-pack.yaml
+    permissions:
+      contents: read
+      packages: read
     with:
       base_branch:          ${{ needs.pre-pack.outputs.base_branch }}
       full_build_and_check: ${{ needs.pre-pack.outputs.full_build_and_check }}
