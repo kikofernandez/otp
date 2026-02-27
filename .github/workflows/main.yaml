@@ -90,133 +90,13 @@ jobs:
           fi
 
   pack:
-    name: Build Erlang/OTP (64-bit)
-    runs-on: ubuntu-latest
-    if: github.repository == 'erlang/otp' || github.event_name != 'schedule'
-    outputs:
-        changes: ${{ steps.changes.outputs.changes }}
-        build-c-code: ${{ steps.c-code-changes.outputs.changes != '[]' || env.FULL_BUILD_AND_CHECK == 'true' }}
-        all: ${{ steps.apps.outputs.all }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/build-base-image
-        with:
-            BASE_BRANCH: ${{ env.BASE_BRANCH }}
-            BUILD_IMAGE: false
-      - name: Get applications
-        id: apps
-        run: |
-          .github/scripts/path-filters.sh > .github/scripts/path-filters.yaml
-          .github/scripts/c-code-path-filters.sh > .github/scripts/c-code-path-filters.yaml
-          ## Print path-filters for debug purposes
-          cat .github/scripts/path-filters.yaml
-          cat .github/scripts/c-code-path-filters.yaml
-          ALL_APPS=$(grep '^[a-z_]*:' .github/scripts/path-filters.yaml | sed 's/:.*$//')
-          ALL_APPS=$(jq -n --arg inarr "${ALL_APPS}" '$inarr | split("\n")' | tr '\n' ' ')
-          echo "all=${ALL_APPS}" >> $GITHUB_OUTPUT
-      - name: Check which applications have changed
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # ratchet:dorny/paths-filter@v3.0.2
-        id: app-changes
-        with:
-          filters: .github/scripts/path-filters.yaml
-      - name: Override which applications have changed
-        id: changes
-        env:
-            ALL_APPS: ${{ steps.apps.outputs.all }}
-            CHANGED_APPS: ${{ steps.app-changes.outputs.changes }}
-        run: |
-          if ${{ env.FULL_BUILD_AND_CHECK }}; then
-              echo "changes=${ALL_APPS}" >> "$GITHUB_OUTPUT"
-          else
-              echo "changes=${CHANGED_APPS}" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Check if there are any C-code changes, if not then limit CI run
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # ratchet:dorny/paths-filter@v3.0.2
-        id: c-code-changes
-        with:
-          filters: .github/scripts/c-code-path-filters.yaml
-      - name: Cache pre-built src
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-            path: otp_src.tar.gz
-            key: prebuilt-src-${{ github.ref_name }}-${{ github.sha }}
-            restore-keys: |
-                prebuilt-src-${{ github.base_ref }}-${{ github.event.pull_request.base.sha }}
-      - name: Cache pre-built binaries
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-            path: otp_cache.tar.gz
-            key: prebuilt-cache-64-bit-${{ github.ref_name }}-${{ github.sha }}
-            restore-keys: |
-                prebuilt-cache-64-bit-${{ github.base_ref }}-${{ github.event.pull_request.base.sha }}
-      - name: Create initial pre-release tar
-        run: .github/scripts/init-pre-release.sh otp_archive.tar.gz otp_src.tar.gz
-      - name: Upload source tar archive
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: otp_git_archive
-          path: otp_archive.tar.gz
-      - name: Check how we can use the pre-built cache
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # ratchet:dorny/paths-filter@v3.0.2
-        id: cache
-        with:
-          filters: |
-              no-cache:
-                  - '.github/**'
-                  - deleted: '**/*.h'
-              deleted:
-                  - deleted: '**'
-              bootstrap:
-                  - 'bootstrap/**'
-              configure:
-                  - '**.ac'
-                  - '**.in'
-          list-files: shell
-      - name: Restore from cache
-        env:
-            NO_CACHE: ${{ fromJson(steps.cache.outputs.no-cache) || fromJson(env.FULL_BUILD_AND_CHECK) || fromJson(steps.cache.outputs.deleted_count) > 20 }}
-            BOOTSTRAP: ${{ steps.cache.outputs.bootstrap }}
-            CONFIGURE: ${{ steps.cache.outputs.configure }}
-            EVENT: ${{ github.event_name }}
-            DELETED: ${{ fromJson(steps.cache.outputs.deleted_count) > 20 && '[]' || steps.cache.outputs.deleted_files }}
-        run: |
-            .github/scripts/restore-from-prebuilt.sh "`pwd`" \
-              "`pwd`/.github/otp.tar.gz" \
-              "`pwd`/otp_archive.tar.gz"
-      - name: Upload restored cache
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: runner.debug == 1
-        with:
-          name: restored-cache
-          path: .github/otp.tar.gz
-      - name: Build image
-        run: |
-          docker build --tag otp \
-            --build-arg MAKEFLAGS=-j$(($(nproc) + 2)) \
-            --file ".github/dockerfiles/Dockerfile.64-bit" \
-            .github/
-      - name: Build pre-built tar archives
-        run: |
-          docker run -v $PWD:/github --entrypoint "" otp \
-            scripts/build-otp-tar -o /github/otp_clean_src.tar.gz /github/otp_src.tar.gz -b /buildroot/otp/ /github/otp_archive.tar.gz
-      - name: Build cache
-        run: |
-          if [ -f otp_cache.tar.gz ]; then
-            gunzip otp_cache.tar.gz
-          else
-            docker run -v $PWD:/github --entrypoint "" otp \
-              bash -c 'cp ../otp_cache.tar /github/'
-          fi
-          docker run -v $PWD:/github --entrypoint "" otp \
-            bash -c 'set -x; C_APPS=$(ls -d ./lib/*/c_src); find Makefile ./make ./erts ./bin/`erts/autoconf/config.guess` ./lib/erl_interface ./lib/jinterface ${C_APPS} `echo "${C_APPS}" | sed -e 's:c_src$:priv:'` -type f -newer README.md \! -name "*.beam" \! -path "*/doc/*" \! -path "./erts/preloaded/*" | xargs tar --transform "s:^./:otp/:" -uvf /github/otp_cache.tar'
-          gzip otp_cache.tar
-      - name: Upload pre-built tar archives
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: otp_prebuilt
-          path: |
-              otp_src.tar.gz
-              otp_cache.tar.gz
+    uses: ./.github/workflows/reusable-pack.yaml
+    with:
+      base_branch:          ${{ env.BASE_BRANCH }}
+      full_build_and_check: ${{ env.FULL_BUILD_AND_CHECK }}
+      ref_name:             ${{ github.ref_name }}
+      base_ref:             ${{ github.base_ref }}
+      pr_base_sha:          ${{ github.event.pull_request.base.sha }}
 
   build-macos:
     name: Build Erlang/OTP (macOS)
@@ -578,58 +458,18 @@ jobs:
                 gmake
 
   documentation:
-    name: Build and check documentation
-    runs-on: ubuntu-latest
     needs: pack
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/build-base-image
-        with:
-            BASE_BRANCH: ${{ env.BASE_BRANCH }}
-
-      ## Build all the documentation
-      - name: Build documentation
-        env:
-            BASE_URL: ${{ github.event_name == 'pull_request' &&
-                format('{0}/blob/{1}/',github.event.pull_request.head.repo.full_name,github.event.pull_request.head.ref) ||
-                format('{0}/blob/{1}/',github.repository,github.ref_name)
-              }}
-        run: |
-          docker build --build-arg BASE_URL="$BASE_URL" -t otp - <<EOF
-          FROM otp
-          ENV BASE_URL=$BASE_URL
-          RUN ./otp_build download_ex_doc
-          ## Need later jdk to create correct anchors in html docs
-          RUN sudo update-java-alternatives -s java-1.11.0-openjdk-amd64
-          RUN make release docs release_docs && sudo make install-docs
-          EOF
-      - name: Release docs to publish
-        run: |
-            docker run -v $PWD/:/github otp \
-              "make release_docs DOC_TARGETS='html man' RELEASE_ROOT=/github/docs"
-            sudo chown -R `whoami` docs
-            cd docs
-            tar czf ../otp_doc_man.tar.gz man
-            rm -rf man
-            tar czf ../otp_doc_html.tar.gz *
-      - name: Upload html documentation archive
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: otp_doc_html
-          path: otp_doc_html.tar.gz
-      - name: Upload man documentation archive
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: otp_doc_man
-          path: otp_doc_man.tar.gz
-      - name: Trigger rebuild of erlang.org/docs/
-        if: github.ref_name == 'master' && github.repository == 'erlang/otp'
-        env:
-          GITHUB_TOKEN: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
-        run: |
-          curl -H "Authorization: token ${GITHUB_TOKEN}" -X POST -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/erlang/erlang-org/actions/workflows/update-gh-cache.yaml/dispatches" -d '{"ref":"master"}'
-      - name: Run html link check
-        run: docker run -v $PWD/:/github otp "cd /github/docs && /github/scripts/otp_check_html_links.exs"
+    uses: ./.github/workflows/reusable-documentation.yaml
+    secrets:
+      TRIGGER_ERLANG_ORG_BUILD: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
+    with:
+      base_branch: env.BASE_BRANCH
+      base_url: ${{ github.event_name == 'pull_request' &&
+                      format('{0}/blob/{1}/',
+                             github.event.pull_request.head.repo.full_name,
+                             github.event.pull_request.head.ref) ||
+                      format('{0}/blob/{1}/',github.repository,github.ref_name)
+                 }}
 
   static:
     name: Run static analysis
