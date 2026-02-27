@@ -486,6 +486,7 @@ jobs:
                              github.event.pull_request.head.ref) ||
                       format('{0}/blob/{1}/',github.repository,github.ref_name)
                  }}
+      trigger_erlang_org_build: ${{ github.ref_name == 'master' && github.repository == 'erlang/otp' }}
 
   static:
     name: Run static analysis
