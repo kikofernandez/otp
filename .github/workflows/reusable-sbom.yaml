@@ -58,7 +58,7 @@ env:
   SCAN_RESULT_CACHE_PATH: .ort/scan-result.json
 
 jobs:
-  sbom:
+  create-sbom:
     name: Create SBOM
     runs-on: ubuntu-latest
     steps:
@@ -229,7 +229,7 @@ jobs:
   vendor-dependency-upload:
     name: Vendor Dependency Upload
     runs-on: ubuntu-latest
-    needs: sbom
+    needs: create-sbom
     if: github.repository == 'erlang/otp'
     ## Needed to use Github Dependency API
     permissions:
