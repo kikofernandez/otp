@@ -48,8 +48,10 @@ on:
           default: "Read before running"
 
 env:
-  BASE_BRANCH:      ${{ github.ref_name }}
-  OTP_SBOM_VERSION: ${{ github.ref_name }}
+  BASE_BRANCH:          ${{ github.ref_name }}
+  OTP_SBOM_VERSION:     ${{ github.ref_name }}
+  ORT_VERSION:          "77.0.0"
+  FULL_BUILD_AND_CHECK: "false"
 
 permissions:
   packages:        read
@@ -90,7 +92,6 @@ jobs:
           else
             echo "docs_base_url=${REPO}/blob/${REF_NAME}/"         >> $GITHUB_OUTPUT
           fi
-
 
   pack:
     name: Build Erlang/OTP (64-bit)
