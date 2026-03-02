@@ -39,9 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     ## Needed to create releases
     permissions:
-      contents: write
+      contents:     write
       attestations: write
-      id-token: write
+      id-token:     write
     steps:
       ## This step outputs the tag name and whether the tag is a release or patch
       ## (all releases have only two version identifiers, while patches have three
