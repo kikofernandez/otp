@@ -134,13 +134,13 @@ jobs:
       packages: read
       id-token: write
     with:
-      base_branch:                   ${{ needs.setup.outputs.base_branch }}
-      full_build_and_check:          ${{ needs.setup.outputs.full_build_and_check }}
+      base_branch:                   ${{ needs.pack.outputs.base_branch }}
+      full_build_and_check:          ${{ needs.pack.outputs.full_build_and_check }}
       ref_name:                      ${{ github.ref_name }}
       base_ref:                      ${{ github.base_ref }}
       pr_base_sha:                   ${{ github.event.pull_request.base.sha }}
-      otp_sbom_version:              ${{ needs.setup.outputs.otp_sbom_version }}
-      ort_version:                   ${{ needs.setup.outputs.ort_version }}
+      otp_sbom_version:              ${{ needs.pack.outputs.otp_sbom_version }}
+      ort_version:                   ${{ needs.pack.outputs.ort_version }}
       fail_on_violations:            ${{ github.ref_type == 'tag' && '' || 'violations,issues' }}
       upload_sbom_to_dependency_api: ${{ github.event_name == 'pull_request' &&
                                          github.event.action == 'closed'     &&
