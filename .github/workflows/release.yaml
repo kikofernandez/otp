@@ -139,8 +139,8 @@ jobs:
       ref_name:                      ${{ github.ref_name }}
       base_ref:                      ${{ github.base_ref }}
       pr_base_sha:                   ${{ github.event.pull_request.base.sha }}
-      otp_sbom_version:              ${{ needs.pack.outputs.otp_sbom_version }}
-      ort_version:                   ${{ needs.pack.outputs.ort_version }}
+      otp_sbom_version:              ${{ needs.setup.outputs.otp_sbom_version }} # TODO: possibly these need to be echo
+      ort_version:                   ${{ needs.setup.outputs.ort_version }}
       fail_on_violations:            ${{ github.ref_type == 'tag' && '' || 'violations,issues' }}
       upload_sbom_to_dependency_api: ${{ github.event_name == 'pull_request' &&
                                          github.event.action == 'closed'     &&

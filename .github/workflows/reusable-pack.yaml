@@ -55,7 +55,6 @@ on:
       all:
         description: "all apps"
         value: ${{ jobs.pack.outputs.all }}
-
       # this echo below is due to a limitation where github erases the outsputs from other jobs.
       base_branch:
         value: ${{ inputs.base_branch }}
@@ -69,6 +68,7 @@ on:
         value: ${{ inputs.pr_base_sha }}
       bypass_erlang_repo:
         value: ${{ inputs.bypass_erlang_repo }}
+
 jobs:
   pack:
     name: Build Erlang/OTP (64-bit)
