@@ -111,6 +111,7 @@ jobs:
   documentation:
     name: Build and Check Documentation
     needs:
+      - setup
       - pack
     uses: ./.github/workflows/reusable-documentation.yaml
     secrets:
@@ -124,6 +125,7 @@ jobs:
   sbom:
     name: Create SBOM
     needs:
+      - setup
       - pack
     uses: ./.github/workflows/reusable-sbom.yaml
     permissions:
@@ -148,6 +150,7 @@ jobs:
   release:
     name: Release Erlang/OTP
     needs:
+      - setup
       - sbom
       - documentation
     permissions:
