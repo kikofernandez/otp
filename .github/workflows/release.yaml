@@ -39,17 +39,19 @@ name: Release Action for Erlang/OTP
 on:
     workflow_dispatch:
       inputs:
-        branch-explanation:
+        checkout-branch:
           description: |
             Branch, Tag, or commit SHA in which to release GH assets.
             The `branch` must start with `OTP-` for the release process to finish.
             Otherwise, the action will build Erlang and test that the SBOM is satisfactory.
+
+            Leave the workflow with the `master` branch
           required: false
-          default: "Read before running"
+          default: "Tag to checkout"
 
 env:
-  BASE_BRANCH:          ${{ github.ref_name }}
-  OTP_SBOM_VERSION:     ${{ github.ref_name }}
+  BASE_BRANCH:          ${{ inputs.checkout-branch }}
+  OTP_SBOM_VERSION:     ${{ inputs.checkout-branch }}
   ORT_VERSION:          "77.0.0"
   FULL_BUILD_AND_CHECK: "false"
 
@@ -80,7 +82,7 @@ jobs:
           PR_REPO:       ${{ github.event.pull_request.head.repo.full_name }}
           PR_HEAD_REF:   ${{ github.event.pull_request.head.ref }}
           REPO:          ${{ github.repository }}
-          REF_NAME:      ${{ github.ref_name }}
+          REF_NAME:      ${{ inputs.BASE_BRANCH }}
         run: |
           echo "base_branch=${{ env.BASE_BRANCH }}" >> $GITHUB_OUTPUT
           echo "full_build_and_check=${{ env.FULL_BUILD_AND_CHECK }}" >> $GITHUB_OUTPUT
@@ -151,13 +153,14 @@ jobs:
     name: Release Erlang/OTP
     needs:
       - setup
+      - pack
       - sbom
       - documentation
     permissions:
       contents:     write
       attestations: write
       id-token:     write
-    if: startsWith(github.ref, 'refs/heads/test')
+    if: startsWith(needs.pack.outputs.base_branch, 'refs/heads/test')
     uses: ./.github/workflows/reusable-release.yaml
     with:
       otp_sbom_version: ${{ needs.sbom.outputs.otp_sbom_version }}
