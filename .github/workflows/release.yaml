@@ -43,11 +43,7 @@ on:
           description: |
             Branch, Tag, or commit SHA in which to release GH assets.
             The `branch` must start with `OTP-` for the release process to finish.
-            Otherwise, the action will build Erlang and test that the SBOM is satisfactory.
-
-            Leave the workflow with the `master` branch
-          required: false
-          default: "Tag to checkout"
+          required: true
 
 env:
   BASE_BRANCH:          ${{ inputs.checkout-branch }}
