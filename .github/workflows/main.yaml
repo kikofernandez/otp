@@ -114,6 +114,11 @@ jobs:
           echo "full_build_and_check=${{ env.FULL_BUILD_AND_CHECK }}" >> $GITHUB_OUTPUT
           echo "ort_version=${{ env.ORT_VERSION }}" >> $GITHUB_OUTPUT
           echo "otp_sbom_version=${{ env.OTP_SBOM_VERSION }}" >> $GITHUB_OUTPUT
+          TAG=${GITHUB_REF#refs/tags/}
+          VSN=${TAG#OTP-}
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "vsn=${VSN}" >> $GITHUB_OUTPUT
+
 
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             echo "docs_base_url=${PR_REPO}/blob/${PR_HEAD_REF}/"   >> $GITHUB_OUTPUT
@@ -695,6 +700,8 @@ jobs:
     uses: ./.github/workflows/reusable-release.yaml
     with:
       otp_sbom_version: ${{ needs.setup.outputs.otp_sbom_version }}
+      tag:              ${{ needs.setup.outputs.tag }}
+      vsn:              ${{ needs.setup.outputs.vsn }}
     secrets: inherit
 
   event_file:

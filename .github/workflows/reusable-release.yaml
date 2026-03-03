@@ -26,6 +26,12 @@ on:
       otp_sbom_version:
         required: true
         type: string
+      vsn:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
     secrets:
       TRIGGER_ERLANG_ORG_BUILD:
         required: true
@@ -43,17 +49,6 @@ jobs:
       attestations: write
       id-token:     write
     steps:
-      ## This step outputs the tag name and whether the tag is a release or patch
-      ## (all releases have only two version identifiers, while patches have three
-      ##  or more)
-      - name: Get Tag Name
-        id: tag
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          VSN=${TAG#OTP-}
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "vsn=${VSN}" >> $GITHUB_OUTPUT
-
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       ## Publish the pre-built archive and docs
