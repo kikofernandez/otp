@@ -157,7 +157,7 @@ jobs:
       contents:     write
       attestations: write
       id-token:     write
-    if: startsWith(github.ref, 'refs/tags/test')
+    if: startsWith(github.ref, 'refs/heads/test')
     uses: ./.github/workflows/reusable-release.yaml
     with:
       otp_sbom_version: ${{ needs.sbom.outputs.otp_sbom_version }}
