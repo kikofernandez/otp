@@ -156,7 +156,7 @@ jobs:
       contents:     write
       attestations: write
       id-token:     write
-    if: startsWith(needs.pack.outputs.base_branch, 'refs/heads/test')
+    if: startsWith(needs.pack.outputs.base_branch, 'test')
     uses: ./.github/workflows/reusable-release.yaml
     with:
       otp_sbom_version: ${{ needs.sbom.outputs.otp_sbom_version }}
