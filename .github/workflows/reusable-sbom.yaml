@@ -51,9 +51,21 @@ on:
       upload_sbom_to_dependency_api:
         required: true
         type: boolean
+      vsn:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
     outputs:
       otp_sbom_version:
         value: ${{ inputs.otp_sbom_version }}
+      base_ref:
+        value: ${{ inputs.base_ref }}
+      vsn:
+        value: ${{ inputs.vsn }}
+      tag:
+        value: ${{ inputs.tag }}
 
 env:
   ORT_VERSION: ${{ inputs.ort_version }}
