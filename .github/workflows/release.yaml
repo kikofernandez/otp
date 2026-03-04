@@ -164,6 +164,7 @@ jobs:
       otp_sbom_version: ${{ needs.sbom.outputs.otp_sbom_version }}
       tag:              ${{ needs.pack.outputs.tag }}
       vsn:              ${{ needs.pack.outputs.vsn }}
+      base_branch:      ${{ needs.setup.outputs.base_branch }}
     secrets: inherit
 
   event_file:
