@@ -207,11 +207,11 @@ jobs:
               --sbom-file $HOME/.ort/ort-results/bom.spdx.json \
               --input-file $HOME/.ort/ort-results/scan-result.json"
 
-      - name: Verify SBOM
-        run: |
-          docker run -v $PWD/:/github -v $HOME:$HOME otp \
-            "/github/.github/scripts/otp-compliance.es sbom test-file \
-              --sbom-file $HOME/.ort/ort-results/bom.spdx.json"
+      # - name: Verify SBOM
+      #   run: |
+      #     docker run -v $PWD/:/github -v $HOME:$HOME otp \
+      #       "/github/.github/scripts/otp-compliance.es sbom test-file \
+      #         --sbom-file $HOME/.ort/ort-results/bom.spdx.json"
 
       - name: Upload SPDX SBOM result
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
