@@ -168,8 +168,6 @@ jobs:
   release:
     name: Release Erlang/OTP
     needs:
-      - setup
-      - pack
       - sbom
       - documentation
       - release-setup
