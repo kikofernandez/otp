@@ -52,7 +52,12 @@ jobs:
       attestations: write
       id-token:     write
     steps:
+      # Extremely important. Otherwise GH will generate the correct .tar.gz and man and docs
+      # upload to the release page, but with the wrong otp_src.zip content.
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.base_branch }}
+
 
       ## Publish the pre-built archive and docs
       - name: Download source archive
@@ -119,12 +124,6 @@ jobs:
       #   with:
       #     name: "Attestations"
       #     path: "attestations/*.sigstore"
-
-      # Extremely important. Otherwise GH will generate in the action-gh-release
-      # an automatic upload of the checkout branch (`master`)
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ inputs.base_branch }}
 
 
       - name: Upload pre-built and doc tar archives

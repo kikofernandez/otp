@@ -153,7 +153,7 @@ jobs:
       base_branch:          ${{ steps.release-setup.outputs.base_branch }}
       ort_version:          ${{ steps.release-setup.outputs.ort_version }}
       otp_sbom_version:     ${{ steps.release-setup.outputs.otp_sbom_version }}
-      tags:                 ${{ steps.release-setup.outputs.tag }}
+      tag:                  ${{ steps.release-setup.outputs.tag }}
       vsn:                  ${{ steps.release-setup.outputs.vsn }}
     steps:
       - id: release-setup
