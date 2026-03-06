@@ -71,7 +71,7 @@ jobs:
       ## We add the correct version name into the file names
       ## and create the hash files for all assets
       - name: Create pre-build and doc archives
-        run: .github/scripts/create-artifacts.sh artifacts ${{ steps.tag.outputs.tag }}
+        run: .github/scripts/create-artifacts.sh artifacts ${{ inputs.tag }}
 
       ## Create hash files
       - name: Create pre-build and doc archives
@@ -120,9 +120,11 @@ jobs:
       #     name: "Attestations"
       #     path: "attestations/*.sigstore"
 
-      # - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      #   with:
-      #     ref: ${{ inputs.base_branch }}
+      # Extremely important. Otherwise GH will generate in the action-gh-release
+      # an automatic upload of the checkout branch (`master`)
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.base_branch }}
 
 
       - name: Upload pre-built and doc tar archives
