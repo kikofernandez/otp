@@ -44,6 +44,13 @@ on:
             Branch, Tag, or commit SHA in which to release GH assets.
             The `branch` must start with `OTP-` for the release process to finish.
           required: true
+        scripts-from-branch:
+          description: |
+            Use scripts from branch. This should be always the same as `checkout-branch`.
+            The only exception is if the scripts in `checkout-branch` contain a bug
+            and we need to use scripts from some other branch, most likely `maint` or `master`.
+          required: false
+          default: ''
 
 env:
   FULL_BUILD_AND_CHECK: "false"
@@ -130,6 +137,7 @@ jobs:
       id-token: write
     with:
       base_branch:                   ${{ needs.pack.outputs.base_branch }}
+      scripts-from-branch:           ${{ inputs.scripts-from-branch }}
       full_build_and_check:          ${{ needs.pack.outputs.full_build_and_check }}
       ref_name:                      ${{ github.ref_name }}
       base_ref:                      ${{ github.base_ref }}

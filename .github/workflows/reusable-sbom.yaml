@@ -49,6 +49,12 @@ on:
       upload_sbom_to_dependency_api:
         required: true
         type: boolean
+      scripts-from-branch:
+        required: false
+        type: string
+        default: ''
+        description: |
+          Use compliance script from the selected branch
     outputs:
       ort_version:
         description: "ORT version"
@@ -71,6 +77,15 @@ jobs:
         run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # runs otp-compliance from specific branch
+      - name: Sync script to execute
+        if: ${{ inputs.scripts-from-branch != '' }}
+        run: |
+          curl -LJ \
+           https://raw.githubusercontent.com/erlang/otp/refs/heads/${{ inputs.scripts-from-branch }}/.github/scripts/otp-compliance.es \
+           --output $PWD/.github/scripts/otp-compliance.es
+
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
