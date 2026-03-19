@@ -74,7 +74,7 @@ jobs:
           PR_REPO:       ${{ github.event.pull_request.head.repo.full_name }}
           PR_HEAD_REF:   ${{ github.event.pull_request.head.ref }}
           REPO:          ${{ github.repository }}
-          REF_NAME:      ${{ env.BASE_BRANCH }}
+          REF_NAME:      ${{ inputs.checkout-branch }}
         run: |
           echo "base_branch=${{ inputs.checkout-branch }}" >> $GITHUB_OUTPUT
           echo "full_build_and_check=${{ env.FULL_BUILD_AND_CHECK }}" >> $GITHUB_OUTPUT
