@@ -137,9 +137,9 @@ jobs:
           OTP_TAG=$(head -n1 otp_versions.table | awk '{print $1}')
 
           echo "OTP tag in table: $OTP_TAG"
-          echo "Current release tag:    ${{ github.ref_name }}"
+          echo "Current release tag:    ${{ inputs.tag }}"
 
-          if [ "$OTP_TAG" = "${{ github.ref_name }}" ]; then
+          if [ "$OTP_TAG" = "${{ inputs.tag }}" ]; then
             echo "latest=true" >> "$GITHUB_OUTPUT"
           else
             echo "latest=false" >> "$GITHUB_OUTPUT"

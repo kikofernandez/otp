@@ -43,6 +43,9 @@ on:
       otp_sbom_version:
         required: true
         type: string
+      verify_sbom:
+        type: boolean
+        required: true
       fail_on_violations:
         required: true
         type: string
@@ -77,6 +80,8 @@ jobs:
         run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.base_branch }}
 
       # runs otp-compliance from specific branch
       - name: Sync script to execute
@@ -216,11 +221,12 @@ jobs:
               --sbom-file $HOME/.ort/ort-results/bom.spdx.json \
               --input-file $HOME/.ort/ort-results/scan-result.json"
 
-      # - name: Verify SBOM
-      #   run: |
-      #     docker run -v $PWD/:/github -v $HOME:$HOME otp \
-      #       "/github/.github/scripts/otp-compliance.es sbom test-file \
-      #         --sbom-file $HOME/.ort/ort-results/bom.spdx.json"
+      - name: Verify SBOM
+        if: ${{ inputs.verify_sbom }}
+        run: |
+          docker run -v $PWD/:/github -v $HOME:$HOME otp \
+            "/github/.github/scripts/otp-compliance.es sbom test-file \
+              --sbom-file $HOME/.ort/ort-results/bom.spdx.json"
 
       - name: Upload SPDX SBOM result
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
