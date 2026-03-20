@@ -46,6 +46,10 @@ on:
       verify_sbom:
         type: boolean
         required: true
+      vcs_revision:
+        required: true
+        type: string
+        description: "Tag/Branch to use by ORT Scanner"
       fail_on_violations:
         required: true
         type: string
@@ -126,7 +130,7 @@ jobs:
               cache-dependencies,
               analyzer
             sw-version: ${{ inputs.otp_sbom_version }}
-            vcs-revision: ${{ inputs.verify_sbom == false && format('refs/tags/{0}', inputs.base_branch) || inputs.base_branch }}
+            vcs-revision: ${{ inputs.vcs_revision }}
 
       - name: Link results
         run: ln -s analyzer-result.json $HOME/.ort/ort-results/current-result.json

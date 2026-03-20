@@ -144,6 +144,7 @@ jobs:
       pr_base_sha:                   ${{ github.event.pull_request.base.sha }}
       otp_sbom_version:              ${{ needs.setup.outputs.otp_sbom_version }}
       verify_sbom:                   false
+      vcs_revision:                  ${{ format('refs/tags/{0}', needs.pack.outputs.base_branch }}
       fail_on_violations:            ${{ github.ref_type == 'tag' && '' || 'violations,issues' }}
       upload_sbom_to_dependency_api: ${{ github.event_name == 'pull_request' &&
                                          github.event.action == 'closed'     &&
