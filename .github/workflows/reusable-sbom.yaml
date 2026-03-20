@@ -88,7 +88,7 @@ jobs:
         if: ${{ inputs.scripts-from-branch != '' }}
         run: |
           curl -LJ \
-           https://raw.githubusercontent.com/erlang/otp/refs/heads/${{ inputs.scripts-from-branch }}/.github/scripts/otp-compliance.es \
+           https://raw.githubusercontent.com/erlang/otp/${{ inputs.scripts-from-branch }}/.github/scripts/otp-compliance.es \
            --output $PWD/.github/scripts/otp-compliance.es
 
       - uses: ./.github/actions/build-base-image
