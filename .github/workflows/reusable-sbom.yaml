@@ -136,7 +136,7 @@ jobs:
         if: ${{ inputs.full_build_and_check == 'false' }}
         with:
           path: ${{ env.SCAN_RESULT_CACHE_PATH }}
-          key: ort-scan-result-${{ env.ORT_VERSION }}-${{ github.ref_name }}-${{ github.sha }}
+          key: ort-scan-result-${{ env.ORT_VERSION }}-${{ inputs.ref_name }}-${{ github.sha }}
           restore-keys: |
                 ort-scan-result-${{ env.ORT_VERSION }}-${{ inputs.ref_name }}-
                 ort-scan-result-${{ env.ORT_VERSION }}-${{ inputs.base_ref }}-${{ inputs.pr_base_sha }}
