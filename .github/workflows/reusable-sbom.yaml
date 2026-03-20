@@ -126,6 +126,7 @@ jobs:
               cache-dependencies,
               analyzer
             sw-version: ${{ inputs.otp_sbom_version }}
+            vcs-revision: ${{ inputs.verify_sbom == false && format('refs/tags/{0}', inputs.base_branch) || inputs.base_branch }}
 
       - name: Link results
         run: ln -s analyzer-result.json $HOME/.ort/ort-results/current-result.json
@@ -267,6 +268,9 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.base_branch }}
+
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
