@@ -42,6 +42,7 @@ jobs:
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
+            ref_name: ${{ inputs.base_branch }}
       - name: Build Erlang/OTP flavors and types
         run: |
             TYPES="opt debug lcnt asan gcov valgrind"

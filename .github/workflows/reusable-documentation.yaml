@@ -53,6 +53,7 @@ jobs:
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
+            ref_name: ${{ inputs.base_branch }}
 
       ## Build all the documentation
       - name: Build documentation

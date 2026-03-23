@@ -98,6 +98,7 @@ jobs:
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
+            ref_name: ${{ inputs.ref_name }}
 
       - name: Fetch Default ORT Config
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -129,7 +130,6 @@ jobs:
               labels,
               cache-dependencies,
               analyzer
-            sw-version: ${{ inputs.otp_sbom_version }}
             vcs-revision: ${{ inputs.vcs_revision }}
 
       - name: Link results
@@ -278,6 +278,7 @@ jobs:
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
+            ref_name: ${{ inputs.ref_name }}
 
       - name: Download SBoM
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0

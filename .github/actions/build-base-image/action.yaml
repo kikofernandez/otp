@@ -28,6 +28,8 @@ inputs:
     default: '64-bit'
   BUILD_IMAGE:
     default: true
+  ref_name:
+    required: true
   github_token:
     description: 'GITHUB_TOKEN'
     default: '${{ github.token }}'
@@ -70,7 +72,7 @@ runs:
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
             path: otp_src.tar.gz
-            key: prebuilt-src-${{ github.ref_name }}-${{ github.sha }}
+            key: prebuilt-src-${{ inputs.ref_name }}-${{ github.sha }}
 
       - name: Download pre-built src
         if: inputs.BUILD_IMAGE == 'true' && steps.cache-src.outputs.cache-hit != 'true'
@@ -84,7 +86,7 @@ runs:
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
             path: otp_cache.tar.gz
-            key: prebuilt-cache-${{ inputs.TYPE }}-${{ github.ref_name }}-${{ github.sha }}
+            key: prebuilt-cache-${{ inputs.TYPE }}-${{ inputs.ref_name }}-${{ github.sha }}
 
       - name: Download pre-built binaries
         if: inputs.BUILD_IMAGE == 'true' && steps.cache-binary.outputs.cache-hit != 'true'

@@ -222,6 +222,7 @@ jobs:
         with:
             BASE_BRANCH: ${{ env.BASE_BRANCH }}
             TYPE: ${{ matrix.type }}
+            ref_name: ${{ github.ref_name }}
 
   freebsd:
     name: Build Erlang/OTP (FreeBSD)
@@ -253,6 +254,8 @@ jobs:
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ env.BASE_BRANCH }}
+            ref_name: ${{ github.ref_name }}
+
         ## Check formatting of cpp code
       - name: Check format
         run: docker run otp "make format-check"

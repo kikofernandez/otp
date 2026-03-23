@@ -110,19 +110,19 @@ jobs:
       pr_base_sha:          ${{ github.event.pull_request.base.sha }}
       bypass_erlang_repo:   true
 
-  documentation:
-    name: Build and Check Documentation
-    needs:
-      - setup
-      - pack
-    uses: ./.github/workflows/reusable-documentation.yaml
-    secrets:
-      TRIGGER_ERLANG_ORG_BUILD: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
-    with:
-      base_branch:              ${{ needs.setup.outputs.base_branch }}
-      base_url:                 ${{ needs.setup.outputs.docs_base_url }}
-      trigger_erlang_org_build: ${{ github.ref_name == 'master' && github.repository == 'erlang/otp' }}
-      # bypass_erlang_repo should not be applied here, as forks should not allow this trigger
+  # documentation:
+  #   name: Build and Check Documentation
+  #   needs:
+  #     - setup
+  #     - pack
+  #   uses: ./.github/workflows/reusable-documentation.yaml
+  #   secrets:
+  #     TRIGGER_ERLANG_ORG_BUILD: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
+  #   with:
+  #     base_branch:              ${{ needs.setup.outputs.base_branch }}
+  #     base_url:                 ${{ needs.setup.outputs.docs_base_url }}
+  #     trigger_erlang_org_build: ${{ github.ref_name == 'master' && github.repository == 'erlang/otp' }}
+  #     # bypass_erlang_repo should not be applied here, as forks should not allow this trigger
 
   sbom:
     name: Create SBOM
@@ -144,59 +144,59 @@ jobs:
       pr_base_sha:                   ${{ github.event.pull_request.base.sha }}
       otp_sbom_version:              ${{ needs.setup.outputs.otp_sbom_version }}
       verify_sbom:                   false
-      vcs_revision:                  ${{ format('refs/tags/{0}', needs.pack.outputs.base_branch }}
+      vcs_revision:                  ${{ format('refs/tags/{0}', needs.pack.outputs.base_branch) }}
       fail_on_violations:            ${{ github.ref_type == 'tag' && '' || 'violations,issues' }}
       upload_sbom_to_dependency_api: ${{ github.event_name == 'pull_request' &&
                                          github.event.action == 'closed'     &&
                                          github.event.pull_request.merged == true }}
 
-  release-setup:
-    name: Setup Release variables
-    needs:
-      - setup
-      - sbom
-    runs-on: ubuntu-latest
-    outputs:
-      base_branch:          ${{ steps.release-setup.outputs.base_branch }}
-      ort_version:          ${{ steps.release-setup.outputs.ort_version }}
-      otp_sbom_version:     ${{ steps.release-setup.outputs.otp_sbom_version }}
-      tag:                  ${{ steps.release-setup.outputs.tag }}
-      vsn:                  ${{ steps.release-setup.outputs.vsn }}
-    steps:
-      - id: release-setup
-        run: |
-          echo "base_branch=${{ needs.setup.outputs.base_branch }}" >> $GITHUB_OUTPUT
-          echo "ort_version=${{ needs.sbom.outputs.ort_version }}" >> $GITHUB_OUTPUT
-          echo "otp_sbom_version=${{ needs.setup.outputs.otp_sbom_version }}" >> $GITHUB_OUTPUT
-          echo "tag=${{ needs.setup.outputs.base_branch }}" >> $GITHUB_OUTPUT
-          echo "vsn=$(echo ${{ needs.setup.outputs.base_branch }} | cut -d- -f2)" >> $GITHUB_OUTPUT
+  # release-setup:
+  #   name: Setup Release variables
+  #   needs:
+  #     - setup
+  #     - sbom
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     base_branch:          ${{ steps.release-setup.outputs.base_branch }}
+  #     ort_version:          ${{ steps.release-setup.outputs.ort_version }}
+  #     otp_sbom_version:     ${{ steps.release-setup.outputs.otp_sbom_version }}
+  #     tag:                  ${{ steps.release-setup.outputs.tag }}
+  #     vsn:                  ${{ steps.release-setup.outputs.vsn }}
+  #   steps:
+  #     - id: release-setup
+  #       run: |
+  #         echo "base_branch=${{ needs.setup.outputs.base_branch }}" >> $GITHUB_OUTPUT
+  #         echo "ort_version=${{ needs.sbom.outputs.ort_version }}" >> $GITHUB_OUTPUT
+  #         echo "otp_sbom_version=${{ needs.setup.outputs.otp_sbom_version }}" >> $GITHUB_OUTPUT
+  #         echo "tag=${{ needs.setup.outputs.base_branch }}" >> $GITHUB_OUTPUT
+  #         echo "vsn=$(echo ${{ needs.setup.outputs.base_branch }} | cut -d- -f2)" >> $GITHUB_OUTPUT
 
-  ## If this is an "OTP-*" tag that has been pushed we do some release work
-  release:
-    name: Release Erlang/OTP
-    needs:
-      - sbom
-      - documentation
-      - release-setup
-    permissions:
-      contents:     write
-      attestations: write
-      id-token:     write
-    if: startsWith(needs.release-setup.outputs.base_branch, 'OTP-')
-    uses: ./.github/workflows/reusable-release.yaml
-    with:
-      otp_sbom_version: ${{ needs.release-setup.outputs.otp_sbom_version }}
-      tag:              ${{ needs.release-setup.outputs.tag }}
-      vsn:              ${{ needs.release-setup.outputs.vsn }}
-      base_branch:      ${{ needs.release-setup.outputs.base_branch }}
-    secrets: inherit
+  # ## If this is an "OTP-*" tag that has been pushed we do some release work
+  # release:
+  #   name: Release Erlang/OTP
+  #   needs:
+  #     - sbom
+  #     - documentation
+  #     - release-setup
+  #   permissions:
+  #     contents:     write
+  #     attestations: write
+  #     id-token:     write
+  #   if: startsWith(needs.release-setup.outputs.base_branch, 'OTP-')
+  #   uses: ./.github/workflows/reusable-release.yaml
+  #   with:
+  #     otp_sbom_version: ${{ needs.release-setup.outputs.otp_sbom_version }}
+  #     tag:              ${{ needs.release-setup.outputs.tag }}
+  #     vsn:              ${{ needs.release-setup.outputs.vsn }}
+  #     base_branch:      ${{ needs.release-setup.outputs.base_branch }}
+  #   secrets: inherit
 
-  event_file:
-    name: "Event File"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Upload
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: Event File
-          path: ${{ github.event_path }}
+  # event_file:
+  #   name: "Event File"
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Upload
+  #       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+  #       with:
+  #         name: Event File
+  #         path: ${{ github.event_path }}

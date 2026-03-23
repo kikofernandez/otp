@@ -87,6 +87,7 @@ jobs:
         with:
           BASE_BRANCH: ${{ inputs.base_branch }}
           BUILD_IMAGE: false
+          ref_name: ${{ inputs.ref_name }}
 
       - name: Get applications
         id: apps
