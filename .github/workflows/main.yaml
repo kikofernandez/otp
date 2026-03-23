@@ -222,7 +222,6 @@ jobs:
         with:
             BASE_BRANCH: ${{ env.BASE_BRANCH }}
             TYPE: ${{ matrix.type }}
-            ref_name: ${{ github.ref_name }}
 
   freebsd:
     name: Build Erlang/OTP (FreeBSD)

@@ -42,7 +42,6 @@ jobs:
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ env.BASE_BRANCH }}
-            ref_name: ${{ github.ref_name }}
 
       - name: Download test results
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0

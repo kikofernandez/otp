@@ -88,22 +88,21 @@ jobs:
           ref: ${{ inputs.base_branch }}
 
       # runs otp-compliance from specific branch
-      # runs build-base-image from specific branch. this is needed for the release.yaml
-      # for main.yaml, this is not executed because there is no value for scripts-from-branch
+       # for main.yaml, this is not executed because there is no value for scripts-from-branch
+      # for release.yaml, run latest build-base-image, i.e., the workflow for build-base-image
+      # is the master workflow, but the scripts use will be from the specific tag. this is what
+      # we want, because it allows us to modify the workflow, such as adding a new ref_name input
+      # variable to .github/actions/build-base-image/action.yaml or fix issues if needed.
       - name: Sync script to execute
         if: ${{ inputs.scripts-from-branch != '' }}
         run: |
           curl -LJ \
            https://raw.githubusercontent.com/erlang/otp/${{ inputs.scripts-from-branch }}/.github/scripts/otp-compliance.es \
            --output $PWD/.github/scripts/otp-compliance.es
-          curl -LJ \
-           https://raw.githubusercontent.com/erlang/otp/${{ inputs.scripts-from-branch }}/.github/actions/build-base-image/action.yaml \
-           --output $PWD/.github/actions/build-base-image/action.yaml
 
       - uses: ./.github/actions/build-base-image
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
-            ref_name: ${{ inputs.ref_name }}
 
       - name: Fetch Default ORT Config
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
