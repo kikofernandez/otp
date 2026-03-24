@@ -87,10 +87,8 @@ jobs:
         with:
           ref: ${{ inputs.base_branch }}
 
-      # runs otp-compliance from specific branch
-       # for main.yaml, this is not executed because there is no value for scripts-from-branch
-      # for release.yaml, run latest build-base-image, i.e., the workflow for build-base-image
-      # is the master workflow, but the scripts use will be from the specific tag. this is what
+      # For release.yaml, run latest build-base-image, i.e., the workflow for build-base-image
+      # is the master workflow, but the scripts used will be from the specific tag. This is what
       # we want, because it allows us to modify the workflow, such as adding a new ref_name input
       # variable to .github/actions/build-base-image/action.yaml or fix issues if needed.
       - name: Sync script to execute
@@ -100,7 +98,7 @@ jobs:
            https://raw.githubusercontent.com/erlang/otp/${{ inputs.scripts-from-branch }}/.github/scripts/otp-compliance.es \
            --output $PWD/.github/scripts/otp-compliance.es
 
-      - uses: ./.github/actions/build-base-image
+      - uses: erlang/otp/.github/actions/build-base-image@master
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
 
@@ -279,7 +277,7 @@ jobs:
         with:
           ref: ${{ inputs.base_branch }}
 
-      - uses: ./.github/actions/build-base-image
+      - uses: erlang/otp/.github/actions/build-base-image@master
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
             ref_name: ${{ inputs.ref_name }}
