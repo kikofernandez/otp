@@ -1,0 +1,55 @@
+# %CopyrightBegin%
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright Ericsson AB 2026. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# %CopyrightEnd%
+
+# This composite action is required due to the release.yaml workflow
+# that fixes rotten releases, i.e., releases where the was a failure in the
+# release workflow and re-running the workflow will not fix it.
+#
+# As such, the build-base-image can be instructed to be from the current branch,
+# or from a specific commit (which contains fixes). this commit does not choose
+# or affect the code that will be affected, simply the build-base-image workflow
+# that needs to run. as such, if there is an issue in the build-base-image workflow
+# such as mistakenly using github.ref_name when it should have been something else,
+# this can be fixed.
+
+name: Select Build Base Image
+description: "Choose pinned or local build-base-image"
+
+inputs:
+  base_branch:
+    required: true
+  build_image_latest:
+    required: true
+    description: "Boolean: true -> use pinned SHA, false -> use workspace"
+
+runs:
+  using: composite
+  steps:
+    - name: Build from pinned SHA on GitHub
+      if: ${{ inputs.build_image_latest == 'true' }}
+      uses: kikofernandez/otp/.github/actions/build-base-image@8c11790ba1868f5551194beda5181766861a0f37
+      with:
+        BASE_BRANCH: ${{ inputs.base_branch }}
+
+    - name: Build from workspace copy
+      if: ${{ inputs.build_image_latest == 'false' }}
+      uses: ./.github/actions/build-base-image
+      with:
+        BASE_BRANCH: ${{ inputs.base_branch }}

@@ -109,6 +109,9 @@ jobs:
       base_ref:             ${{ github.base_ref }}
       pr_base_sha:          ${{ github.event.pull_request.base.sha }}
       bypass_erlang_repo:   true
+      build-image-latest:   true
+      # build-image-latest must be true in all jobs that build-base-image
+      # documentation about it in the select-build-base-image.
 
   documentation:
     name: Build and Check Documentation
@@ -121,6 +124,7 @@ jobs:
     with:
       base_branch:              ${{ needs.setup.outputs.base_branch }}
       base_url:                 ${{ needs.setup.outputs.docs_base_url }}
+      build-image-latest:       true
       trigger_erlang_org_build: ${{ github.ref_name == 'master' && github.repository == 'erlang/otp' }}
       # bypass_erlang_repo should not be applied here, as forks should not allow this trigger
 

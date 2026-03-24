@@ -110,16 +110,10 @@ jobs:
            https://raw.githubusercontent.com/erlang/otp/${{ inputs.scripts-from-branch }}/.github/scripts/otp-compliance.es \
            --output $PWD/.github/scripts/otp-compliance.es
 
-      # TODO: update to otp
-      - uses: kikofernandez/otp/.github/actions/build-base-image@8c11790ba1868f5551194beda5181766861a0f37
-        if: ${{ inputs.build-image-latest == true }}
+      - uses: ./.github/actions/select-build-base-image
         with:
-            BASE_BRANCH: ${{ inputs.base_branch }}
-
-      - uses: ./.github/actions/build-base-image
-        if: ${{ inputs.build-image-latest == false }}
-        with:
-            BASE_BRANCH: ${{ inputs.base_branch }}
+          base_branch: ${{ inputs.base_branch }}
+          build_image_latest: ${{ inputs.build-image-latest }}
 
       - name: Fetch Default ORT Config
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -296,17 +290,10 @@ jobs:
         with:
           ref: ${{ inputs.base_branch }}
 
-      # TODO: update to erlang/otp
-      - uses: kikofernandez/otp/.github/actions/build-base-image@8c11790ba1868f5551194beda5181766861a0f37
-        if: ${{ inputs.build-image-latest == true }}
+      - uses: ./.github/actions/select-build-base-image
         with:
-            BASE_BRANCH: ${{ inputs.base_branch }}
-
-      - uses: ./.github/actions/build-base-image
-        if: ${{ inputs.build-image-latest == false }}
-        with:
-            BASE_BRANCH: ${{ inputs.base_branch }}
-
+          base_branch: ${{ inputs.base_branch }}
+          build_image_latest: ${{ inputs.build-image-latest }}
 
       - name: Download SBoM
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0

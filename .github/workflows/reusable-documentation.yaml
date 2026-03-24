@@ -35,6 +35,22 @@ on:
         required: true
         type: boolean
         description: "Trigger rebuild of erlang.org"
+      build-image-latest:
+        required: false
+        default: false
+        type: boolean
+        description: |
+          Whether to use latest (master) build-base-image or the checkout inputs.base_branch.
+          For the common case (`main.yaml`), you want everything set to default.
+          In case of errors in a release, release.yaml should use a `master` commit sha.
+          The reason is that using a sha1 from master allows us to decouple the build-base-image
+          action from the CI. As an example, there are errors in OTP-28.4.1 where the default
+          build-base-image (action.yaml) uses internally a `github.ref_name`. This is ok for the
+          common case, but when OTP needs to run the release.yaml script for exceptional cases,
+          github.ref_name is going to build OTP from `master` (because release.yaml is called from
+          master and performs checkouts as needed to decouple CI from workflows and scripts).
+          The result would be a source SBOM not for OTP-28.4.1, but from whatever OTP_VERSION
+          exists in `master`.
     secrets:
       TRIGGER_ERLANG_ORG_BUILD:
         required: true
@@ -50,9 +66,10 @@ jobs:
         with:
             ref: ${{ inputs.base_branch }}
 
-      - uses: ./.github/actions/build-base-image
+      - uses: ./.github/actions/select-build-base-image
         with:
-            BASE_BRANCH: ${{ inputs.base_branch }}
+          base_branch: ${{ inputs.base_branch }}
+          build_image_latest: ${{ inputs.build-image-latest }}
 
       ## Build all the documentation
       - name: Build documentation
