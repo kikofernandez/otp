@@ -98,7 +98,8 @@ jobs:
            https://raw.githubusercontent.com/erlang/otp/${{ inputs.scripts-from-branch }}/.github/scripts/otp-compliance.es \
            --output $PWD/.github/scripts/otp-compliance.es
 
-      - uses: erlang/otp/.github/actions/build-base-image@master
+      # TODO: update to otp
+      - uses: kikofernandez/otp/.github/actions/build-base-image@c1837ea4a4c065ac336a024c902c95eb7bd2629b
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
 
@@ -277,7 +278,8 @@ jobs:
         with:
           ref: ${{ inputs.base_branch }}
 
-      - uses: erlang/otp/.github/actions/build-base-image@master
+      # TODO: update to erlang/otp
+      - uses: kikofernandezreyes/otp/.github/actions/build-base-image@c1837ea4a4c065ac336a024c902c95eb7bd2629b
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
             ref_name: ${{ inputs.ref_name }}
