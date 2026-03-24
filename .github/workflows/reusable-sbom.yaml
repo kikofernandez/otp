@@ -111,7 +111,7 @@ jobs:
            --output $PWD/.github/scripts/otp-compliance.es
 
       # TODO: update to otp
-      - uses: kikofernandez/otp/.github/actions/build-base-image@c1837ea4a4c065ac336a024c902c95eb7bd2629b
+      - uses: kikofernandez/otp/.github/actions/build-base-image@8c11790ba1868f5551194beda5181766861a0f37
         if: ${{ inputs.build-image-latest == true }}
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
@@ -297,7 +297,7 @@ jobs:
           ref: ${{ inputs.base_branch }}
 
       # TODO: update to erlang/otp
-      - uses: kikofernandez/otp/.github/actions/build-base-image@c1837ea4a4c065ac336a024c902c95eb7bd2629b
+      - uses: kikofernandez/otp/.github/actions/build-base-image@8c11790ba1868f5551194beda5181766861a0f37
         if: ${{ inputs.build-image-latest == true }}
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}

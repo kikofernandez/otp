@@ -46,8 +46,8 @@ on:
           required: true
         scripts-from-branch:
           description: |
-            Use scripts from branch. This should be always the same as `checkout-branch`.
-            The only exception is if the scripts in `checkout-branch` contain a bug
+            Use scripts from specified branch. Leave empty to use checkout-branch.
+            The only exception is if the scripts in `checkout-branch` otp-compliance contain a bug
             and we need to use scripts from some other branch, most likely `maint` or `master`.
           required: false
           default: ''
