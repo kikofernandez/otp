@@ -62,6 +62,22 @@ on:
         default: ''
         description: |
           Use compliance script from the selected branch
+      build-image-latest:
+        required: false
+        default: false
+        type: boolean
+        description: |
+          Whether to use latest (master) build-base-image or the checkout inputs.base_branch.
+          For the common case (`main.yaml`), you want everything set to default.
+          In case of errors in a release, release.yaml should use a `master` commit sha.
+          The reason is that using a sha1 from master allows us to decouple the build-base-image
+          action from the CI. As an example, there are errors in OTP-28.4.1 where the default
+          build-base-image (action.yaml) uses internally a `github.ref_name`. This is ok for the
+          common case, but when OTP needs to run the release.yaml script for exceptional cases,
+          github.ref_name is going to build OTP from `master` (because release.yaml is called from
+          master and performs checkouts as needed to decouple CI from workflows and scripts).
+          The result would be a source SBOM not for OTP-28.4.1, but from whatever OTP_VERSION
+          exists in `master`.
     outputs:
       ort_version:
         description: "ORT version"
@@ -100,6 +116,12 @@ jobs:
 
       # TODO: update to otp
       - uses: kikofernandez/otp/.github/actions/build-base-image@c1837ea4a4c065ac336a024c902c95eb7bd2629b
+        if: ${{ inputs.build-image-latest == true }}
+        with:
+            BASE_BRANCH: ${{ inputs.base_branch }}
+
+      - uses: ./.github/actions/build-base-image
+        if: ${{ inputs.build-image-latest == false }}
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
 
@@ -279,10 +301,16 @@ jobs:
           ref: ${{ inputs.base_branch }}
 
       # TODO: update to erlang/otp
-      - uses: kikofernandezreyes/otp/.github/actions/build-base-image@c1837ea4a4c065ac336a024c902c95eb7bd2629b
+      - uses: kikofernandez/otp/.github/actions/build-base-image@c1837ea4a4c065ac336a024c902c95eb7bd2629b
+        if: ${{ inputs.build-image-latest == true }}
         with:
             BASE_BRANCH: ${{ inputs.base_branch }}
-            ref_name: ${{ inputs.ref_name }}
+
+      - uses: ./.github/actions/build-base-image
+        if: ${{ inputs.build-image-latest == false }}
+        with:
+            BASE_BRANCH: ${{ inputs.base_branch }}
+
 
       - name: Download SBoM
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
