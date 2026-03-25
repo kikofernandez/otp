@@ -44,7 +44,7 @@ runs:
   steps:
     - name: Build from pinned SHA on GitHub
       if: ${{ inputs.build_image_latest == 'true' }}
-      uses: kikofernandez/otp/.github/actions/build-base-image@bc232b008384ebbd9dfdbb86bb6db755c78a344a
+      uses: kikofernandez/otp/.github/actions/build-base-image@99456e297f7e33739daf038494a04338b76ae445
       with:
         BASE_BRANCH: ${{ inputs.base_branch }}
 
