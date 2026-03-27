@@ -1564,7 +1564,7 @@ with the callback function [`Module:terminate/3`](`c:terminate/3`).
 Besides that when doing a [_state change_](#state-callback)
 the next state always has to be an `t:atom/0`,
 this function is equivalent to
-[`Module:handle_event(EventType, EventContent,
+[`Module:handle_event(​EventType, EventContent,
 ?FUNCTION_NAME, Data)`](`c:handle_event/4`),
 which is the [_state callback_](#state-callback) in
 [_callback mode_](`t:callback_mode/0`) `handle_event_function`.
@@ -2648,7 +2648,7 @@ by passing the collection as argument to `receive_response/3`,
 `wait_response/3`, or `check_response/3`.
 
 The same as calling
-[`reqids_add(`](`reqids_add/3`)[`send_request(ServerRef, Request),
+[`reqids_add(​`](`reqids_add/3`)[`send_request(ServerRef, Request),
 `](`send_request/2`)[`Label, ReqIdCollection)`](`reqids_add/3`),
 but slightly more efficient.
 """.
