@@ -1,0 +1,94 @@
+## %CopyrightBegin%
+##
+## SPDX-License-Identifier: Apache-2.0
+##
+## Copyright Ericsson AB 2024-2025. All Rights Reserved.
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+##
+## %CopyrightEnd%
+
+name: Test Open Source Vulnerabilities Scanner
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prework:
+    name: Build Erlang/OTP (64-bit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Submit OSV Query
+        shell: bash
+        run: |
+          cat <<'EOF' > deps.json
+          {
+          "packages": [
+          {
+          "commit": "37d575ede5ade50ad95b857f22ed7f1be4b1f2df",
+          "package": { "name": "github.com/microsoft/STL" }
+          },
+          {
+            "commit": "4c0618b0e44f7ef027ebae05d2cc7812048f7c8f",
+            "package": { "name": "github.com/ulfjack/ryu" }
+          },
+          {
+            "commit": "5fe1940275d04432da841896bac0a66cc2375551",
+            "package": { "name": "github.com/asmjit/asmjit" }
+          },
+          {
+            "commit": "da607da739fa6047df13e66a2af6b8bec7c2a498",
+            "package": { "name": "github.com/madler/zlib" }
+          },
+          {
+            "commit": "f454e231fe5006dd7ff8f4693fd2b8eb94333429",
+            "package": { "name": "github.com/PCRE2Project/pcre2" }
+          },
+          {
+            "commit": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+            "package": { "name": "github.com/facebook/zstd" }
+          },
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "jquery"
+            },
+            "version": "4.0.0"
+          },
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "jquery-migrate"
+            },
+            "version": "4.0.2"
+          },
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "tablesorter"
+            },
+            "version": "2.32"
+          }
+          ]
+          }
+          EOF
+
+  osv-scan:
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.2"
+    with:
+      scan-args: |
+        --lockfile deps.json --vex=vex/otp-28.openvex.json
