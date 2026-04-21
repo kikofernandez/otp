@@ -283,6 +283,7 @@ jobs:
     # if: startsWith(github.ref, 'refs/tags/OTP-') && github.repository == 'erlang/otp'
     uses: ./.github/workflows/reusable-release.yaml
     with:
+      otp_branch:       ${{ needs.setup.outputs.otp_version }}
       otp_sbom_version: ''
       tag:              ${{ needs.setup.outputs.tag }}
       vsn:              ${{ needs.setup.outputs.vsn }}
