@@ -18,7 +18,7 @@
 ##
 ## %CopyrightEnd%
 
-name: Build and check Erlang/OTP 28 (reusable)
+name: Build and check Erlang/OTP (reusable)
 
 on:
   workflow_call:
@@ -34,7 +34,6 @@ permissions:
   contents: read
 
 jobs:
-
   check-files:
     if: github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-check-files.yaml
