@@ -36,6 +36,7 @@
 name: Build and check Erlang/OTP
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
   schedule:
