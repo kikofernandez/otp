@@ -1101,7 +1101,7 @@ jobs:
     needs:
         - documentation
         - sbom
-    if: startsWith(github.ref, 'refs/tags/OTP-') && github.repository == 'erlang/otp'
+    if: startsWith(github.ref, 'refs/tags/OTP-') && github.repository == 'kikofernandez/otp'
     ## Needed to create releases
     permissions:
       contents: write
@@ -1204,11 +1204,11 @@ jobs:
             artifacts/*.txt \
             attestations/*.sigstore \
             bom.*
-      - name: Deploy on erlang.org
-        env:
-          GITHUB_TOKEN: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
-        run: |
-          curl -H "Authorization: token ${GITHUB_TOKEN}" -X POST -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/erlang/erlang-org/actions/workflows/update-gh-cache.yaml/dispatches" -d '{"ref":"master"}'
+      # - name: Deploy on erlang.org
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
+      #   run: |
+      #     curl -H "Authorization: token ${GITHUB_TOKEN}" -X POST -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/erlang/erlang-org/actions/workflows/update-gh-cache.yaml/dispatches" -d '{"ref":"master"}'
 
   event_file:
     name: "Event File"
