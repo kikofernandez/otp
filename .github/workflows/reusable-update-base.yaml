@@ -36,7 +36,7 @@ jobs:
 
   build:
     name: Update base Erlang/OTP build images
-    if: github.repository == 'erlang/otp'
+    if: github.repository == 'kikofernandez/otp'
     runs-on: ubuntu-latest
 
     permissions:

@@ -77,7 +77,7 @@ jobs:
   # missing docker image it expects. this here simply creates the image
   # on a release, to make sure that there are no timing dependencies.
   build-base-docker:
-    if: github.repository == 'erlang/otp' && github.ref_type == 'tag'
+    if: github.repository == 'kikofernandez/otp' && github.ref_type == 'tag'
     permissions:
       contents: read
       packages: write
@@ -329,7 +329,7 @@ jobs:
       attestations: write
       id-token:     write
       actions:      write
-    if: startsWith(github.ref, 'refs/tags/OTP-') && github.repository == 'erlang/otp'
+    if: startsWith(github.ref, 'refs/tags/OTP-') && github.repository == 'kikofernandez/otp'
     uses: ./.github/workflows/reusable-release.yaml
     with:
       otp_sbom_version: ${{ needs.setup.outputs.otp_sbom_version }}
