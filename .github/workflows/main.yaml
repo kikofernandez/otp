@@ -75,6 +75,6 @@ jobs:
     # that calls `erlang/otp/.github/workflows/main-27.yaml@master`. we try to avoid
     # these specific wrappers, but OTP-27 was not producing the documentation nor other
     # artifacts (sbom) in the standard fashion.
-    uses: erlang/otp/.github/workflows/reusable-main.yaml@master  # ratchet:exclude
+    uses: kikofernandez/otp/.github/workflows/reusable-main.yaml@master  # ratchet:exclude
     secrets:
       TRIGGER_ERLANG_ORG_BUILD: ${{ secrets.TRIGGER_ERLANG_ORG_BUILD }}
