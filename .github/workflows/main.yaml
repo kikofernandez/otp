@@ -65,7 +65,9 @@ jobs:
       attestations: write   # attest-sbom action
       id-token:     write   # attest-sbom action
       security-events: write
-      actions:      read
+      actions:      write
+      issues:       write
+      pull-requests: write
     # this call will fail the first time because there is not yet in master
     # a reusable-main.yaml workflow, since it is introduced in a PR.
     # after the merge, any maint-XX branch that has this `main.yaml` will fetch
