@@ -45,7 +45,7 @@ env:
   ORT_VERSION: 77.0.0
   OTP_SBOM_VERSION: ${{ inputs.otp_sbom_version }}
   SCAN_RESULT_CACHE_PATH: .ort/scan-result.json
-  RELEASE: ${{ startsWith(github.ref, 'refs/tags/OTP-') && github.repository == 'erlang/otp' }}
+  RELEASE: ${{ startsWith(github.ref, 'refs/tags/OTP-') && github.repository == 'kikofernandez/otp' }}
 
 permissions:
   contents: read

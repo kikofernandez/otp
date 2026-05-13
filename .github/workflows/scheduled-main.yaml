@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    if: github.repository == 'erlang/otp'
+    if: github.repository == 'kikofernandez/otp'
     # if: github.event_name != 'workflow_dispatch' # used for testing
     outputs:
        versions: ${{ steps.get-versions.outputs.versions }}
@@ -51,7 +51,7 @@ jobs:
     # this simply triggers scheduled runs
     needs: maintained-versions
     runs-on: ubuntu-latest
-    if: github.repository == 'erlang/otp'
+    if: github.repository == 'kikofernandez/otp'
     strategy:
       matrix:
         type: ${{ fromJson(needs.maintained-versions.outputs.versions) }}
