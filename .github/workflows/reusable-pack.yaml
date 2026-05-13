@@ -55,7 +55,7 @@ jobs:
     permissions:
       contents: read   # actions/checkout + actions/cache (read/write cache)
       actions: write   # actions/upload-artifact
-    if: github.repository == 'erlang/otp' || github.event_name != 'schedule' || inputs.bypass_erlang_repo
+    if: github.repository == 'kikofernandez/otp' || github.event_name != 'schedule' || inputs.bypass_erlang_repo
     outputs:
       changes:      ${{ steps.changes.outputs.changes }}
       build-c-code: ${{ steps.build-c-code.outputs.value }}
