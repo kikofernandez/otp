@@ -77,7 +77,7 @@ jobs:
     with:
       base_branch:          ${{ needs.setup.outputs.base_branch }}
       full_build_and_check: ${{ needs.setup.outputs.full_build_and_check }}
-      bypass_erlang_repo:   false
+      bypass_erlang_repo:   true
 
   build-macos:
     name: Build Erlang/OTP (macOS)
