@@ -151,6 +151,7 @@ value_option(Flag, Default, On, OnVal, Off, OffVal, Opts) ->
                  | {'record', atom()}
                  | {'spec', mfa()}
                  | {'type', ta()}.
+                 %% | {'mailbox', ta()}.
 
 -record(used_type, {anno :: erl_anno:anno(),
                     at = {export, []} :: type_id()}).
@@ -1204,6 +1205,9 @@ attribute_state({attribute,A,callback,{Fun,Types}}, St) ->
     callback_decl(A, Fun, Types, St1);
 attribute_state({attribute,A,optional_callbacks,Es}, St) ->
     optional_callbacks(A, Es, St);
+attribute_state({attribute,A,mailbox,{TypeName,TypeDef,Args}}, St) ->
+    St1 = untrack_doc({type, TypeName, length(Args)}, St),
+    type_def(type, A, TypeName, TypeDef, Args, St1);
 attribute_state({attribute,A,on_load,Val}, St) ->
     on_load(A, Val, St);
 attribute_state({attribute, _A, moduledoc, _Doc}=AST, St)  ->

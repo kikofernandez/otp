@@ -970,7 +970,7 @@ processed (see section [Error Information](#module-error-information)).
 -type af_type_decl() :: {'attribute', anno(), type_attr(),
                          {type_name(), abstract_type(), [af_variable()]}}.
 
--type type_attr() :: 'nominal' | 'opaque' | 'type'.
+-type type_attr() :: 'nominal' | 'opaque' | 'type' | 'mailbox'.
 
 -type af_function_spec() :: {'attribute', anno(), spec_attr(),
                              {{function_name(), arity()},
@@ -1506,14 +1506,14 @@ parse_term(Tokens) ->
 
 -type attributes() :: 'export' | 'file' | 'import' | 'module'
 		    | 'nominal' | 'opaque' | 'record' | 'native_record'
-		    | 'type'.
+		    | 'type' | 'mailbox'.
 
 build_typed_attribute({atom,Aa,record},
 		      {typed_record, {atom,_An,RecordName}, RecTuple}) ->
     {attribute,Aa,record,{RecordName,record_tuple(RecTuple)}};
 build_typed_attribute({atom,Aa,Attr},
                       {type_def, {call,_,{atom,_,TypeName},Args}, Type})
-  when Attr =:= 'type' ; Attr =:= 'opaque' ; Attr =:= 'nominal'->
+  when Attr =:= 'type' ; Attr =:= 'opaque' ; Attr =:= 'nominal' ; Attr =:= 'mailbox' ->
     lists:foreach(fun({var, A, '_'}) -> ret_err(A, "bad type variable");
                      (_)             -> ok
                   end, Args),
@@ -1527,6 +1527,7 @@ build_typed_attribute({atom,Aa,Attr}=Abstr,_) ->
         record -> error_bad_decl(Abstr, record);
         type   -> error_bad_decl(Abstr, type);
         nominal -> error_bad_decl(Abstr, nominal);
+        mailbox -> error_bad_decl(Abstr, mailbox);
         native_record -> error_bad_decl(Abstr, native_record);
 	opaque -> error_bad_decl(Abstr, opaque);
         _      -> ret_err(Aa, "bad attribute")
@@ -2422,6 +2423,11 @@ modify_anno1({attribute,A,nominal,{TypeName,TypeDef,Args}}, Ac, Mf) ->
     {TypeDef1,Ac2} = modify_anno1(TypeDef, Ac1, Mf),
     {Args1,Ac3} = modify_anno1(Args, Ac2, Mf),
     {{attribute,A1,nominal,{TypeName,TypeDef1,Args1}},Ac3};
+modify_anno1({attribute,A,mailbox,{TypeName,TypeDef,Args}}, Ac, Mf) ->
+    {A1,Ac1} = Mf(A, Ac),
+    {TypeDef1,Ac2} = modify_anno1(TypeDef, Ac1, Mf),
+    {Args1,Ac3} = modify_anno1(Args, Ac2, Mf),
+    {{attribute,A1,mailbox,{TypeName,TypeDef1,Args1}},Ac3};
 modify_anno1({attribute,A,Attr,Val}, Ac, Mf) ->
     {A1,Ac1} = Mf(A, Ac),
     {{attribute,A1,Attr,Val},Ac1};

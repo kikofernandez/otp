@@ -404,6 +404,8 @@ message(M, #options{encoding = Encoding}) ->
 
 lattribute({attribute,_Anno,type,Type}, Opts) ->
     [typeattr(type, Type, Opts),leaf(".\n")];
+lattribute({attribute,_Anno,mailbox,Type}, Opts) ->
+    [typeattr(mailbox, Type, Opts),leaf(".\n")];
 lattribute({attribute,_Anno,opaque,Type}, Opts) ->
     [typeattr(opaque, Type, Opts),leaf(".\n")];
 lattribute({attribute,_Anno,nominal,Type}, Opts) ->
