@@ -46,6 +46,7 @@
          % mailbox_types: meet
          meet_precise/1, meet_incompatible/1,
          meet_union_member/1, meet_union_disjoint/1,
+         meet_tuple_elementwise/1, meet_list_elementwise/1,
          % mailbox_types: fun accessors
          fun_return_and_args/1,
          % mailbox_types: formatting
@@ -69,7 +70,8 @@ groups() ->
        subtype_tuple_pointwise, subtype_negative]},
      {meet, [parallel],
       [meet_precise, meet_incompatible,
-       meet_union_member, meet_union_disjoint]},
+       meet_union_member, meet_union_disjoint,
+       meet_tuple_elementwise, meet_list_elementwise]},
      {fun_accessors, [parallel],
       [fun_return_and_args]},
      {formatting, [parallel],
@@ -224,6 +226,32 @@ meet_union_disjoint(_Config) ->
     U = mailbox_types:union([mailbox_types:integer_type(),
                              mailbox_types:atom_type()]),
     true = mailbox_types:is_none(mailbox_types:meet(U, mailbox_types:list_type())),
+    ok.
+
+meet_tuple_elementwise(_Config) ->
+    %% Same-arity tuples with union elements meet element-wise. The two
+    %% tuples are not subtype-related, so this exercises the structural
+    %% path: meet({int|atom}, {atom|bin}) = {atom}.
+    I = mailbox_types:integer_type(),
+    A = mailbox_types:atom_type(),
+    B = mailbox_types:bin_type(),
+    T1 = mailbox_types:tuple_type([mailbox_types:union([I, A])]),
+    T2 = mailbox_types:tuple_type([mailbox_types:union([A, B])]),
+    #tupleTy{args = [#builtTy{builtIn = atom}]} = mailbox_types:meet(T1, T2),
+    %% A disjoint element makes the whole tuple none().
+    T3 = mailbox_types:tuple_type([mailbox_types:list_type()]),
+    true = mailbox_types:is_none(mailbox_types:meet(T1, T3)),
+    ok.
+
+meet_list_elementwise(_Config) ->
+    %% Uniform lists meet on their element type.
+    I = mailbox_types:integer_type(),
+    A = mailbox_types:atom_type(),
+    B = mailbox_types:bin_type(),
+    L1 = mailbox_types:list_type([mailbox_types:union([I, A])]),
+    L2 = mailbox_types:list_type([mailbox_types:union([A, B])]),
+    #builtTy{builtIn = list, args = [#builtTy{builtIn = atom}]} =
+        mailbox_types:meet(L1, L2),
     ok.
 
 %%% ===================================================================

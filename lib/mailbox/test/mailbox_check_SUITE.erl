@@ -85,6 +85,8 @@ accept_cases() ->
      "accept_record_guard",
      "accept_map_guard",
      "accept_atom_guard_narrow",
+     "accept_binary_guard_narrow",
+     "accept_tuple_union_guard",
      "accept_unused_narrowed_arg"].
 
 reject_cases() ->

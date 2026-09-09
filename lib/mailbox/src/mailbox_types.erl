@@ -594,16 +594,34 @@ meet(A, B) ->
             end
     end.
 
-%% Neither side is a subtype of the other. If one side is a union,
-%% intersect member-wise and keep the members that survive: e.g.
-%% meet(integer() | atom(), atom()) = atom(). This is required so a
-%% type-test guard (is_atom) can narrow a union argument to the matching
-%% member instead of collapsing to none(). When neither side is a union,
-%% the types are genuinely disjoint and the meet is none().
+%% Neither side is a subtype of the other. Compute the intersection
+%% structurally:
+%%   * If one side is a union, intersect member-wise and keep the members
+%%     that survive: e.g. meet(integer() | atom(), atom()) = atom(). This
+%%     lets a type-test guard (is_atom) narrow a union argument to the
+%%     matching member instead of collapsing to none().
+%%   * If both sides are same-arity tuples, meet element-wise: the tuple
+%%     is inhabited iff every element intersection is inhabited.
+%%   * If both sides are uniform lists, meet the element types.
+%% Otherwise the types are genuinely disjoint and the meet is none().
 meet_distribute(#unionTy{args = As}, B) ->
     meet_members(As, B);
 meet_distribute(A, #unionTy{args = Bs}) ->
     meet_members(Bs, A);
+meet_distribute(#tupleTy{args = As}, #tupleTy{args = Bs})
+  when length(As) =:= length(Bs) ->
+    Elems = [meet(EA, EB) || {EA, EB} <- lists:zip(As, Bs)],
+    case lists:any(fun is_none/1, Elems) of
+        true  -> none_type();
+        false -> #tupleTy{args = Elems}
+    end;
+meet_distribute(#builtTy{builtIn = list, args = [EA]},
+                #builtTy{builtIn = list, args = [EB]}) ->
+    Elem = meet(EA, EB),
+    case is_none(Elem) of
+        true  -> none_type();
+        false -> #builtTy{builtIn = list, args = [Elem]}
+    end;
 meet_distribute(_A, _B) ->
     none_type().
 
