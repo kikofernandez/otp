@@ -162,3 +162,4 @@
 %% Errors
 -define(ERR_TYPE_ERROR(Reason), {type_error, Reason}).
 -define(ERR_NOT_A_SUBTYPE(Got, Expected, Expr), {not_a_subtype, Got, Expected, Expr}).
+-define(ERR_UNSATISFIABLE_CLAUSE(Var, Expr), {unsatisfiable_clause, Var, Expr}).

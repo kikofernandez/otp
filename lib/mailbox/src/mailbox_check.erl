@@ -268,7 +268,23 @@ check_clause(Env, LocalEnv, PatTy, C, RetTy) ->
             GuardEnv = synth_env_guards(LocalEnv, C),
             PatEnv = synth_env_patterns(Env, LocalEnv, GuardEnv, PatTy, C),
             io:format("[~p] ~p~nGuards:~n~p~nPattern~n~p~n", [?LINE, ?FUNCTION_NAME, GuardEnv, PatEnv]),
+            %% A binding that meets to none() means the clause is
+            %% unsatisfiable: the guard/pattern contradicts the declared
+            %% type (e.g. is_list(X) against a spec argument of tuple type).
+            %% Such a clause can never match, so reject it as a dead clause.
+            check_unsatisfiable(PatEnv, C),
             check(Env, PatEnv, Body, RetTy)
+    end.
+
+%% Reject a clause whose environment contains a binding narrowed to
+%% none(). meet/2 yields none() when a guard refinement and the declared
+%% type have no common subtype, which makes the clause unreachable.
+check_unsatisfiable(PatEnv, C) ->
+    Bad = [Name || {Name, Ty} <- maps:to_list(PatEnv),
+                   mailbox_types:is_none(Ty)],
+    case Bad of
+        [] -> ok;
+        [Var | _] -> fail(?ERR_UNSATISFIABLE_CLAUSE(Var, C))
     end.
 
 %% A clause body of `primop 'match_fail'(...)` is the compiler-inserted
@@ -623,7 +639,16 @@ synth_env_literal(_Env, _LocalEnv, _Arg) ->
 synth_env_patterns(Env, LocalEnv, GuardEnv, PatTy, C) ->
     Pats = mailbox_ast:clause_pats(C),
     PatEnv1 = [synth_env_pattern(Env, LocalEnv, GuardEnv, PatTy, Pat) || Pat <- Pats],
-    lists:foldl(fun mailbox_env:merge_env_meet/2, LocalEnv, PatEnv1).
+    %% The base env must retain guard refinements (e.g. is_list(X) => X ::
+    %% list()) so they reach the clause body. GuardEnv is seeded only from
+    %% the clause's own vars, so meet it onto LocalEnv first to keep outer
+    %% bindings, then meet the pattern-derived bindings on top. merge_env_meet
+    %% computes a real meet on key collision, so a structured pattern
+    %% (e.g. {a,b}=X) still refines a broad guard type (tuple()) to the
+    %% more precise pattern type, while a bare-var pattern keeps the guard
+    %% refinement (list()).
+    BaseEnv = mailbox_env:merge_env_meet(LocalEnv, GuardEnv),
+    lists:foldl(fun mailbox_env:merge_env_meet/2, BaseEnv, PatEnv1).
 
 %%       G |- p when true -| D
 %%       G |- p => B             B <: A
@@ -653,7 +678,23 @@ synth_env_pattern(Env, _LocalEnv, GuardEnv, PatTy, Pat) ->
     %% We use type precision (meet) to refine that X is an atom
     %% but X :: {a, b} is more precise than X :: atom()
     %%
-    synth_env(Env, GuardEnv, Pat).
+    PatBindings = synth_env(Env, GuardEnv, Pat),
+
+    %% A bare variable pattern <X> over a scrutinee aliases the scrutinee,
+    %% so X must inherit the scrutinee type PatTy rather than dyn(). This
+    %% is what carries a guard refinement on the scrutinee (e.g. the Core
+    %% form `case _0 of <X> when is_list(_0)` narrows _0, and PatTy is the
+    %% scrutinee's refined type) onto the variable the clause body uses.
+    %% For structured patterns PatSynthType already captures the shape, so
+    %% we only special-case the plain variable.
+    case mailbox_ast:type(Pat) of
+        ?VAR ->
+            Name = mailbox_ast:var_name(Pat),
+            Refined = mailbox_types:meet(PatTy, PatSynthType),
+            mailbox_env:put_var(Name, Refined, PatBindings);
+        _ ->
+            PatBindings
+    end.
 
 %% Note. This is not the common synth function, as it needs to return an environment with bindings.
 %% Discard equality rules for now, so we cannot infer examples like the following one,
@@ -758,5 +799,10 @@ format_error({not_a_subtype, GotTy, ExpectedTy, Expr}) ->
       [mailbox_types:format_type(ExpectedTy),
        mailbox_types:format_type(GotTy),
        mailbox_ast:format(Expr)]);
+format_error({unsatisfiable_clause, Var, _Expr}) ->
+    io_lib:format(
+      "Type error: unsatisfiable clause; variable '~p' has no possible "
+      "value (guard/pattern contradicts the declared type)",
+      [Var]);
 format_error(Other) ->
     io_lib:format("Type error: ~p", [Other]).

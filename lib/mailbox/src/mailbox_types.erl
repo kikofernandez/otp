@@ -31,6 +31,7 @@
 -export([fun_return/1, fun_args/1]).
 -export([format_type/1]).
 -export([any_type/0, build_lit/1, lit_kind/1, dyn_type/0, fun_type/2]).
+-export([none_type/0, is_none/1]).
 -export([bin_type/0, bitstring_type/0, boolean_type/0,
          float_type/0, function_type/0, integer_type/0,
          list_type/0, map_type/0, number_type/0,
@@ -43,6 +44,15 @@
 -doc "Builds the gradual `dynamic()` type (compatible with any type).".
 -spec dyn_type() -> c_types().
 dyn_type() -> #builtTy{anno=0, builtIn = 'dynamic'}.
+
+-doc "Builds the empty type `none()` (the bottom type, no values).".
+-spec none_type() -> c_types().
+none_type() -> #builtTy{anno = 0, builtIn = 'none'}.
+
+-doc "Returns `true` if the type is the empty type `none()`.".
+-spec is_none(c_types()) -> boolean().
+is_none(#builtTy{builtIn = 'none'}) -> true;
+is_none(_) -> false.
 
 -doc "Builds a function type.".
 -spec fun_type([c_types()], c_types()) -> c_types().
