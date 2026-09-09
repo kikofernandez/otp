@@ -45,6 +45,7 @@
          subtype_tuple_pointwise/1, subtype_negative/1,
          % mailbox_types: meet
          meet_precise/1, meet_incompatible/1,
+         meet_union_member/1, meet_union_disjoint/1,
          % mailbox_types: fun accessors
          fun_return_and_args/1,
          % mailbox_types: formatting
@@ -67,7 +68,8 @@ groups() ->
        subtype_dynamic_both_ways, subtype_union, subtype_list_covariant,
        subtype_tuple_pointwise, subtype_negative]},
      {meet, [parallel],
-      [meet_precise, meet_incompatible]},
+      [meet_precise, meet_incompatible,
+       meet_union_member, meet_union_disjoint]},
      {fun_accessors, [parallel],
       [fun_return_and_args]},
      {formatting, [parallel],
@@ -202,6 +204,26 @@ meet_incompatible(_Config) ->
     #builtTy{builtIn = none} =
         mailbox_types:meet(#builtTy{builtIn = atom},
                            mailbox_types:integer_type()),
+    ok.
+
+meet_union_member(_Config) ->
+    %% meet distributes over unions: intersecting a union with one of its
+    %% members' supertypes keeps the matching member(s), not none().
+    I = mailbox_types:integer_type(),
+    U = mailbox_types:union([I, mailbox_types:atom_type()]),
+    %% meet(integer() | atom(), atom()) = atom()
+    Atom = mailbox_types:atom_type(),
+    Atom = mailbox_types:meet(U, Atom),
+    Atom = mailbox_types:meet(Atom, U),
+    %% meet(integer() | atom(), integer()) = integer()
+    I = mailbox_types:meet(U, I),
+    ok.
+
+meet_union_disjoint(_Config) ->
+    %% A union with no member compatible with the other type meets to none().
+    U = mailbox_types:union([mailbox_types:integer_type(),
+                             mailbox_types:atom_type()]),
+    true = mailbox_types:is_none(mailbox_types:meet(U, mailbox_types:list_type())),
     ok.
 
 %%% ===================================================================

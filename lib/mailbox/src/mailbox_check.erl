@@ -267,7 +267,6 @@ check_clause(Env, LocalEnv, PatTy, C, RetTy) ->
         false ->
             GuardEnv = synth_env_guards(LocalEnv, C),
             PatEnv = synth_env_patterns(Env, LocalEnv, GuardEnv, PatTy, C),
-            io:format("[~p] ~p~nGuards:~n~p~nPattern~n~p~n", [?LINE, ?FUNCTION_NAME, GuardEnv, PatEnv]),
             %% A binding that meets to none() means the clause is
             %% unsatisfiable: the guard/pattern contradicts the declared
             %% type (e.g. is_list(X) against a spec argument of tuple type).
@@ -681,19 +680,45 @@ synth_env_pattern(Env, _LocalEnv, GuardEnv, PatTy, Pat) ->
     PatBindings = synth_env(Env, GuardEnv, Pat),
 
     %% A bare variable pattern <X> over a scrutinee aliases the scrutinee,
-    %% so X must inherit the scrutinee type PatTy rather than dyn(). This
-    %% is what carries a guard refinement on the scrutinee (e.g. the Core
-    %% form `case _0 of <X> when is_list(_0)` narrows _0, and PatTy is the
-    %% scrutinee's refined type) onto the variable the clause body uses.
-    %% For structured patterns PatSynthType already captures the shape, so
-    %% we only special-case the plain variable.
+    %% so X inherits the scrutinee type PatTy, further refined by any guard
+    %% narrowing on the scrutinee. In Core Erlang the guard tests the
+    %% scrutinee variable (e.g. `case _0 of <X> when is_integer(_0)`), so
+    %% the refinement lives in GuardEnv keyed by the scrutinee var, not by
+    %% X. We recover it by meeting PatTy with the guard refinements, which
+    %% turns e.g. meet(integer()|atom(), integer()) into integer() for the
+    %% body. For structured patterns PatSynthType already captures the
+    %% shape, so we only special-case the plain variable.
     case mailbox_ast:type(Pat) of
         ?VAR ->
             Name = mailbox_ast:var_name(Pat),
-            Refined = mailbox_types:meet(PatTy, PatSynthType),
+            GuardRefinement = guard_refinement(GuardEnv),
+            Refined = mailbox_types:meet(
+                        mailbox_types:meet(PatTy, PatSynthType),
+                        GuardRefinement),
             mailbox_env:put_var(Name, Refined, PatBindings);
         _ ->
             PatBindings
+    end.
+
+%% The scrutinee refinement contributed by a clause guard. A guard over a
+%% single scrutinee narrows that scrutinee's variable in GuardEnv; every
+%% other entry stays dynamic(). We meet all non-dynamic refinements so a
+%% bare-var pattern aliasing the scrutinee picks the narrowed type up.
+%% With no guard (all entries dynamic()) this yields dynamic(), and
+%% meet(PatTy, dynamic()) = PatTy leaves the binding unchanged.
+guard_refinement(GuardEnv) ->
+    %% Collect only the concrete (non-dynamic) refinements. dynamic() is a
+    %% subtype of everything, so meet(dynamic(), T) = dynamic() — using it
+    %% as the fold seed would absorb every concrete type. Instead, meet the
+    %% concrete refinements together and fall back to dynamic() when there
+    %% are none (no guard narrowing).
+    case [Ty || Ty <- maps:values(GuardEnv),
+                not mailbox_types:is_dynamic(Ty)] of
+        [] ->
+            mailbox_types:dyn_type();
+        [First | Rest] ->
+            lists:foldl(fun(Ty, Acc) -> mailbox_types:meet(Acc, Ty) end,
+                        First, Rest)
     end.
 
 %% Note. This is not the common synth function, as it needs to return an environment with bindings.
@@ -743,6 +768,7 @@ synth_env_guards(LocalEnv, Node, ReturnEnv) ->
     end.
 
 
+synth_bif(is_atom)          -> {ok, mailbox_types:atom_type()};
 synth_bif(is_binary)        -> {ok, mailbox_types:bin_type()};
 synth_bif(is_bitstring)     -> {ok, mailbox_types:bitstring_type()};
 synth_bif(is_boolean)       -> {ok, mailbox_types:boolean_type()};

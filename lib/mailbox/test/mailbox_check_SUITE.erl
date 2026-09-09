@@ -77,7 +77,15 @@ accept_cases() ->
      "accept_case",
      "accept_apply_local",
      "accept_var_passthrough",
-     "accept_unspec_dynamic"].
+     "accept_unspec_dynamic",
+     "accept_union_guard_dispatch",
+     "accept_union_guard_used",
+     "accept_union_narrow_return",
+     "accept_list_guard_used",
+     "accept_record_guard",
+     "accept_map_guard",
+     "accept_atom_guard_narrow",
+     "accept_unused_narrowed_arg"].
 
 reject_cases() ->
     ["reject_wrong_atom",
@@ -86,7 +94,9 @@ reject_cases() ->
      "reject_tuple_element",
      "reject_case_branch",
      "reject_apply_return",
-     "reject_list_element"].
+     "reject_list_element",
+     "reject_guard_contradicts_spec",
+     "reject_guard_outside_union"].
 
 %%% ===================================================================
 %%% Test bodies

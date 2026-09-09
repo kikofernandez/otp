@@ -32,7 +32,9 @@
 -export([format_type/1]).
 -export([any_type/0, build_lit/1, lit_kind/1, dyn_type/0, fun_type/2]).
 -export([none_type/0, is_none/1]).
+-export([is_dynamic/1]).
 -export([bin_type/0, bitstring_type/0, boolean_type/0,
+         atom_type/0,
          float_type/0, function_type/0, integer_type/0,
          list_type/0, map_type/0, number_type/0,
          pid_type/0, port_type/0, record_type/0,
@@ -54,6 +56,11 @@ none_type() -> #builtTy{anno = 0, builtIn = 'none'}.
 is_none(#builtTy{builtIn = 'none'}) -> true;
 is_none(_) -> false.
 
+-doc "Returns `true` if the type is the gradual `dynamic()` type.".
+-spec is_dynamic(c_types()) -> boolean().
+is_dynamic(#builtTy{builtIn = 'dynamic'}) -> true;
+is_dynamic(_) -> false.
+
 -doc "Builds a function type.".
 -spec fun_type([c_types()], c_types()) -> c_types().
 fun_type(Args, Return) ->
@@ -64,6 +71,10 @@ Builds the type any().
 """.
 -spec any_type() -> c_types().
 any_type()       -> #builtTy{anno = 0, builtIn = 'any'}.
+
+-doc "Builds the `atom()` type.".
+-spec atom_type() -> c_types().
+atom_type()      -> #builtTy{builtIn = atom}.
 
 -doc "Builds the `binary()` type.".
 -spec bin_type() -> c_types().
@@ -579,8 +590,33 @@ meet(A, B) ->
                 true ->
                     B;
                 false ->
-                    #builtTy{builtIn = none, args=[]}
+                    meet_distribute(A, B)
             end
+    end.
+
+%% Neither side is a subtype of the other. If one side is a union,
+%% intersect member-wise and keep the members that survive: e.g.
+%% meet(integer() | atom(), atom()) = atom(). This is required so a
+%% type-test guard (is_atom) can narrow a union argument to the matching
+%% member instead of collapsing to none(). When neither side is a union,
+%% the types are genuinely disjoint and the meet is none().
+meet_distribute(#unionTy{args = As}, B) ->
+    meet_members(As, B);
+meet_distribute(A, #unionTy{args = Bs}) ->
+    meet_members(Bs, A);
+meet_distribute(_A, _B) ->
+    none_type().
+
+%% Meet each union member with Other, dropping none() results, and
+%% rebuild a union (or a single type, or none()) from the survivors.
+meet_members(Members, Other) ->
+    Survivors = [M2 || M <- Members,
+                       M2 <- [meet(M, Other)],
+                       not is_none(M2)],
+    case Survivors of
+        []      -> none_type();
+        [Single] -> Single;
+        Many    -> #unionTy{args = Many}
     end.
 
 
