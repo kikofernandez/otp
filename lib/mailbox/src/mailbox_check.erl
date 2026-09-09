@@ -96,7 +96,9 @@ check(Env, LocalEnv, Expr, Ty) ->
         ?APPLY ->
             check_apply(Env, LocalEnv, Expr, Ty);
         ?CALL ->
-            check_call(Env, LocalEnv, Expr, Ty)
+            check_call(Env, LocalEnv, Expr, Ty);
+        ?SEQ ->
+            check_seq(Env, LocalEnv, Expr, Ty)
     end.
 
 
@@ -126,6 +128,17 @@ check_fun(Env, LocalEnv0, Fun, Ty) ->
 %%
 check_call(_Env, _LocalEnv, Node, Ty) ->
     subsumption(_Env, _LocalEnv, Node, Ty).
+
+
+
+%%
+%%     G |- e1 => B      G |- e2 <= A
+%%  ------------------------------------
+%%       G |- e1; e2 <= A
+%%
+check_seq(_Env, _LocalEnv, Node, Ty) ->
+     _ = synth(_Env, _LocalEnv, mailbox_ast:seq_arg(Node)),
+    check(_Env, _LocalEnv, mailbox_ast:seq_body(Node), Ty).
 
 %%
 %% Apply does not exist in checking form, so we infer.
@@ -254,6 +267,7 @@ check_clause(Env, LocalEnv, PatTy, C, RetTy) ->
         false ->
             GuardEnv = synth_env_guards(LocalEnv, C),
             PatEnv = synth_env_patterns(Env, LocalEnv, GuardEnv, PatTy, C),
+            io:format("[~p] ~p~nGuards:~n~p~nPattern~n~p~n", [?LINE, ?FUNCTION_NAME, GuardEnv, PatEnv]),
             check(Env, PatEnv, Body, RetTy)
     end.
 
@@ -295,7 +309,9 @@ synth(Env, LocalEnv, Arg) ->
         ?APPLY ->
             synth_apply(Env, LocalEnv, Arg);
         ?CALL ->
-            synth_call(Env, LocalEnv, Arg)
+            synth_call(Env, LocalEnv, Arg);
+        ?CASE ->
+            synth_case(Env, LocalEnv, Arg)
         %% ?VALUES ->
         %%     synth_values(Env, LocalEnv, Arg)
     end.
@@ -313,7 +329,9 @@ synth(Env, LocalEnv, Arg) ->
 %%     error(error_in_values).
 
 %% Works only on top level-functions with specs.
-%% TODO: lambdas are not covered.
+%% TODO: lambdas are not covered:
+%%       - it needs Consistent Subtyping for all
+%%       - contextual typing from
 %% TODO: un-spec functions
 %%
 %%     G |- e1 => A -> B
@@ -373,6 +391,58 @@ synth_call(Env, LocalEnv, Node) ->
             end;
         error ->
             mailbox_types:dyn_type()
+    end.
+
+
+
+%% TODO:
+%%
+%%
+%%
+%%       G |- e => A1 + A2 + A3
+%%       G, p1: A1 + A2 + A3 |- e1 => A
+%%       G, p2: A1 + A2 + A3 |- e2 => A
+%%  ---------------------------------------------------
+%%       G |- case e of p1 when g -> e1, ... end => A
+%%
+synth_case(Env, LocalEnv, Case) ->
+    Arg = mailbox_ast:case_arg(Case),
+    ArgTy = synth(Env, LocalEnv, Arg),
+
+    Clauses = mailbox_ast:case_clauses(Case),
+    synth_clauses(Env, LocalEnv, ArgTy, Clauses).
+
+%% TODO: This is a fail-fast error.
+%% We stop typechecking and return the first error we encounter.
+synth_clauses(Env, LocalEnv, ArgTy, Clauses) ->
+    Types =
+        lists:foldl(
+          fun(_C, {error, _} = Err) ->
+                  %% TODO: not possible?
+                  Err;
+             (C, Acc) ->
+                  [synth_clause(Env, LocalEnv, ArgTy, C) | Acc]
+          end, [], Clauses),
+    mailbox_types:union(Types).
+
+%%
+%%        G |- g => {v : Va | v in vars(g) }
+%%        G, {v : Va | v in vars(g) } |- p => A
+%% --------------------------------------------------------
+%%             G |- p when g => A
+%%
+synth_clause(Env, LocalEnv, PatTy, C) ->
+    %% PatTy: Type of the pattern
+    Body = mailbox_ast:clause_body(C),
+    case is_match_fail(Body) of
+        true ->
+            %% Compiler-generated catch-all (function_clause/case_clause).
+            %% Not user code — nothing to type-check.
+            ok;
+        false ->
+            GuardEnv = synth_env_guards(LocalEnv, C),
+            PatEnv = synth_env_patterns(Env, LocalEnv, GuardEnv, PatTy, C),
+            synth(Env, PatEnv, Body)
     end.
 
 %%
@@ -610,7 +680,7 @@ synth_env_guards(LocalEnv, Node, ReturnEnv) ->
             synth_env_guards(LocalEnv, mailbox_ast:let_body(Node), RetEnv1);
         'literal' ->
             ReturnEnv;
-        call ->
+        'call' ->
             ModLit = mailbox_ast:call_module(Node),
             'erlang' = mailbox_ast:concrete(ModLit),
 

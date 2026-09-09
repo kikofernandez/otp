@@ -84,8 +84,11 @@
 %% Primops
 -export([primop_name/1]).
 
-%% Primops
+%% Apply
 -export([apply_name/1, apply_args/1]).
+
+%% Seq
+-export([seq_arg/1, seq_body/1]).
 
 %% Annotations
 -export([get_ann/1]).
@@ -151,6 +154,18 @@ case_arg(Case) ->
 -spec case_clauses(ast()) -> [ast()].
 case_clauses(Case) ->
     cerl:case_clauses(Case).
+
+%%% ===================================================================
+%%% Cerl
+%%% ===================================================================
+
+-spec seq_arg(ast()) -> ast().
+seq_arg(Seq) ->
+    cerl:seq_arg(Seq).
+
+-spec seq_body(ast()) -> ast().
+seq_body(Seq) ->
+    cerl:seq_body(Seq).
 
 %%% ===================================================================
 %%% Clause

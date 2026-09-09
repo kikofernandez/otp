@@ -36,7 +36,7 @@
          list_type/0, map_type/0, number_type/0,
          pid_type/0, port_type/0, record_type/0,
          reference_type/0, tuple_type/0]).
--export([tuple_type/1, list_type/1, list_of/1, cons/2]).
+-export([tuple_type/1, list_type/1, list_of/1, cons/2, union/1]).
 
 -include("c_types.hrl").
 
@@ -107,6 +107,10 @@ and the tail's element type(s).
 -spec cons(HeadTy :: c_types(), TailTy :: c_types()) -> c_types().
 cons(HeadTy, TailTy) ->
     list_of([HeadTy | tail_elem(TailTy)]).
+
+-spec union(Args :: [c_types()]) -> c_types().
+union(Types) when is_list(Types) ->
+    #unionTy{args = Types}.
 
 %% Extract the element type(s) contributed by a list tail.
 tail_elem(#emptyListTy{})                          -> [];
