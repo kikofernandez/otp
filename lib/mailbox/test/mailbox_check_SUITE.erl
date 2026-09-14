@@ -87,6 +87,7 @@ accept_cases() ->
      "accept_atom_guard_narrow",
      "accept_binary_guard_narrow",
      "accept_tuple_union_guard",
+     "accept_let_single",
      "accept_unused_narrowed_arg"].
 
 reject_cases() ->
@@ -98,7 +99,8 @@ reject_cases() ->
      "reject_apply_return",
      "reject_list_element",
      "reject_guard_contradicts_spec",
-     "reject_guard_outside_union"].
+     "reject_guard_outside_union",
+     "reject_let_return_mismatch"].
 
 %%% ===================================================================
 %%% Test bodies

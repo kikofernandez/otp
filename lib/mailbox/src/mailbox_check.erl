@@ -98,7 +98,9 @@ check(Env, LocalEnv, Expr, Ty) ->
         ?CALL ->
             check_call(Env, LocalEnv, Expr, Ty);
         ?SEQ ->
-            check_seq(Env, LocalEnv, Expr, Ty)
+            check_seq(Env, LocalEnv, Expr, Ty);
+        ?LET ->
+            check_let(Env, LocalEnv, Expr, Ty)
     end.
 
 
@@ -129,7 +131,33 @@ check_fun(Env, LocalEnv0, Fun, Ty) ->
 check_call(_Env, _LocalEnv, Node, Ty) ->
     subsumption(_Env, _LocalEnv, Node, Ty).
 
-
+%%
+%%     G |- e1 => B      G, x:B |- e2 <= A
+%%  -----------------------------------------
+%%       G |- let x = e1 in e2 <= A
+%%
+check_let(Env, LocalEnv, Node, Ty) ->
+    Vars = mailbox_ast:let_vars(Node),
+    Arg = mailbox_ast:let_arg(Node),
+    %% Erlang has multi-value semantics and can bind multiple
+    %% variables to a single body, due to c_values.
+    Bindings =
+        case Vars of
+            [V] ->
+                %% Single value: the arg synthesizes to one type.
+                [{mailbox_ast:var_name(V), synth(Env, LocalEnv, Arg)}];
+            _ ->
+                %% Multiple values: the arg must be a #c_values{} node of
+                %% matching arity; synth each component and pair it with
+                %% the corresponding variable.
+                ?VALUES = mailbox_ast:type(Arg),
+                Es = mailbox_ast:values_es(Arg),
+                true = length(Es) =:= length(Vars),
+                [{mailbox_ast:var_name(V), synth(Env, LocalEnv, E)} || {V, E} <- lists:zip(Vars, Es)]
+        end,
+    LetEnv = mailbox_env:localenv_from_list(Bindings),
+    LocalEnv0 = mailbox_env:merge_env_meet(LocalEnv, LetEnv),
+    check(Env, LocalEnv0, mailbox_ast:let_body(Node), Ty).
 
 %%
 %%     G |- e1 => B      G |- e2 <= A
