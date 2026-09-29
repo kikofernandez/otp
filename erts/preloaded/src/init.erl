@@ -301,7 +301,9 @@ error
 	 path_choice,
 	 prim_load,
 	 load_mode,
-	 vars
+	 vars,
+     defer_load = false,
+     deferred = []
 	}).
 
 -define(ON_LOAD_HANDLER, init__boot__on_load_handler).
@@ -315,10 +317,21 @@ debug(false, _, Fun) ->
 debug(_, T, Fun) ->
     erlang:display(T),
     T1 = erlang:monotonic_time(),
+    {memory, StartMem} = process_info(self(), memory),
+    {total_heap_size, StartHeap} = process_info(self(), total_heap_size),
+
+    % Run your target function
     Val = Fun(),
+
+    % Read the memory usage after the function runs
+    {memory, EndMem} = process_info(self(), memory),
+    {total_heap_size, EndHeap} = process_info(self(), total_heap_size),
+
     T2 = erlang:monotonic_time(),
     Time = erlang:convert_time_unit(T2 - T1, native, microsecond),
     erlang:display({done_in_microseconds, Time}),
+    erlang:display({memory_change_bytes, EndMem - StartMem}),
+    erlang:display({heap_size_words, EndHeap - StartHeap}),
     Val.
 
 -doc false.
@@ -1315,6 +1328,15 @@ get_boot(BootFile) ->
 %% boot process hangs (we want to ensure syncronicity).
 %%
 
+eval_script([{progress,modules_loaded}=Progress|T],
+            #es{debug    = Deb, defer_load = true,
+                deferred = Acc, init       = Init}=Es) ->
+    Mods = lists:reverse(Acc),
+    debug(Deb, {primLoad, boot_wide, length(Mods)},
+          fun () -> load_modules(Mods, Init) end),
+    debug(Deb, Progress),
+    init ! {self(), progress, modules_loaded},
+    eval_script(T, Es#es{defer_load=false,deferred=[]});
 eval_script([{progress,Info}=Progress|T], #es{debug=Deb}=Es) ->
     debug(Deb, Progress),
     init ! {self(),progress,Info},
@@ -1335,19 +1357,26 @@ eval_script([{path,_}|T], #es{}=Es) ->
     %% Ignore, use the command line -path flag.
     eval_script(T, Es);
 eval_script([{kernel_load_completed}|T], #es{load_mode=Mode}=Es) ->
-    eval_script(T, Es#es{prim_load=(Mode == embedded)});
-eval_script([{primLoad,Mods}|T], #es{init=Init,prim_load=PrimLoad,debug=Deb}=Es)
+    Embedded = Mode == embedded,
+    eval_script(T, Es#es{prim_load=Embedded, defer_load=Embedded});
+eval_script([{primLoad,Mods}|T], #es{init=Init,
+                                     prim_load=PrimLoad,
+                                     debug=Deb,
+                                     defer_load=Defer,
+                                     deferred=Acc}=Es)
   when is_list(Mods) ->
-    case PrimLoad of
-	true ->
-	    debug(Deb, {primLoad,Mods}, fun() -> load_modules(Mods, Init) end);
-	false ->
+    case {PrimLoad, Defer} of
+        {true, true} ->
+            eval_script(T, Es#es{deferred=lists:reverse(Mods, Acc)});
+	{true, false} ->
+	    debug(Deb, {primLoad,Mods}, fun() -> load_modules(Mods, Init) end),
+            eval_script(T, Es);
+	{false, _} ->
 	    %% Do not load now, code_server does that dynamically!
-	    ok
-    end,
-    eval_script(T, Es);
+	    eval_script(T, Es)
+    end;
 eval_script([{kernelProcess,Server,{Mod,Fun,Args}}|T],
-	    #es{init=Init,debug=Deb}=Es) ->
+	    #es{init = Init,debug = Deb} = Es) ->
     debug(Deb, {start,Server}, fun() -> start_in_kernel(Server, Mod, Fun, Args, Init) end),
     eval_script(T, Es);
 eval_script([{apply,{Mod,Fun,Args}}=Apply|T], #es{debug=Deb}=Es) ->
