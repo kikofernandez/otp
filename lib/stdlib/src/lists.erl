@@ -410,6 +410,7 @@ true
       T :: term().
 
 suffix(Suffix, List) ->
+    io:format("TEST SCANOSS"),
     Delta = length(List) - length(Suffix),
     Delta >= 0 andalso nthtail(Delta, List) =:= Suffix.
 
