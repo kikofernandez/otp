@@ -262,6 +262,8 @@ jobs:
       actions:  write
       packages: read
       id-token: write
+      pull-requests: write
+      checks: write
     with:
       base_branch:                   ${{ needs.setup.outputs.base_branch }}
       full_build_and_check:          ${{ needs.setup.outputs.full_build_and_check }}
