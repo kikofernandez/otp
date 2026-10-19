@@ -39,7 +39,7 @@ module_to_manpage(Module, Path, Section) when is_atom(Module) ->
         {ok, Docs} ->
                 module_to_manpage(Module, Path, Docs, Section);
         _Error ->
-            ~""
+            <<"">>
     end.
 -spec module_to_manpage(Module, Path, Docs, Section) -> unicode:chardata() when
         Module :: module(),
